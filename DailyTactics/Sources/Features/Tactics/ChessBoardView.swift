@@ -3,6 +3,7 @@ import SwiftUI
 struct ChessBoardView: View {
     let position: [Square: Piece]
     let selectedSquare: Square?
+    let hintMove: ChessMove?
     let lastMove: ChessMove?
     let isFlipped: Bool
     let onSelect: (Square) -> Void
@@ -36,6 +37,10 @@ struct ChessBoardView: View {
                                 ZStack {
                                     ((file + rank).isMultiple(of: 2) ? darkSquare : lightSquare)
 
+                                    if hintMove?.from == square || hintMove?.to == square {
+                                        Color.green.opacity(0.42)
+                                    }
+
                                     if lastMove?.from == square || lastMove?.to == square {
                                         moveHighlight.opacity(0.82)
                                     }
@@ -50,6 +55,12 @@ struct ChessBoardView: View {
                                             .scaledToFit()
                                             .frame(width: squareSide * 0.88, height: squareSide * 0.88)
                                             .accessibilityHidden(true)
+                                    }
+
+                                    if hintMove?.to == square {
+                                        Circle()
+                                            .stroke(Color.green, lineWidth: 3)
+                                            .frame(width: squareSide * 0.84, height: squareSide * 0.84)
                                     }
 
                                     coordinateLabels(for: square)

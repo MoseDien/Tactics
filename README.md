@@ -1,64 +1,80 @@
 # DailyTactics
 
-An iOS-only, offline SwiftUI app for solving focused chess tactics. Each run
-deals a small batch of random puzzles from a bundled Lichess dataset; solve
-them by playing the correct line on an interactive board.
+DailyTactics is an offline iOS SwiftUI app for short chess-tactics sessions.
+It bundles a compact Lichess-derived puzzle set, lets the player solve one
+line at a time, and stores progress locally.
 
-Chess piece artwork uses the Lichess `chessnut` SVG set by Alexis Luengas,
-licensed under Apache License 2.0 — see `THIRD_PARTY_NOTICES.md`.
+## Current product
 
-## Features
+- iOS-only, iOS 17+, Swift 6, SwiftUI, Tuist 4.x
+- Bundle identifier: `com.dienbell.tactics`
+- Three random puzzles are selected for each session
+- Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
+- The first move in every Lichess line is the machine's setup move; user and
+  machine then alternate through the remaining UCI moves
+- Tap-to-move interaction with basic movement validation
+- Castling, en passant, and automatic queen promotion in trusted puzzle lines
+- Wrong legal moves are shown briefly and recorded; the player can retry
+- Hint button highlights the expected move without auto-playing it
+- `<` / `>` review controls are locked during active play and become available
+  after the puzzle is solved or review has started
+- Board orientation follows the player's color and can be flipped manually
+- A local Elo-like puzzle Rating starts at 1500 and is persisted with
+  `UserDefaults`
+- SwiftData stores completion and failure history for future review features
 
-- **1,000 bundled puzzles** (`Resources/puzzles.json`) sampled from the Lichess
-  database; each run deals three at random.
-- **Tap-to-move** with basic chess-rules validation (piece movement, path
-  blocking, self-capture). A wrong *legal* move briefly shows on the target then
-  snaps back to its origin; an *illegal* move is ignored.
-- **Special moves** in the solution lines — castling, en passant, and promotion
-  (auto-queen) — are applied correctly.
-- **Automatic opponent reply**, puzzle completion, and a step-by-step review
-  scrubber (`<` / `>`) to think through the line move by move.
-- **Board orientation** flips to the player's perspective on every load, with a
-  manual flip toggle.
-- **Completion tracking** via SwiftData (`PuzzleProgress`), backing the "Solved"
-  counter.
+The app intentionally does not include accounts, networking, Stockfish,
+analytics, subscriptions, or cloud synchronization.
 
-## Puzzle dataset
+## Rating
 
-The bundled set is generated from a local Lichess SQLite export. The entire
-`lichess/` directory (raw database **and** the import/export scripts) is local
-and **not** committed — see `.gitignore`. If you have that local setup,
-regenerate the bundled file with:
+The current Rating is a local training score, not an official Lichess rating.
+The calculator uses the standard expected-score formula with `K = 32`:
 
-```sh
-python3 lichess/tools/export_puzzles.py \
-    lichess/data/lichess_puzzles.sqlite \
-    DailyTactics/Resources/puzzles.json \
-    --count 1000
+```text
+expected = 1 / (1 + 10 ^ ((puzzleRating - userRating) / 400))
+change   = round(32 * (result - expected))
 ```
 
-Lichess theme tags are filtered down to the app's `PuzzleTheme` enum.
+`result` is `1` for a clean solve and `0` after a mistake or hint. Scores are
+clamped to `400...3000`. The value is deliberately isolated in
+`Persistence/Rating.swift` so the policy can be replaced later.
 
-## Requirements
+## Project layout
 
-- Xcode 16 or newer
-- Tuist 4.x
-- iOS 17 or newer
+```text
+Project.swift
+Tuist.swift
+DailyTactics/
+  Sources/
+    ChessCore/              board, FEN, UCI, basic move legality
+    PuzzleKit/              puzzle model and line/session state machine
+    Persistence/            SwiftData progress and local Rating
+    Features/Tactics/       training view, board, and view model
+    DailyTacticsApp.swift   app entry point and model container
+  Resources/                puzzles.json, SVG pieces, license
+  Tests/                    domain and feature behavior tests
+lichess/                    local-only dataset/tools (ignored by Git)
+```
 
-## Build & run
+The dependency direction is `Features → PuzzleKit → ChessCore`; persistence is
+injected at the feature boundary. Domain code does not import SwiftUI or
+SwiftData.
+
+## Requirements and commands
 
 ```sh
+# Generate the Xcode workspace
 mise x tuist@4.197.3 -- tuist generate
+
+# Open the generated workspace
 open DailyTactics.xcworkspace
-```
 
-Run the domain tests:
-
-```sh
+# Run all tests
 mise x tuist@4.197.3 -- tuist test
 ```
 
-CI-friendly build:
+CI-style build:
 
 ```sh
 xcodebuild \
@@ -70,18 +86,9 @@ xcodebuild \
   build
 ```
 
-## Architecture
+## Puzzle data
 
-A single Tuist target (`DailyTactics`) with source organized by concern. Chess
-rules and puzzle logic have **no** SwiftUI or SwiftData dependencies.
-
-```
-Sources/
-  ChessCore/            Board, pieces, FEN, UCI moves, basic legality
-  PuzzleKit/            Puzzle model, session state machine, bundled loader
-  Persistence/          SwiftData PuzzleProgress + store (completion tracking)
-  Features/Tactics/     TacticsView, ChessBoardView, TacticsViewModel
-  DailyTacticsApp.swift App entry point + SwiftData container
-Resources/              puzzles.json, piece artwork, license
-Tests/                  domain unit tests (XCTest)
-```
+`DailyTactics/Resources/puzzles.json` is the app's compact bundled dataset.
+The raw Lichess export and local import tools live under `lichess/` and are not
+part of the mobile bundle. Third-party artwork and licensing details are in
+`THIRD_PARTY_NOTICES.md`.

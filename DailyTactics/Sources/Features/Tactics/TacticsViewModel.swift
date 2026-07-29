@@ -1,6 +1,17 @@
 import Foundation
 import Observation
 
+enum TacticsFeedbackState: Equatable {
+    case instruction(message: String, systemImage: String)
+    case error(message: String)
+    case opponentMoving
+    case opponentReply
+    case incorrectMove
+    case reviewing
+    case puzzleComplete
+    case trainingComplete
+}
+
 @MainActor
 @Observable
 final class TacticsViewModel {
@@ -10,16 +21,24 @@ final class TacticsViewModel {
     private(set) var session: PuzzleSession
     private(set) var selectedSquare: Square?
     private(set) var attemptedMove: ChessMove?
+    private(set) var hintMove: ChessMove?
     private(set) var errorMessage: String?
     private var progress: PuzzleProgressStore?
-    private(set) var completedCount: Int = 0
+    private let ratingStore: UserRatingStore
+    private let ratingCalculator = PuzzleRatingCalculator()
+    private var hadMistake = false
+    private var ratingAppliedForPuzzle = false
+    private(set) var userRating: Int
+    private(set) var lastRatingDelta: Int?
     private(set) var isBoardFlipped: Bool = false
 
-    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil) {
+    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore()) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
         let batch = Self.pickRandomBatch(from: source)
         self.dataset = source
         self.progress = progress
+        self.ratingStore = ratingStore
+        userRating = ratingStore.rating
         self.puzzles = batch
         currentIndex = 0
         do {
@@ -28,12 +47,10 @@ final class TacticsViewModel {
             preconditionFailure("Invalid bundled puzzle: \(error)")
         }
         orientBoardToPlayer()
-        completedCount = progress?.completedCount() ?? 0
     }
 
     func attachProgress(_ store: PuzzleProgressStore) {
         progress = store
-        completedCount = store.completedCount()
     }
 
     /// Flip the board between the two playing perspectives.
@@ -50,6 +67,7 @@ final class TacticsViewModel {
     // MARK: - Board state
 
     var position: [Square: Piece] { session.board.pieces }
+    var lastMove: ChessMove? { session.lastMove }
 
     /// Position shown on the board. While a wrong move is being demonstrated, the
     /// moved piece is shown on its target square; clearing `attemptedMove` snaps it back.
@@ -65,6 +83,33 @@ final class TacticsViewModel {
 
     var state: PuzzleSessionState { session.state }
     var playerColor: PieceColor { session.userColor }
+    var headerTitle: String { state == .solved ? "Puzzle complete!" : "Your turn" }
+    var headerSubtitle: String {
+        "Find the best move for \(playerColor == .white ? "white" : "black")."
+    }
+
+    var feedbackState: TacticsFeedbackState {
+        if errorMessage != nil {
+            return .error(message: errorMessage ?? "")
+        }
+        if inReview && state != .solved {
+            return .reviewing
+        }
+
+        switch state {
+        case .waitingForMove:
+            return .instruction(
+                message: hintMove == nil ? "Find the winning move" : "Move the highlighted piece to the marked square",
+                systemImage: hintMove == nil ? "scope" : "lightbulb.fill"
+            )
+        case .opponentMoving:
+            return isReviewing ? .opponentReply : .opponentMoving
+        case .incorrectMove:
+            return .incorrectMove
+        case .solved:
+            return isBatchComplete ? .trainingComplete : .puzzleComplete
+        }
+    }
 
     // MARK: - Batch navigation
 
@@ -88,25 +133,45 @@ final class TacticsViewModel {
 
     // MARK: - Review stepping
 
-    var canStepForward: Bool { session.canStepForward }
-    var canStepBack: Bool { session.canStepBack }
+    /// `<`/`>` are review-only: available once the puzzle is solved (or while
+    /// scrubbing the line afterwards). Disabled during active play.
+    var inReview: Bool { session.state == .solved || session.isReviewing }
+    var canStepForward: Bool { inReview && session.canStepForward }
+    var canStepBack: Bool { inReview && session.canStepBack }
+    var hintEnabled: Bool {
+        !inReview && (session.state == .waitingForMove || session.state == .incorrectMove)
+    }
     var isReviewing: Bool { session.isReviewing }
     var currentMoveNumber: Int { session.currentMoveNumber }
     var totalUserMoves: Int { session.totalUserMoves }
 
     func stepForward() {
+        guard canStepForward else { return }
         do {
             try session.stepForward()
             selectedSquare = nil
+            attemptedMove = nil
+            hintMove = nil
         } catch {
             errorMessage = "The next move could not be shown."
         }
     }
 
+    /// Highlight the piece and its destination for the current expected move.
+    /// Decoupled from `>` — it never reveals the line or unlocks the stepper.
+    func requestHint() {
+        guard hintEnabled, let expected = session.expectedMove else { return }
+        hadMistake = true
+        hintMove = expected
+    }
+
     func stepBack() {
+        guard canStepBack else { return }
         do {
             try session.stepBack()
             selectedSquare = nil
+            attemptedMove = nil
+            hintMove = nil
         } catch {
             errorMessage = "The previous move could not be shown."
         }
@@ -120,8 +185,10 @@ final class TacticsViewModel {
     }
 
     func select(_ square: Square) {
-        guard state == .waitingForMove || state == .incorrectMove else { return }
+        guard !inReview,
+              state == .waitingForMove || state == .incorrectMove else { return }
         attemptedMove = nil
+        hintMove = nil
 
         if state == .incorrectMove {
             session.resumeAfterIncorrectMove()
@@ -152,8 +219,12 @@ final class TacticsViewModel {
         do {
             session = try PuzzleSession(puzzle: puzzles[index])
             selectedSquare = nil
+            hintMove = nil
             attemptedMove = nil
             errorMessage = nil
+            hadMistake = false
+            ratingAppliedForPuzzle = false
+            lastRatingDelta = nil
             orientBoardToPlayer()
             Task { await playOpponentMove() }
         } catch {
@@ -162,6 +233,7 @@ final class TacticsViewModel {
     }
 
     private func attemptMove(from origin: Square, to target: Square) {
+        hintMove = nil
         var move = ChessMove(from: origin, to: target)
         if session.moveNeedsPromotion(move) {
             move = ChessMove(from: origin, to: target, promotion: .queen)
@@ -182,7 +254,9 @@ final class TacticsViewModel {
 
         switch state {
         case .incorrectMove:
-            // Legal but wrong: briefly show the piece on the target, then snap back.
+            // Wrong move: record it as a failure, then let the user retry.
+            recordFailure()
+            hadMistake = true
             attemptedMove = move
             let attempted = move
             Task {
@@ -214,8 +288,23 @@ final class TacticsViewModel {
     }
 
     private func markCurrentSolved() {
+        guard !ratingAppliedForPuzzle else { return }
+        ratingAppliedForPuzzle = true
+        let puzzleRating = puzzles[currentIndex].rating ?? userRating
+        let cleanSolve = !hadMistake && hintMove == nil
+        let delta = ratingCalculator.change(
+            userRating: userRating,
+            puzzleRating: puzzleRating,
+            solved: cleanSolve
+        )
+        userRating = ratingStore.apply(delta: delta)
+        lastRatingDelta = delta
         guard let progress else { return }
         progress.markCompleted(puzzles[currentIndex].id)
-        completedCount = progress.completedCount()
+    }
+
+    private func recordFailure() {
+        guard let progress else { return }
+        progress.markFailed(puzzles[currentIndex].id)
     }
 }

@@ -155,6 +155,8 @@ struct PuzzleSession: Sendable {
         isReviewing = false
 
         guard move == expectedMove else {
+            // Wrong move: the view layer records it as a failure, but the user
+            // may keep trying (retry in place).
             state = .incorrectMove
             return
         }

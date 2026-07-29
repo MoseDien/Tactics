@@ -6,7 +6,9 @@ let project = Project(
     settings: .settings(
         base: [
             "SWIFT_VERSION": "6.0",
-            "IPHONEOS_DEPLOYMENT_TARGET": "17.0"
+            "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+            "CODE_SIGN_STYLE": "Automatic",
+            "DEVELOPMENT_TEAM": "4V4QEMAAYL"
         ]
     ),
     targets: [

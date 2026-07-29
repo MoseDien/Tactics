@@ -10,11 +10,13 @@ import SwiftData
 final class PuzzleProgress {
     var puzzleId: String
     var isCompleted: Bool
+    var hasFailed: Bool = false
     var completedAt: Date?
 
     init(puzzleId: String) {
         self.puzzleId = puzzleId
         self.isCompleted = false
+        self.hasFailed = false
         self.completedAt = nil
     }
 }
@@ -52,6 +54,29 @@ struct PuzzleProgressStore {
             predicate: #Predicate { $0.puzzleId == puzzleId }
         )
         return (try? context.fetch(descriptor).first?.isCompleted) ?? false
+    }
+
+    /// Record that a wrong move occurred on this puzzle (idempotent). The user may
+    /// still retry — this only persists the failure for stats.
+    func markFailed(_ puzzleId: String) {
+        let descriptor = FetchDescriptor<PuzzleProgress>(
+            predicate: #Predicate { $0.puzzleId == puzzleId }
+        )
+        if let existing = try? context.fetch(descriptor).first {
+            existing.hasFailed = true
+        } else {
+            let progress = PuzzleProgress(puzzleId: puzzleId)
+            progress.hasFailed = true
+            context.insert(progress)
+        }
+        try? context.save()
+    }
+
+    func failedCount() -> Int {
+        let descriptor = FetchDescriptor<PuzzleProgress>(
+            predicate: #Predicate { $0.hasFailed == true }
+        )
+        return (try? context.fetchCount(descriptor)) ?? 0
     }
 
     func completedCount() -> Int {

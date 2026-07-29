@@ -32,7 +32,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertEqual(session.expectedMove?.uci, Puzzle.samples[0].moves[1])
     }
 
-    func testIncorrectMoveIsRejectedWithoutChangingBoard() throws {
+    func testWrongMoveIsRejectedButRetriableAndLeavesBoardUnchanged() throws {
         var session = try PuzzleSession(puzzle: Puzzle.samples[0])
         try session.applyOpponentMove()
         let originalBoard = session.board
@@ -41,8 +41,13 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         try session.submitUserMove(ChessMove(from: expectedMove.from, to: wrongTarget))
 
+        // Wrong move is rejected but the user may retry — the view layer records
+        // the failure separately.
         XCTAssertEqual(session.state, .incorrectMove)
         XCTAssertEqual(session.board, originalBoard)
+
+        try session.resumeAfterIncorrectMove()
+        XCTAssertEqual(session.state, .waitingForMove)
     }
 
     func testCompleteLineReachesSolvedAndRestartRestoresPuzzle() throws {
@@ -270,6 +275,28 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
+    func testProgressStoreRecordsFailures() throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: PuzzleProgress.self, configurations: config)
+        let store = PuzzleProgressStore(context: ModelContext(container))
+
+        XCTAssertEqual(store.failedCount(), 0)
+
+        store.markFailed("p1")
+        XCTAssertEqual(store.failedCount(), 1)
+
+        // Idempotent: repeated wrong moves on the same puzzle don't double-count.
+        store.markFailed("p1")
+        XCTAssertEqual(store.failedCount(), 1)
+
+        // Failure and completion are independent counts.
+        store.markFailed("p2")
+        store.markCompleted("p2")
+        XCTAssertEqual(store.failedCount(), 2)
+        XCTAssertEqual(store.completedCount(), 1)
+    }
+
+    @MainActor
     func testBoardAutoOrientsToPlayerColor() {
         let vm = TacticsViewModel(dataset: Puzzle.samples)
         // Whatever puzzle loaded first, the board faces the player's color.
@@ -278,5 +305,23 @@ final class ChessAndPuzzleTests: XCTestCase {
         // Re-orienting on each reload keeps the invariant.
         vm.restartBatch()
         XCTAssertEqual(vm.isBoardFlipped, vm.playerColor == .black)
+    }
+
+    func testPuzzleRatingRewardsHarderCleanSolvesMore() {
+        let calculator = PuzzleRatingCalculator()
+
+        XCTAssertGreaterThan(calculator.change(userRating: 1500, puzzleRating: 2200, solved: true),
+                             calculator.change(userRating: 1500, puzzleRating: 1000, solved: true))
+        XCTAssertLessThan(calculator.change(userRating: 1500, puzzleRating: 2200, solved: false), 0)
+        XCTAssertGreaterThan(calculator.expectedScore(userRating: 1500, puzzleRating: 1000), 0.5)
+    }
+
+    @MainActor
+    func testStepperLockedUntilSolved() {
+        let vm = TacticsViewModel(dataset: Puzzle.samples)
+        // During active play the review stepper is disabled (no peeking).
+        XCTAssertFalse(vm.inReview)
+        XCTAssertFalse(vm.canStepForward)
+        XCTAssertFalse(vm.canStepBack)
     }
 }
