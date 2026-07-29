@@ -1,9 +1,10 @@
 import XCTest
+import SwiftData
 @testable import DailyTactics
 
 final class ChessAndPuzzleTests: XCTestCase {
     func testFENParsesPiecesAndSideToMove() throws {
-        let board = try Board(fen: Puzzle.sample.fen)
+        let board = try Board(fen: Puzzle.samples[0].fen)
 
         XCTAssertEqual(board.sideToMove, .white)
         XCTAssertEqual(board.pieces[Square(notation: "e1")!], Piece(color: .white, kind: .king))
@@ -19,20 +20,20 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     func testExpectedFirstMoveIsRecognized() throws {
-        var session = try PuzzleSession(puzzle: .sample)
+        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
 
         XCTAssertEqual(session.state, .opponentMoving)
-        XCTAssertEqual(session.expectedMove?.uci, Puzzle.sample.moves[0])
+        XCTAssertEqual(session.expectedMove?.uci, Puzzle.samples[0].moves[0])
         XCTAssertEqual(session.userColor, .black)
 
         try session.applyOpponentMove()
 
         XCTAssertEqual(session.state, .waitingForMove)
-        XCTAssertEqual(session.expectedMove?.uci, Puzzle.sample.moves[1])
+        XCTAssertEqual(session.expectedMove?.uci, Puzzle.samples[0].moves[1])
     }
 
     func testIncorrectMoveIsRejectedWithoutChangingBoard() throws {
-        var session = try PuzzleSession(puzzle: .sample)
+        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
         try session.applyOpponentMove()
         let originalBoard = session.board
         let expectedMove = try XCTUnwrap(session.expectedMove)
@@ -45,23 +46,23 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     func testCompleteLineReachesSolvedAndRestartRestoresPuzzle() throws {
-        var session = try PuzzleSession(puzzle: .sample)
-        let firstUserMove = try XCTUnwrap(ChessMove(uci: Puzzle.sample.moves[1]))
-        let finalUserMove = try XCTUnwrap(ChessMove(uci: Puzzle.sample.moves[3]))
+        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
+        let firstUserMove = try XCTUnwrap(ChessMove(uci: Puzzle.samples[0].moves[1]))
+        let finalUserMove = try XCTUnwrap(ChessMove(uci: Puzzle.samples[0].moves[3]))
 
         try session.applyOpponentMove()
-        XCTAssertEqual(session.lastMove?.uci, Puzzle.sample.moves[0])
+        XCTAssertEqual(session.lastMove?.uci, Puzzle.samples[0].moves[0])
 
         try session.submitUserMove(firstUserMove)
         XCTAssertEqual(session.state, .opponentMoving)
 
         try session.applyOpponentMove()
         XCTAssertEqual(session.state, .waitingForMove)
-        XCTAssertEqual(session.lastMove?.uci, Puzzle.sample.moves[2])
+        XCTAssertEqual(session.lastMove?.uci, Puzzle.samples[0].moves[2])
 
         try session.submitUserMove(finalUserMove)
         XCTAssertEqual(session.state, .solved)
-        XCTAssertEqual(session.lastMove?.uci, Puzzle.sample.moves[3])
+        XCTAssertEqual(session.lastMove?.uci, Puzzle.samples[0].moves[3])
 
         try session.restart()
         XCTAssertEqual(session.state, .opponentMoving)
@@ -93,5 +94,169 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         try session.submitUserMove(ChessMove(uci: "c3e2")!)
         XCTAssertEqual(session.state, .solved)
+    }
+
+    // MARK: - Review stepping
+
+    func testStepForwardAdvancesOnePlyAtATime() throws {
+        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
+
+        try session.stepForward()
+        XCTAssertEqual(session.currentMoveIndex, 1)
+        XCTAssertEqual(session.state, .waitingForMove)
+        XCTAssertTrue(session.isReviewing)
+        XCTAssertTrue(session.canStepForward)
+        XCTAssertFalse(session.canStepBack)
+
+        try session.stepForward()
+        XCTAssertEqual(session.currentMoveIndex, 2)
+        XCTAssertEqual(session.state, .opponentMoving)
+    }
+
+    func testSteppingTheFullLineReachesSolved() throws {
+        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
+
+        for expected in 1...Puzzle.samples[0].moves.count {
+            try session.stepForward()
+            XCTAssertEqual(session.currentMoveIndex, expected)
+        }
+
+        XCTAssertEqual(session.state, .solved)
+        XCTAssertFalse(session.canStepForward)
+    }
+
+    func testStepBackRewindsPosition() throws {
+        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
+        try session.stepForward()  // index 1: knight still on d5
+        try session.stepForward()  // index 2: Nc3 played, knight on c3
+
+        let c3 = Square(notation: "c3")!
+        XCTAssertNotNil(session.board.pieces[c3])
+
+        try session.stepBack()  // back to index 1
+        XCTAssertEqual(session.currentMoveIndex, 1)
+        XCTAssertNil(session.board.pieces[c3])
+        XCTAssertEqual(
+            session.board.pieces[Square(notation: "d5")!],
+            Piece(color: .black, kind: .knight)
+        )
+    }
+
+    func testLiveGuessClearsReviewingFlag() throws {
+        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
+        try session.stepForward()
+        XCTAssertTrue(session.isReviewing)
+
+        try session.submitUserMove(ChessMove(uci: Puzzle.samples[0].moves[1])!)
+        XCTAssertFalse(session.isReviewing)
+    }
+
+    // MARK: - Bundled puzzle data
+
+    func testAllSamplesArePlayableToSolvedWithUniqueIDs() throws {
+        var seenIDs = Set<String>()
+        for puzzle in Puzzle.samples {
+            XCTAssertFalse(seenIDs.contains(puzzle.id), "Duplicate puzzle id: \(puzzle.id)")
+            seenIDs.insert(puzzle.id)
+
+            var session = try PuzzleSession(puzzle: puzzle)
+            while session.canStepForward {
+                try session.stepForward()
+            }
+            XCTAssertEqual(session.state, .solved, "Puzzle \(puzzle.id) did not reach solved")
+        }
+    }
+
+    // MARK: - Legal move validation
+
+    func testLegalMovesRespectPieceShapesAndBlocking() throws {
+        let rookBoard = try Board(fen: "7k/8/8/8/8/8/8/R3K3 w - - 0 1")
+        XCTAssertTrue(rookBoard.isLegal(ChessMove(uci: "a1a7")!, for: .white))    // rook straight, clear
+        XCTAssertFalse(rookBoard.isLegal(ChessMove(uci: "a1b2")!, for: .white))   // diagonal — not a rook move
+        XCTAssertTrue(rookBoard.isLegal(ChessMove(uci: "e1d1")!, for: .white))    // king one square
+        XCTAssertFalse(rookBoard.isLegal(ChessMove(uci: "e1c1")!, for: .white))   // king two squares
+
+        let bishopBoard = try Board(fen: "7k/8/8/8/8/4P3/8/2B1K3 w - - 0 1")
+        XCTAssertTrue(bishopBoard.isLegal(ChessMove(uci: "c1d2")!, for: .white))  // one step diagonal
+        XCTAssertFalse(bishopBoard.isLegal(ChessMove(uci: "c1g5")!, for: .white)) // blocked by the e3 pawn
+
+        let knightBoard = try Board(fen: "7k/8/8/8/8/2P5/8/1N2K3 w - - 0 1")
+        XCTAssertTrue(knightBoard.isLegal(ChessMove(uci: "b1a3")!, for: .white))  // L-move to empty
+        XCTAssertFalse(knightBoard.isLegal(ChessMove(uci: "b1c3")!, for: .white)) // L-move onto own pawn
+
+        let emptyBoard = try Board(fen: "7k/8/8/8/8/8/8/4K3 w - - 0 1")
+        XCTAssertFalse(emptyBoard.isLegal(ChessMove(uci: "a1a2")!, for: .white))  // no piece on origin
+    }
+
+    func testPawnPushAndCapture() throws {
+        let board = try Board(fen: "7k/8/8/8/8/3p4/4P3/4K3 w - - 0 1")
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "e2e4")!, for: .white))   // two-square start push
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "e2e3")!, for: .white))   // one-square push
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "e2d3")!, for: .white))   // diagonal capture
+        XCTAssertFalse(board.isLegal(ChessMove(uci: "e2f3")!, for: .white))  // diagonal to empty — no capture
+    }
+
+    // MARK: - Special moves (castling / en passant) in apply
+
+    func testCastlingAlsoRelocatesTheRook() throws {
+        var board = try Board(fen: "4k3/8/8/8/8/8/8/4K2R w - - 0 1")
+        XCTAssertTrue(board.apply(ChessMove(uci: "e1g1")!))
+        XCTAssertNotNil(board.pieces[Square(notation: "g1")!])  // king on g1
+        XCTAssertNotNil(board.pieces[Square(notation: "f1")!])  // rook on f1
+        XCTAssertNil(board.pieces[Square(notation: "e1")!])
+        XCTAssertNil(board.pieces[Square(notation: "h1")!])
+    }
+
+    func testEnPassantRemovesTheCapturedPawn() throws {
+        var board = try Board(fen: "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1")
+        XCTAssertTrue(board.apply(ChessMove(uci: "e5d6")!))
+        XCTAssertNotNil(board.pieces[Square(notation: "d6")!])  // white pawn lands on d6
+        XCTAssertNil(board.pieces[Square(notation: "d5")!])     // captured black pawn gone
+        XCTAssertNil(board.pieces[Square(notation: "e5")!])     // origin vacated
+    }
+
+    // MARK: - Puzzle decoding & progress persistence
+
+    func testPuzzleDecodesFromJSON() throws {
+        let json = #"""
+        [{"id":"abc","fen":"4k3/8/8/8/8/8/8/4K3 w - - 0 1","moves":["e1e2"],"rating":1500,"themes":["fork","endgame"]}]
+        """#.data(using: .utf8)!
+        let puzzles = try JSONDecoder().decode([Puzzle].self, from: json)
+        XCTAssertEqual(puzzles.count, 1)
+        XCTAssertEqual(puzzles[0].id, "abc")
+        XCTAssertEqual(puzzles[0].rating, 1500)
+        XCTAssertEqual(puzzles[0].themes, [.fork, .endgame])
+    }
+
+    @MainActor
+    func testProgressStoreMarksCompletion() throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: PuzzleProgress.self, configurations: config)
+        let store = PuzzleProgressStore(context: ModelContext(container))
+
+        XCTAssertFalse(store.isCompleted("p1"))
+        XCTAssertEqual(store.completedCount(), 0)
+
+        store.markCompleted("p1")
+        XCTAssertTrue(store.isCompleted("p1"))
+        XCTAssertEqual(store.completedCount(), 1)
+
+        // Idempotent: re-marking the same puzzle does not double-count.
+        store.markCompleted("p1")
+        XCTAssertEqual(store.completedCount(), 1)
+
+        store.markCompleted("p2")
+        XCTAssertEqual(store.completedCount(), 2)
+    }
+
+    @MainActor
+    func testBoardAutoOrientsToPlayerColor() {
+        let vm = TacticsViewModel(dataset: Puzzle.samples)
+        // Whatever puzzle loaded first, the board faces the player's color.
+        XCTAssertEqual(vm.isBoardFlipped, vm.playerColor == .black)
+
+        // Re-orienting on each reload keeps the invariant.
+        vm.restartBatch()
+        XCTAssertEqual(vm.isBoardFlipped, vm.playerColor == .black)
     }
 }

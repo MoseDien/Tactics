@@ -5,3 +5,5 @@ DerivedData/
 *.xcodeproj
 .build/
 .tuist-cache/
+# lichess/ is a local-only working area (raw data + import/export scripts).
+lichess/

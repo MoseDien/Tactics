@@ -2,21 +2,46 @@
 
 ## Project Overview
 
-This repository contains an iOS mobile application for practicing chess tactics.
+This repository contains an iOS application for practicing chess tactics.
 
-The app focuses on short, repeatable tactical exercises rather than full-game play. Users are shown a chess position, make moves on an interactive board, receive immediate feedback, and gradually review previously failed puzzles.
+The app focuses on short, repeatable tactical exercises rather than full-game
+play. Users are shown a chess position, make moves on an interactive board,
+receive immediate feedback, and can step through the solution line to study it.
 
-The first release should be:
+The current build is:
 
 - iOS-only
 - Built with Swift and SwiftUI
 - Fully usable offline
-- Managed with Tuist
-- Backed by local puzzle data
-- Focused on tactical training and mistake review
-- Small enough to complete and publish as a first App Store version
+- Managed with Tuist (single target)
+- Backed by a bundled JSON puzzle set derived from Lichess data
+- Focused on tactical training and completion tracking
 
-Do not add unnecessary backend, account, social, AI, or multiplayer features unless explicitly requested.
+Do not add unnecessary backend, account, social, AI, or multiplayer features
+unless explicitly requested.
+
+---
+
+## Current State
+
+The tactical training loop is implemented and exercised by unit tests:
+
+- A bundled dataset of **1,000 puzzles** (`DailyTactics/Resources/puzzles.json`),
+  generated from a local Lichess SQLite export.
+- Each run deals a **random batch of three** puzzles from the dataset.
+- Tap-to-move interaction with **basic chess-rule validation**; wrong legal
+  moves snap back, illegal moves are ignored.
+- **Special moves** in solution lines — castling, en passant, promotion
+  (auto-queen) — are applied correctly.
+- Automatic opponent reply, puzzle completion, and a `<` / `>` **review
+  scrubber** to think through a line ply by ply.
+- Board **auto-orients** to the player's color on each load, plus a manual flip.
+- **SwiftData** records completed puzzles (`PuzzleProgress`), powering a
+  "Solved" counter.
+
+Deferred on purpose (see Roadmap): full check/pin legality, castling-through-
+check, underpromotion picker, spaced-repetition review scheduling, statistics,
+theme filtering, and accounts/cloud.
 
 ---
 
@@ -26,158 +51,98 @@ The core user loop is:
 
 ```text
 Open the app
-  ↓
-See a tactical chess position
-  ↓
-Make a move on the board
-  ↓
-Receive correct or incorrect feedback
-  ↓
-Continue the tactical line
-  ↓
-Finish the puzzle
-  ↓
-Move to the next puzzle or review the explanation
+  → a random batch of puzzles is dealt
+  → see a tactical position (board oriented to your color)
+  → make a move on the board
+  → correct: continue the line; wrong: the piece snaps back
+  → finish the line → puzzle marked solved
+  → next puzzle (or step through the line with < / > to study)
 ```
 
-The product should help users recognize recurring tactical patterns, not merely memorize moves.
-
-Long-term, the app may connect:
-
-```text
-Puzzle
-→ Tactical pattern
-→ Recognition clues
-→ Similar puzzles
-→ Mistake review
-```
-
----
-
-## Core MVP Features
-
-The MVP may eventually include:
-
-1. Tactical puzzle training
-2. Interactive chessboard
-3. Correct and incorrect move feedback
-4. Tactical theme filtering
-5. Local learning history
-6. Failed-puzzle review
-7. Basic progress and streak statistics
-
-However, agents must prioritize the first runnable version described later in this document before implementing the broader MVP.
+The product should help users recognize recurring tactical patterns, not merely
+memorize moves.
 
 ---
 
 ## Technology Stack
 
-Use the following technologies unless a task explicitly requires otherwise:
+- Swift (strict concurrency where practical) and SwiftUI
+- `@Observable` view models on the main actor
+- SwiftData for completion state (`PuzzleProgress`)
+- Tuist for project generation
+- XCTest for domain tests
+- A bundled JSON dataset for puzzle content
 
-- Swift
-- SwiftUI
-- Swift Concurrency
-- SwiftData for user progress and local state
-- Tuist for project generation and dependency management
-- XCTest and Swift Testing where appropriate
-- A local JSON, SQLite, or bundled database for puzzle content
-
-Prefer Apple platform APIs over third-party libraries.
-
-A third-party chess library may be introduced only when it clearly reduces risk and has a compatible license. Keep chess rules, puzzle flow, and persistence behind internal interfaces so implementations can be replaced later.
+Prefer Apple platform APIs over third-party libraries. Chess rules, puzzle
+behavior, and persistence are kept behind internal types so implementations can
+be replaced later.
 
 ---
 
-## Tuist Requirements
+## Project Layout
 
-Tuist is the source of truth for the Xcode project structure.
-
-Do not manually maintain an `.xcodeproj` as the primary project definition.
-
-Expected workflow:
-
-```bash
-tuist install
-tuist generate
-```
-
-When dependencies or generated files are changed, update the corresponding Tuist manifests.
-
-The repository should include, as appropriate:
+A single Tuist target with source organized by concern:
 
 ```text
 .
-├── AGENTS.md
-├── Project.swift
+├── Project.swift              # Tuist manifest (app + test targets)
 ├── Tuist.swift
-├── Tuist
-│   ├── Package.swift
-│   └── ProjectDescriptionHelpers
-├── Projects
-│   └── ChessTactics
-├── Modules
-│   ├── AppFeature
-│   ├── TrainingFeature
-│   ├── ChessCore
-│   ├── PuzzleKit
-│   ├── Persistence
-│   └── DesignSystem
-├── Resources
-├── Tests
-└── README.md
+├── CLAUDE.md
+├── README.md
+├── THIRD_PARTY_NOTICES.md
+├── lichess/                   # gitignored: raw data + import/export scripts (local only)
+└── DailyTactics/
+    ├── Sources/
+    │   ├── ChessCore/         # Chess.swift
+    │   ├── PuzzleKit/         # Puzzle.swift
+    │   ├── Persistence/       # PuzzleProgress.swift
+    │   ├── Features/Tactics/  # TacticsView, ChessBoardView, TacticsViewModel
+    │   └── DailyTacticsApp.swift
+    ├── Resources/             # puzzles.json, piece art, license
+    └── Tests/                 # ChessAndPuzzleTests.swift
 ```
 
-The exact structure may evolve, but the boundaries between app composition, chess rules, puzzle behavior, and persistence must remain clear.
-
-### Tuist Target Guidelines
-
-Use separate targets only when they create a meaningful architectural boundary.
-
-Recommended initial targets:
-
-- `ChessTacticsApp`
-- `ChessCore`
-- `PuzzleKit`
-- `TrainingFeature`
-
-Optional later targets:
-
-- `Persistence`
-- `StatisticsFeature`
-- `ReviewFeature`
-- `DesignSystem`
-
-Do not over-modularize the first runnable version.
+The exact layout may evolve, but the boundaries between chess rules, puzzle
+behavior, persistence, and UI must remain clear.
 
 ### Dependency Direction
 
-Dependencies should generally flow as follows:
+Logical layering (within the single target):
 
 ```text
-ChessTacticsApp
-  └── TrainingFeature
-        ├── PuzzleKit
-        └── ChessCore
+DailyTacticsApp → Features/Tactics → PuzzleKit → ChessCore
+                                   ↘ Persistence
 ```
 
-Later:
+- `ChessCore` must not depend on SwiftUI, SwiftData, or app-specific code.
+- `PuzzleKit` depends on `ChessCore` only — no SwiftUI/SwiftData.
+- `Persistence` is SwiftData; it is injected into features, not imported by
+  `ChessCore`/`PuzzleKit`.
+- Low-level modules must not import feature modules.
 
-```text
-ChessTacticsApp
-  ├── TrainingFeature
-  ├── ReviewFeature
-  └── StatisticsFeature
+---
 
-Feature modules
-  ├── PuzzleKit
-  ├── ChessCore
-  ├── Persistence
-  └── DesignSystem
+## Tuist
+
+Tuist is the source of truth for the Xcode project. Do not hand-maintain the
+`.xcodeproj` as the primary definition.
+
+```bash
+tuist install     # if/when dependencies are added
+tuist generate    # regenerate the workspace
+tuist test        # build + run tests
 ```
 
-Low-level modules must not import feature modules.
+`Project.swift` defines two targets — the `DailyTactics` app and the
+`DailyTacticsTests` unit-test target. Sources and resources are globbed:
 
-`ChessCore` must not depend on SwiftUI, SwiftData, or application-specific UI code.
+```swift
+sources: ["DailyTactics/Sources/**"],
+resources: ["DailyTactics/Resources/**"]
+```
+
+So new files under those globs are picked up by `tuist generate` with no manifest
+edit. Do not introduce additional targets without a clear architectural reason.
 
 ---
 
@@ -185,203 +150,114 @@ Low-level modules must not import feature modules.
 
 Keep chess rules and puzzle behavior independent from UI.
 
-Recommended responsibilities:
+### ChessCore (`Chess.swift`)
 
-### ChessCore
+Chess-domain behavior — pure value types, `Sendable`, no UI/storage imports:
 
-Responsible for chess-domain behavior:
+- `PieceColor`, `PieceKind`, `Piece`, `Square`, `ChessMove`
+- `Board`: FEN parsing (board + side to move), `apply(_:)`, `isLegal(_:for:)`
+- UCI move conversion and round-tripping
 
-- Board representation
-- Pieces and colors
-- Squares
-- FEN parsing
-- Move representation
-- UCI move conversion
-- Applying moves
-- Legal-move validation
-- Check and checkmate detection, when required
+`Board.apply` handles castling (relocates the rook), en passant (removes the
+captured pawn), and promotion (via `ChessMove.promotion`).
 
-Example concepts:
+`Board.isLegal` validates **basic** piece movement: shape, path blocking, and
+self-capture. It does **not** model check/pin legality, castling rights, or en
+passant availability — those are deferred. Because puzzle solution moves come
+from a trusted line, the view model accepts the expected move unconditionally
+and only uses `isLegal` to gate exploratory (non-solution) moves.
 
-```swift
-struct Square: Hashable, Sendable {
-    let file: Int
-    let rank: Int
-}
+### PuzzleKit (`Puzzle.swift`)
 
-struct ChessMove: Equatable, Sendable {
-    let from: Square
-    let to: Square
-    let promotion: PieceType?
-}
-```
+Puzzle-specific behavior:
 
-### PuzzleKit
+- `PuzzleTheme` (stable identifiers, not display strings)
+- `Puzzle` (`Identifiable`, `Codable`) + `Puzzle.samples` (test fixtures) and
+  `Puzzle.loadBundled()` (decodes `puzzles.json`, falls back to `samples` only
+  if the file is absent; malformed data is a fatal error)
+- `PuzzleSessionState` state machine
+- `PuzzleSession`: the line-walking engine (apply expected/opponent moves,
+  correctness check, review stepping via `replay`, restart)
 
-Responsible for puzzle-specific behavior:
+### Persistence (`PuzzleProgress.swift`)
 
-- Puzzle model
-- Puzzle line
-- Current expected move
-- Puzzle session state
-- Correct and incorrect answer handling
-- Opponent move playback
-- Puzzle completion
-- Future review scheduling
+- `PuzzleProgress` (`@Model`): `{ puzzleId, isCompleted, completedAt }` — the
+  per-user "done" state, separate from static puzzle content.
+- `PuzzleProgressStore`: a `@MainActor` façade over `ModelContext` for marking
+  and querying completion. Injected into the view model; do not let SwiftData
+  types leak into `ChessCore`/`PuzzleKit`.
 
-Example model:
+### Features/Tactics
 
-```swift
-struct Puzzle: Identifiable, Codable, Sendable {
-    let id: String
-    let fen: String
-    let moves: [String]
-    let rating: Int?
-    let themes: [PuzzleTheme]
-}
-```
-
-### TrainingFeature
-
-Responsible for the training user interface:
-
-- Chessboard presentation
-- Piece selection
-- Drag or tap interaction
-- Move highlighting
-- Feedback display
-- Loading the current puzzle
-- Connecting UI events to the puzzle session
-
-### Persistence
-
-When introduced, responsible for:
-
-- Puzzle attempts
-- Review state
-- Daily activity
-- Statistics
-- SwiftData model definitions
-- Repository implementations
-
-Do not let SwiftData models leak through the entire application. Prefer repository or store abstractions at feature boundaries.
+- `ChessBoardView`: renders the 8×8 board, pieces, move/selection highlights,
+  and coordinate labels; supports a flipped perspective (data-driven).
+- `TacticsViewModel` (`@MainActor @Observable`): owns the dataset, the current
+  3-puzzle batch, the active `PuzzleSession`, board flip, and the SwiftData
+  store; translates taps into moves and drives feedback.
+- `TacticsView`: header (progress + solved count), board, control bar
+  (`<` count `>` | flip), and state-driven feedback.
 
 ---
 
 ## Puzzle Session State
 
-Do not model the training screen with many unrelated Boolean properties.
-
-Use an explicit state machine.
-
-Recommended state:
-
 ```swift
 enum PuzzleSessionState: Equatable, Sendable {
-    case loading
     case waitingForMove
     case opponentMoving
     case incorrectMove
     case solved
-    case showingSolution
 }
 ```
 
-Expected flow:
+Flow:
 
 ```text
-loading
-  ↓
-waitingForMove
-  ↓
-user makes a move
-  ├── incorrect
-  │     ↓
-  │   incorrectMove
-  │     ↓
-  │   waitingForMove
-  │
-  └── correct
-        ├── more moves remain
-        │     ↓
-        │   opponentMoving
-        │     ↓
-        │   waitingForMove
-        │
-        └── line complete
-              ↓
-            solved
+init → opponentMoving            (the opponent's opening move auto-plays)
+  → waitingForMove
+      user move
+        ├── correct + line continues → opponentMoving → waitingForMove
+        ├── correct + line complete  → solved
+        └── incorrect                → incorrectMove → waitingForMove
 ```
 
-The opponent move should be applied automatically after a short UI-safe transition. Business logic must not depend on animation timing.
+The opponent move is applied automatically after a short UI transition. Business
+logic never depends on animation timing — a separate `isReviewing` flag marks
+positions reached via the manual `<`/`>` scrubber, so the auto-reply is
+suppressed and the view shows a static "Opponent's reply" instead of a spinner.
 
 ---
 
 ## Data Source
 
-Lichess puzzle data may be used as the source dataset.
+Lichess puzzle data is the source dataset. The entire `lichess/` directory (raw
+database and the import/export scripts) is local and **not** committed, and the
+raw database is never loaded by the app.
 
-The raw dataset must not be loaded directly by the mobile app.
-
-Preferred pipeline:
+Pipeline:
 
 ```text
 Lichess puzzle CSV/Zstandard archive
-  ↓
-Offline import script
-  ↓
-Filter and normalize puzzles
-  ↓
-Generate a compact mobile dataset
-  ↓
-Bundle the dataset with the app
+  → import_lichess_puzzles.py → local SQLite (lichess/data/, gitignored)
+  → export_puzzles.py         → DailyTactics/Resources/puzzles.json (bundled)
 ```
 
-Useful fields include:
-
-- Puzzle ID
-- FEN
-- Move sequence
-- Rating
-- Rating deviation
-- Popularity
-- Number of plays
-- Themes
-- Opening tags, when useful
-
-Always preserve required attribution and license information.
-
-Do not add the entire raw Lichess database to the Git repository.
+`export_puzzles.py` writes only the fields the app needs
+(`id, fen, moves, rating, themes`) and filters theme tags down to the
+`PuzzleTheme` enum. Always preserve Lichess attribution and license information
+(`THIRD_PARTY_NOTICES.md`).
 
 ---
 
 ## Tactical Themes
 
-Initial theme support may include:
-
-- Fork
-- Pin
-- Skewer
-- Discovered attack
-- Sacrifice
-- Mate
-- Defensive move
-- Endgame
-
-Theme names in the domain layer should be stable identifiers rather than display strings.
-
-Example:
+Theme names in the domain layer are stable identifiers (Lichess tags kept
+verbatim where they match):
 
 ```swift
 enum PuzzleTheme: String, Codable, CaseIterable, Sendable {
-    case fork
-    case pin
-    case skewer
-    case discoveredAttack
-    case sacrifice
-    case mate
-    case defensiveMove
-    case endgame
+    case fork, pin, skewer, discoveredAttack, sacrifice, mate
+    case defensiveMove, endgame, advantage, middlegame, rookEndgame, short
 }
 ```
 
@@ -389,20 +265,18 @@ Localization belongs in the presentation layer.
 
 ---
 
-## Review Rules
+## Roadmap
 
-A simple review system is preferred before introducing a sophisticated spaced-repetition algorithm.
+Items intentionally deferred until the core loop is stable:
 
-Initial rules may be:
+- Full legality: check/pin detection, castling-through-check, castling rights.
+- Promotion piece picker (currently auto-queen).
+- Spaced-repetition review scheduling (simple rules first, behind a protocol).
+- Statistics: streaks, accuracy, rating, daily activity.
+- Theme filtering and "similar puzzle" discovery.
+- SwiftData-backed attempt history and review queue.
 
-- Incorrect answer: review tomorrow
-- First successful review: review after 3 days
-- Second successful review: review after 7 days
-- Any later incorrect answer: reset to review tomorrow
-
-Review scheduling should be isolated behind a dedicated type so that it can be replaced later.
-
-Example:
+Review scheduling, when added, should be isolated behind:
 
 ```swift
 protocol PuzzleReviewScheduling: Sendable {
@@ -416,246 +290,68 @@ protocol PuzzleReviewScheduling: Sendable {
 
 ---
 
-## First Runnable Version
-
-This is the highest-priority implementation milestone.
-
-Do not start statistics, streaks, filters, accounts, cloud synchronization, subscriptions, AI explanations, or large puzzle imports until this version works end to end.
-
-### Required Scope
-
-Implement exactly one hard-coded tactical puzzle.
-
-The app must:
-
-1. Launch successfully from the Tuist-generated workspace.
-2. Load one hard-coded FEN position.
-3. Render an 8×8 chessboard.
-4. Display the pieces from the FEN position.
-5. Allow the user to select and move a piece.
-6. Support either:
-   - tap a piece, then tap a target square; or
-   - drag a piece to a target square.
-7. Convert the user move into UCI notation.
-8. Compare the move with the expected puzzle move.
-9. Display visible correct or incorrect feedback.
-10. Automatically apply the opponent's next move after a correct move.
-11. Continue until the hard-coded tactical line is complete.
-12. Display a solved state when the full line is completed.
-13. Allow the puzzle to be restarted.
-
-### Explicit Non-Goals
-
-The first runnable version must not require:
-
-- SwiftData
-- A production puzzle database
-- User accounts
-- Network requests
-- Stockfish
-- Full PGN import
-- Puzzle rating changes
-- Streak tracking
-- Theme filtering
-- Sound effects
-- Haptics
-- App Store purchase support
-- CloudKit
-- Analytics
-- Localization beyond basic string readiness
-
-### Suggested Hard-Coded Model
-
-```swift
-let samplePuzzle = Puzzle(
-    id: "sample-001",
-    fen: "<VALID_FEN>",
-    moves: [
-        "<USER_UCI_MOVE>",
-        "<OPPONENT_UCI_MOVE>",
-        "<USER_UCI_MOVE>"
-    ],
-    rating: nil,
-    themes: [.fork]
-)
-```
-
-The move sequence must clearly define whose turn it is from the FEN.
-
-Add a unit test proving that:
-
-- the FEN side to move is interpreted correctly;
-- the expected first move is recognized;
-- an incorrect UCI move is rejected;
-- the puzzle reaches `solved` after the complete line.
-
-### Acceptance Criteria
-
-The milestone is complete only when:
-
-```text
-tuist generate
-```
-
-successfully generates the project, and the app can be launched in an iOS Simulator with the full hard-coded puzzle flow working.
-
-The user must be able to solve the puzzle without editing source code or using debug controls.
-
----
-
-## Implementation Order
-
-Follow this order unless a task explicitly changes it:
-
-### Phase 1: Project Bootstrap
-
-- Add Tuist configuration
-- Generate the app target
-- Add minimal module structure
-- Confirm simulator launch
-- Add CI-friendly build command
-
-### Phase 2: Chess Representation
-
-- Define piece, color, square, and move types
-- Parse the required FEN subset
-- Render the parsed board
-- Convert user moves to UCI
-
-### Phase 3: Interaction
-
-- Select a piece
-- Show selected square
-- Move to a destination square
-- Reject interactions when the session is not waiting for input
-
-### Phase 4: Puzzle Flow
-
-- Add the hard-coded puzzle
-- Compare moves
-- Show correct and incorrect feedback
-- Apply opponent moves
-- Detect puzzle completion
-- Support restart
-
-### Phase 5: Tests and Cleanup
-
-- Add focused unit tests
-- Remove temporary debug code
-- Confirm Tuist generation from a clean checkout
-- Document build and run commands
-
-Only after Phase 5 should broader MVP work begin.
-
----
-
 ## Coding Standards
 
 ### Swift
 
 - Use Swift's strict concurrency model where practical.
-- Prefer value types for domain models.
-- Mark domain types as `Sendable` when valid.
-- Avoid force unwraps.
-- Avoid global mutable state.
-- Use descriptive names.
-- Keep functions small and focused.
+- Prefer value types for domain models; mark them `Sendable`.
+- Avoid force unwraps and global mutable state.
+- Use descriptive names, small focused functions, dependency injection.
 - Keep UI state on the main actor.
-- Do not use arbitrary delays to fix state bugs.
-- Use dependency injection rather than hidden singletons.
+- Do not use arbitrary delays to fix state bugs (delays are only for UI
+  transitions and must not be load-bearing for correctness).
+- Fail clearly on malformed bundled data; prefer typed errors. Development
+  builds may `preconditionFailure`/`fatalError` for impossible internal states.
 
 ### SwiftUI
 
-- Keep views declarative.
-- Move non-trivial game and puzzle logic out of views.
-- Avoid very large view bodies.
-- Give stable identity to chess pieces and squares.
+- Keep views declarative; move non-trivial logic into the view model/session.
+- Avoid very large view bodies; give stable identity to squares and pieces.
 - Keep animation separate from domain mutation.
-- Ensure the board remains usable on different iPhone sizes.
-- Support both light and dark appearance unless explicitly deferred.
-
-### Error Handling
-
-- Fail clearly when bundled puzzle data is malformed.
-- Prefer typed errors.
-- Do not silently replace invalid chess data with an empty board.
-- Development builds may use assertions for impossible internal states.
-- User-facing builds must present recoverable errors appropriately.
+- Keep the board usable across iPhone sizes and in light/dark appearance.
 
 ---
 
 ## Testing Strategy
 
-Prioritize domain tests over snapshot-heavy UI tests.
+Prioritize domain tests over UI/snapshot tests. The session and board are fully
+testable without launching SwiftUI. Current coverage includes:
 
-Initial tests should cover:
+- FEN parsing and side to move
+- Square / UCI round-trip and promotion parsing
+- Expected-move recognition; incorrect moves leave the board unchanged
+- Full line → `solved`; restart restores the puzzle
+- Review stepping (forward/back, bounds, `isReviewing`)
+- Legality: piece shapes, path blocking, pawn push/capture, castling, en passant
+- Puzzle JSON decoding; SwiftData completion store (idempotent, in-memory)
+- Bundled samples are playable to `solved` with unique IDs
 
-- FEN parsing
-- Side to move
-- Square conversion
-- UCI conversion
-- Correct move handling
-- Incorrect move handling
-- Opponent move advancement
-- Puzzle completion
-- Puzzle restart
-
-Later tests may cover:
-
-- Legal moves
-- Castling
-- En passant
-- Promotion
-- Review scheduling
-- Persistence
-- Statistics
-
-A feature is not complete merely because the UI appears correct. Core state transitions must be testable without launching SwiftUI.
+A feature is not complete merely because the UI appears correct.
 
 ---
 
 ## Commands
 
-Expected commands should be kept current in the repository README.
-
-Typical commands:
+Kept current in the README. Typical:
 
 ```bash
-tuist install
-tuist generate
-tuist test
+mise x tuist@4.197.3 -- tuist generate
+mise x tuist@4.197.3 -- tuist test
 ```
 
-A clean build should also be possible with an `xcodebuild` command against the generated workspace or project.
-
-Do not commit user-specific Xcode state.
-
-Generated project files should follow the repository's chosen Tuist version-control policy.
+A clean build is also possible with `xcodebuild` against the generated
+workspace. Do not commit user-specific Xcode state
+(`xcuserdata/`, `Derived/`, `*.xcworkspace`, `*.xcodeproj`).
 
 ---
 
 ## Out of Scope Until Requested
 
-Do not proactively implement:
-
-- Online chess games
-- Matchmaking
-- Chat
-- Friends
-- Public leaderboards
-- Social feeds
-- User-generated puzzles
-- Full-game Stockfish analysis
-- AI-generated coaching
-- Server-side accounts
-- Cross-device synchronization
-- Subscription billing
-- Advertising
-- Complex gamification
-- Android support
-- Web support
-
-These may be considered after the offline tactical training loop is stable.
+Online play, matchmaking, chat, friends, leaderboards, social feeds,
+user-generated puzzles, full-game Stockfish analysis, AI coaching, server-side
+accounts, cross-device sync, subscriptions, advertising, complex gamification,
+Android, and web.
 
 ---
 
@@ -666,12 +362,9 @@ When making changes:
 1. Read this file first.
 2. Inspect existing architecture before adding new abstractions.
 3. Preserve Tuist as the project source of truth.
-4. Keep changes limited to the requested task.
-5. Do not expand the product scope without explicit instruction.
-6. Add or update tests for domain behavior.
-7. Run the relevant generation, build, and test commands.
-8. Report what changed, what was verified, and any remaining limitation.
-
-When requirements are ambiguous, prefer the smallest implementation that advances the first runnable version.
-
-The first priority is always a working chess tactic loop, not architectural perfection.
+4. Keep changes limited to the requested task; do not expand product scope.
+5. Add or update tests for domain behavior.
+6. Run `tuist generate` and `tuist test`; report what changed, what was
+   verified, and any remaining limitation.
+7. When requirements are ambiguous, prefer the smallest implementation that
+   advances the core tactical-training loop.

@@ -55,7 +55,7 @@ struct Square: Hashable, Sendable {
     }
 
     var notation: String {
-        "\(Character(UnicodeScalar(file + 97)!))\(rank + 1)"
+        "\(Character(UnicodeScalar(UInt8(file + 97))))\(rank + 1)"
     }
 }
 
@@ -155,8 +155,28 @@ struct Board: Equatable, Sendable {
 
     mutating func apply(_ move: ChessMove) -> Bool {
         guard let movingPiece = pieces.removeValue(forKey: move.from) else { return false }
+        let targetWasEmpty = pieces[move.to] == nil
         let resultingKind = move.promotion ?? movingPiece.kind
         pieces[move.to] = Piece(color: movingPiece.color, kind: resultingKind)
+
+        // Castling: a king advancing two files also relocates the corner rook.
+        if movingPiece.kind == .king, abs(move.to.file - move.from.file) == 2 {
+            let rank = move.from.rank
+            if move.to.file == 6, let rook = pieces.removeValue(forKey: Square(file: 7, rank: rank)) {
+                pieces[Square(file: 5, rank: rank)] = rook
+            } else if move.to.file == 2, let rook = pieces.removeValue(forKey: Square(file: 0, rank: rank)) {
+                pieces[Square(file: 3, rank: rank)] = rook
+            }
+        }
+
+        // En passant: a pawn moving diagonally onto an empty square captures the
+        // enemy pawn that just advanced beside its origin.
+        if movingPiece.kind == .pawn,
+           move.from.file != move.to.file,
+           targetWasEmpty {
+            pieces[Square(file: move.to.file, rank: move.from.rank)] = nil
+        }
+
         return true
     }
 
@@ -173,5 +193,87 @@ struct Board: Equatable, Sendable {
         default: return nil
         }
         return Piece(color: color, kind: kind)
+    }
+}
+
+extension Board {
+    /// Whether `move` is a legal move for `mover` under basic piece-movement rules.
+    ///
+    /// Validates movement shape, path blocking, and self-capture. It does **not**
+    /// cover check/pin legality, castling, en passant, or promotion — those are
+    /// deferred per the project's phased roadmap.
+    func isLegal(_ move: ChessMove, for mover: PieceColor) -> Bool {
+        guard let piece = pieces[move.from], piece.color == mover else { return false }
+        if let occupant = pieces[move.to], occupant.color == mover { return false }
+        return Self.shapeIsLegal(piece, from: move.from, to: move.to, in: pieces)
+    }
+
+    private static func shapeIsLegal(
+        _ piece: Piece,
+        from: Square,
+        to: Square,
+        in pieces: [Square: Piece]
+    ) -> Bool {
+        let fileDelta = to.file - from.file
+        let rankDelta = to.rank - from.rank
+        guard fileDelta != 0 || rankDelta != 0 else { return false }
+
+        switch piece.kind {
+        case .knight:
+            return (abs(fileDelta), abs(rankDelta)) == (1, 2)
+                || (abs(fileDelta), abs(rankDelta)) == (2, 1)
+        case .bishop:
+            return abs(fileDelta) == abs(rankDelta) && pathIsClear(from: from, to: to, in: pieces)
+        case .rook:
+            return (fileDelta == 0 || rankDelta == 0) && pathIsClear(from: from, to: to, in: pieces)
+        case .queen:
+            let straight = fileDelta == 0 || rankDelta == 0
+            let diagonal = abs(fileDelta) == abs(rankDelta)
+            return (straight || diagonal) && pathIsClear(from: from, to: to, in: pieces)
+        case .king:
+            return max(abs(fileDelta), abs(rankDelta)) == 1
+        case .pawn:
+            return pawnShapeIsLegal(piece, from: from, to: to, in: pieces)
+        }
+    }
+
+    private static func pawnShapeIsLegal(
+        _ pawn: Piece,
+        from: Square,
+        to: Square,
+        in pieces: [Square: Piece]
+    ) -> Bool {
+        let fileDelta = to.file - from.file
+        let rankDelta = to.rank - from.rank
+        let direction = pawn.color == .white ? 1 : -1
+        let startRank = pawn.color == .white ? 1 : 6
+
+        // Forward push: one square, or two from the starting rank. Target must be empty.
+        if fileDelta == 0 {
+            if rankDelta == direction, pieces[to] == nil { return true }
+            if from.rank == startRank, rankDelta == 2 * direction {
+                let middle = Square(file: from.file, rank: from.rank + direction)
+                return pieces[to] == nil && pieces[middle] == nil
+            }
+            return false
+        }
+        // Diagonal capture: one file over, one rank forward, onto an enemy piece.
+        if abs(fileDelta) == 1, rankDelta == direction {
+            return pieces[to]?.color == pawn.color.opponent
+        }
+        return false
+    }
+
+    private static func pathIsClear(from: Square, to: Square, in pieces: [Square: Piece]) -> Bool {
+        let stepFile = (to.file - from.file).signum()
+        let stepRank = (to.rank - from.rank).signum()
+        var file = from.file + stepFile
+        var rank = from.rank + stepRank
+        while file != to.file || rank != to.rank {
+            if pieces[Square(file: file, rank: rank)] != nil { return false }
+            file += stepFile
+            rank += stepRank
+        }
+        return true
     }
 }

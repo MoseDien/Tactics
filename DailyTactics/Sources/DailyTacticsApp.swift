@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct DailyTacticsApp: App {
@@ -6,5 +7,6 @@ struct DailyTacticsApp: App {
         WindowGroup {
             TacticsView()
         }
+        .modelContainer(for: PuzzleProgress.self)
     }
 }
