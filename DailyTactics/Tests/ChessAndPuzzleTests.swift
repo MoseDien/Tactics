@@ -219,13 +219,33 @@ final class ChessAndPuzzleTests: XCTestCase {
 
     func testPuzzleDecodesFromJSON() throws {
         let json = #"""
-        [{"id":"abc","fen":"4k3/8/8/8/8/8/8/4K3 w - - 0 1","moves":["e1e2"],"rating":1500,"themes":["fork","endgame"]}]
+        [{"id":"abc","fen":"4k3/8/8/8/8/8/8/4K3 w - - 0 1","moves":["e1e2"],"rating":1500,
+          "ratingDeviation":80,"popularity":90,"playCount":1234,
+          "themes":["fork","endgame"],"gameUrl":"https://lichess.org/abc",
+          "openingTags":["Italian Game"]}]
         """#.data(using: .utf8)!
         let puzzles = try JSONDecoder().decode([Puzzle].self, from: json)
         XCTAssertEqual(puzzles.count, 1)
         XCTAssertEqual(puzzles[0].id, "abc")
         XCTAssertEqual(puzzles[0].rating, 1500)
         XCTAssertEqual(puzzles[0].themes, [.fork, .endgame])
+        // Full Lichess metadata round-trips.
+        XCTAssertEqual(puzzles[0].ratingDeviation, 80)
+        XCTAssertEqual(puzzles[0].popularity, 90)
+        XCTAssertEqual(puzzles[0].playCount, 1234)
+        XCTAssertEqual(puzzles[0].gameUrl, "https://lichess.org/abc")
+        XCTAssertEqual(puzzles[0].openingTags, ["Italian Game"])
+    }
+
+    func testPuzzleDecodesWithoutOptionalMetadata() throws {
+        // Older datasets omit the metadata fields; they decode to nil.
+        let json = #"""
+        [{"id":"x","fen":"4k3/8/8/8/8/8/8/4K3 w - - 0 1","moves":["e1e2"],"rating":null,"themes":[]}]
+        """#.data(using: .utf8)!
+        let puzzle = try JSONDecoder().decode([Puzzle].self, from: json)[0]
+        XCTAssertNil(puzzle.ratingDeviation)
+        XCTAssertNil(puzzle.gameUrl)
+        XCTAssertNil(puzzle.openingTags)
     }
 
     @MainActor

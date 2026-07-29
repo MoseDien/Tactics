@@ -172,9 +172,11 @@ and only uses `isLegal` to gate exploratory (non-solution) moves.
 Puzzle-specific behavior:
 
 - `PuzzleTheme` (stable identifiers, not display strings)
-- `Puzzle` (`Identifiable`, `Codable`) + `Puzzle.samples` (test fixtures) and
-  `Puzzle.loadBundled()` (decodes `puzzles.json`, falls back to `samples` only
-  if the file is absent; malformed data is a fatal error)
+- `Puzzle` (`Identifiable`, `Codable`) — core fields plus the full Lichess
+  metadata (`ratingDeviation`, `popularity`, `playCount`, `gameUrl`,
+  `openingTags`, all optional for future use) + `Puzzle.samples` (test fixtures)
+  and `Puzzle.loadBundled()` (decodes `puzzles.json`, falls back to `samples`
+  only if the file is absent; malformed data is a fatal error)
 - `PuzzleSessionState` state machine
 - `PuzzleSession`: the line-walking engine (apply expected/opponent moves,
   correctness check, review stepping via `replay`, restart)
@@ -242,10 +244,11 @@ Lichess puzzle CSV/Zstandard archive
   → export_puzzles.py         → DailyTactics/Resources/puzzles.json (bundled)
 ```
 
-`export_puzzles.py` writes only the fields the app needs
-(`id, fen, moves, rating, themes`) and filters theme tags down to the
-`PuzzleTheme` enum. Always preserve Lichess attribution and license information
-(`THIRD_PARTY_NOTICES.md`).
+`export_puzzles.py` writes the **full** Lichess metadata
+(`id, fen, moves, rating, ratingDeviation, popularity, playCount, themes,
+gameUrl, openingTags`) so it is available for future features; theme tags are
+filtered down to the `PuzzleTheme` enum. Always preserve Lichess attribution
+and license information (`THIRD_PARTY_NOTICES.md`).
 
 ---
 

@@ -22,6 +22,38 @@ struct Puzzle: Identifiable, Codable, Sendable {
     let rating: Int?
     let themes: [PuzzleTheme]
 
+    /// Lichess metadata imported for future use (statistics, filtering, links).
+    /// Optional so datasets without them still decode.
+    let ratingDeviation: Int?
+    let popularity: Int?
+    let playCount: Int?
+    let gameUrl: String?
+    let openingTags: [String]?
+
+    init(
+        id: String,
+        fen: String,
+        moves: [String],
+        rating: Int?,
+        themes: [PuzzleTheme],
+        ratingDeviation: Int? = nil,
+        popularity: Int? = nil,
+        playCount: Int? = nil,
+        gameUrl: String? = nil,
+        openingTags: [String]? = nil
+    ) {
+        self.id = id
+        self.fen = fen
+        self.moves = moves
+        self.rating = rating
+        self.themes = themes
+        self.ratingDeviation = ratingDeviation
+        self.popularity = popularity
+        self.playCount = playCount
+        self.gameUrl = gameUrl
+        self.openingTags = openingTags
+    }
+
     static let samples: [Puzzle] = [
         Puzzle(
             id: "sample-001",
