@@ -15,7 +15,7 @@ enum TacticsFeedbackState: Equatable {
 @MainActor
 @Observable
 final class TacticsViewModel {
-    private let dataset: [Puzzle]
+    private var dataset: [Puzzle]
     private let dailyPuzzleCount: Int
     private(set) var puzzles: [Puzzle]
     private(set) var currentIndex: Int
@@ -133,8 +133,21 @@ final class TacticsViewModel {
         loadPuzzle(at: currentIndex)
     }
 
-    /// Reshuffle a fresh random batch of three from the full dataset.
+    /// Reshuffle a fresh random batch from the current dataset.
     func restartBatch() {
+        reshuffleBatch()
+    }
+
+    /// Replace the dataset (e.g. after a rating-level transition imports a new
+    /// tier) and start a fresh batch from it. A no-op when the new dataset is
+    /// empty, so a failed import never leaves the user without puzzles.
+    func reload(dataset: [Puzzle]) {
+        guard !dataset.isEmpty else { return }
+        self.dataset = dataset
+        reshuffleBatch()
+    }
+
+    private func reshuffleBatch() {
         let available = dataset.filter { !(progress?.hasAttempted($0.id) ?? false) }
         let source = available.count >= dailyPuzzleCount ? available : dataset
         puzzles = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)

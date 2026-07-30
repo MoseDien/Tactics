@@ -324,4 +324,22 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertFalse(vm.canStepForward)
         XCTAssertFalse(vm.canStepBack)
     }
+
+    @MainActor
+    func testReloadSwapsDatasetAndResetsBatch() {
+        let vm = TacticsViewModel(dataset: Puzzle.samples)
+
+        // Reloading with a single-puzzle tier shrinks the batch to that puzzle
+        // and rewinds the cursor — the new tier's data replaces the init-time
+        // snapshot instead of waiting for an app relaunch.
+        vm.reload(dataset: [Puzzle.samples[0]])
+        XCTAssertEqual(vm.puzzleCount, 1)
+        XCTAssertEqual(vm.puzzles.first?.id, Puzzle.samples[0].id)
+        XCTAssertEqual(vm.puzzleNumber, 1)
+
+        // An empty reload is a no-op so a failed import can't blank the board.
+        let beforeIDs = vm.puzzles.map(\.id)
+        vm.reload(dataset: [])
+        XCTAssertEqual(vm.puzzles.map(\.id), beforeIDs)
+    }
 }

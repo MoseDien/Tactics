@@ -66,7 +66,6 @@ struct TacticsView: View {
             .alert("New rating level", isPresented: $showLevelTransition) {
                 Button("Load \(viewModel.levelTransition?.rawValue ?? "next") puzzles") {
                     importLevelData()
-                    viewModel.acknowledgeLevelTransition()
                 }
             } message: {
                 Text("Your rating is now \(viewModel.userRating), so your level is \(viewModel.levelTransition?.rawValue ?? "updated").")
@@ -76,7 +75,16 @@ struct TacticsView: View {
 
     private func importLevelData() {
         Task { @MainActor in
-            await PuzzleLibraryImporter(context: modelContext).importBundled(for: viewModel.userRating) { _ in }
+            let importer = PuzzleLibraryImporter(context: modelContext)
+            await importer.importBundled(for: viewModel.userRating) { _ in }
+            // Refresh the in-memory dataset from SwiftData so the new tier's
+            // puzzles actually reach the board (the init-time snapshot is stale).
+            let level = RatingLevel(rating: viewModel.userRating)
+            let scoped = ((try? modelContext.fetch(FetchDescriptor<PuzzleRecord>())) ?? [])
+                .filter { level.ratingRange.contains($0.rating) }
+                .map(\.puzzle)
+            viewModel.reload(dataset: scoped)
+            viewModel.acknowledgeLevelTransition()
         }
     }
 
