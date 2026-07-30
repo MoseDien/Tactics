@@ -10,12 +10,14 @@ import SwiftData
 final class PuzzleProgress {
     var puzzleId: String
     var isCompleted: Bool
+    var isAttempted: Bool = false
     var hasFailed: Bool = false
     var completedAt: Date?
 
     init(puzzleId: String) {
         self.puzzleId = puzzleId
         self.isCompleted = false
+        self.isAttempted = false
         self.hasFailed = false
         self.completedAt = nil
     }
@@ -39,14 +41,33 @@ struct PuzzleProgressStore {
         )
         if let existing = try? context.fetch(descriptor).first {
             existing.isCompleted = true
+            existing.isAttempted = true
             existing.completedAt = .now
         } else {
             let progress = PuzzleProgress(puzzleId: puzzleId)
             progress.isCompleted = true
+            progress.isAttempted = true
             progress.completedAt = .now
             context.insert(progress)
         }
         try? context.save()
+    }
+
+    func markAttempted(_ puzzleId: String) {
+        let descriptor = FetchDescriptor<PuzzleProgress>(predicate: #Predicate { $0.puzzleId == puzzleId })
+        if let existing = try? context.fetch(descriptor).first {
+            existing.isAttempted = true
+        } else {
+            let progress = PuzzleProgress(puzzleId: puzzleId)
+            progress.isAttempted = true
+            context.insert(progress)
+        }
+        try? context.save()
+    }
+
+    func hasAttempted(_ puzzleId: String) -> Bool {
+        let descriptor = FetchDescriptor<PuzzleProgress>(predicate: #Predicate { $0.puzzleId == puzzleId })
+        return (try? context.fetch(descriptor).first?.isAttempted) ?? false
     }
 
     func isCompleted(_ puzzleId: String) -> Bool {

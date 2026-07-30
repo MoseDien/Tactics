@@ -3,7 +3,13 @@ import SwiftData
 
 struct TacticsView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var viewModel = TacticsViewModel()
+    @State private var viewModel: TacticsViewModel
+    @State private var showingSettings = false
+    @State private var showLevelTransition = false
+
+    init(dataset: [Puzzle] = Puzzle.loadBundled(), dailyPuzzleCount: Int = 5) {
+        _viewModel = State(initialValue: TacticsViewModel(dataset: dataset.isEmpty ? Puzzle.loadBundled() : dataset, dailyPuzzleCount: dailyPuzzleCount))
+    }
 
     var body: some View {
         NavigationStack {
@@ -37,10 +43,40 @@ struct TacticsView: View {
             .background(Color(.systemBackground))
             .navigationTitle("DailyTactics")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("Settings")
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
             .task {
                 viewModel.attachProgress(PuzzleProgressStore(context: modelContext))
                 viewModel.start()
             }
+            .onChange(of: viewModel.levelTransition) { _, newLevel in
+                showLevelTransition = newLevel != nil
+            }
+            .alert("New rating level", isPresented: $showLevelTransition) {
+                Button("Load \(viewModel.levelTransition?.rawValue ?? "next") puzzles") {
+                    importLevelData()
+                    viewModel.acknowledgeLevelTransition()
+                }
+            } message: {
+                Text("Your rating is now \(viewModel.userRating), so your level is \(viewModel.levelTransition?.rawValue ?? "updated").")
+            }
+        }
+    }
+
+    private func importLevelData() {
+        Task { @MainActor in
+            await PuzzleLibraryImporter(context: modelContext).importBundled(for: viewModel.userRating) { _ in }
         }
     }
 

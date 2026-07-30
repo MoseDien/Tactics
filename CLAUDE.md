@@ -19,6 +19,9 @@ subscriptions, analytics, or cloud sync unless explicitly requested.
 
 Bundle ID: `com.dienbell.tactics`.
 
+The current Rating Assessment, Daily Tactics, round, persistence, and level
+transition rules are documented in [docs/BUSINESS_LOGIC.md](docs/BUSINESS_LOGIC.md).
+
 ## Architecture
 
 ```text

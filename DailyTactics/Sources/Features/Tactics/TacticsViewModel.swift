@@ -16,6 +16,7 @@ enum TacticsFeedbackState: Equatable {
 @Observable
 final class TacticsViewModel {
     private let dataset: [Puzzle]
+    private let dailyPuzzleCount: Int
     private(set) var puzzles: [Puzzle]
     private(set) var currentIndex: Int
     private(set) var session: PuzzleSession
@@ -28,14 +29,18 @@ final class TacticsViewModel {
     private let ratingCalculator = PuzzleRatingCalculator()
     private var hadMistake = false
     private var ratingAppliedForPuzzle = false
+    private var firstAttemptWasCorrect = false
     private(set) var userRating: Int
     private(set) var lastRatingDelta: Int?
     private(set) var isBoardFlipped: Bool = false
+    private(set) var levelTransition: RatingLevel?
 
-    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore()) {
+    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, batchSize: Int? = nil) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
-        let batch = Self.pickRandomBatch(from: source)
+        let requestedCount = batchSize ?? dailyPuzzleCount
+        let batch = Self.pickRandomBatch(from: source, count: requestedCount)
         self.dataset = source
+        self.dailyPuzzleCount = requestedCount
         self.progress = progress
         self.ratingStore = ratingStore
         userRating = ratingStore.rating
@@ -47,6 +52,10 @@ final class TacticsViewModel {
             preconditionFailure("Invalid bundled puzzle: \(error)")
         }
         orientBoardToPlayer()
+    }
+
+    func acknowledgeLevelTransition() {
+        levelTransition = nil
     }
 
     func attachProgress(_ store: PuzzleProgressStore) {
@@ -126,7 +135,9 @@ final class TacticsViewModel {
 
     /// Reshuffle a fresh random batch of three from the full dataset.
     func restartBatch() {
-        puzzles = Self.pickRandomBatch(from: dataset)
+        let available = dataset.filter { !(progress?.hasAttempted($0.id) ?? false) }
+        let source = available.count >= dailyPuzzleCount ? available : dataset
+        puzzles = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
         currentIndex = 0
         loadPuzzle(at: 0)
     }
@@ -211,8 +222,8 @@ final class TacticsViewModel {
         loadPuzzle(at: currentIndex)
     }
 
-    private static func pickRandomBatch(from dataset: [Puzzle]) -> [Puzzle] {
-        Array(dataset.shuffled().prefix(min(3, dataset.count)))
+    private static func pickRandomBatch(from dataset: [Puzzle], count: Int = 5) -> [Puzzle] {
+        Array(dataset.shuffled().prefix(min(count, dataset.count)))
     }
 
     private func loadPuzzle(at index: Int) {
@@ -223,6 +234,7 @@ final class TacticsViewModel {
             attemptedMove = nil
             errorMessage = nil
             hadMistake = false
+            firstAttemptWasCorrect = false
             ratingAppliedForPuzzle = false
             lastRatingDelta = nil
             orientBoardToPlayer()
@@ -243,6 +255,13 @@ final class TacticsViewModel {
         // check does not model. Any other move must be basically legal.
         let isExpected = move == session.expectedMove
         guard isExpected || session.isLegalUserMove(move) else { return }
+
+        let puzzleID = puzzles[currentIndex].id
+        let isFirstAttempt = !(progress?.hasAttempted(puzzleID) ?? false)
+        if isFirstAttempt {
+            firstAttemptWasCorrect = isExpected
+            progress?.markAttempted(puzzleID)
+        }
 
         selectedSquare = nil
         do {
@@ -290,6 +309,10 @@ final class TacticsViewModel {
     private func markCurrentSolved() {
         guard !ratingAppliedForPuzzle else { return }
         ratingAppliedForPuzzle = true
+        guard firstAttemptWasCorrect else {
+            progress?.markCompleted(puzzles[currentIndex].id)
+            return
+        }
         let puzzleRating = puzzles[currentIndex].rating ?? userRating
         let cleanSolve = !hadMistake && hintMove == nil
         let delta = ratingCalculator.change(
@@ -298,6 +321,11 @@ final class TacticsViewModel {
             solved: cleanSolve
         )
         userRating = ratingStore.apply(delta: delta)
+        let newLevel = RatingLevel(rating: userRating)
+        if newLevel != ratingStore.level {
+            levelTransition = newLevel
+            ratingStore.set(rating: userRating)
+        }
         lastRatingDelta = delta
         guard let progress else { return }
         progress.markCompleted(puzzles[currentIndex].id)

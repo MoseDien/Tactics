@@ -9,6 +9,7 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 - Generate with `mise x tuist@4.197.3 -- tuist generate`.
 - Never use the generated `.xcodeproj` as the primary project definition.
 - Preserve Bundle ID `com.dienbell.tactics`.
+- The current product flow is documented in [docs/BUSINESS_LOGIC.md](docs/BUSINESS_LOGIC.md).
 
 ## Boundaries
 
