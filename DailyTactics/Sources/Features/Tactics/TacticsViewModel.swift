@@ -30,10 +30,15 @@ final class TacticsViewModel {
     private var hadMistake = false
     private var ratingAppliedForPuzzle = false
     private var firstAttemptWasCorrect = false
+    private var isAdvancing = false
     private(set) var userRating: Int
     private(set) var lastRatingDelta: Int?
     private(set) var isBoardFlipped: Bool = false
     private(set) var levelTransition: RatingLevel?
+
+    /// Per-puzzle outcome for the current round, paralleling the rating
+    /// assessment row. `nil` = not yet attempted.
+    private(set) var results: [PuzzleOutcome?] = []
 
     init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, batchSize: Int? = nil) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
@@ -45,6 +50,7 @@ final class TacticsViewModel {
         self.ratingStore = ratingStore
         userRating = ratingStore.rating
         self.puzzles = batch
+        results = Array(repeating: nil, count: batch.count)
         currentIndex = 0
         do {
             session = try PuzzleSession(puzzle: batch[0])
@@ -128,9 +134,18 @@ final class TacticsViewModel {
     var isBatchComplete: Bool { isLastPuzzle && session.state == .solved }
 
     func nextPuzzle() {
-        guard currentIndex < puzzles.count - 1 else { return }
-        currentIndex += 1
-        loadPuzzle(at: currentIndex)
+        guard !isAdvancing, currentIndex < puzzles.count - 1 else { return }
+        isAdvancing = true
+        let target = currentIndex + 1
+        // A brief beat before the next puzzle appears so the transition reads
+        // as deliberate rather than an instant snap. Re-entry is blocked until
+        // the load completes so repeated taps can't skip puzzles.
+        Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            currentIndex = target
+            loadPuzzle(at: target)
+            isAdvancing = false
+        }
     }
 
     /// Reshuffle a fresh random batch from the current dataset.
@@ -151,6 +166,7 @@ final class TacticsViewModel {
         let available = dataset.filter { !(progress?.hasAttempted($0.id) ?? false) }
         let source = available.count >= dailyPuzzleCount ? available : dataset
         puzzles = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
+        results = Array(repeating: nil, count: puzzles.count)
         currentIndex = 0
         loadPuzzle(at: 0)
     }
@@ -181,12 +197,24 @@ final class TacticsViewModel {
         }
     }
 
-    /// Highlight the piece and its destination for the current expected move.
-    /// Decoupled from `>` — it never reveals the line or unlocks the stepper.
+    /// Revealing a hint counts as giving up on this puzzle: it is scored
+    /// immediately as a loss (rating decreases) and marked attempted, so a
+    /// later clean solve can't recover the points.
     func requestHint() {
         guard hintEnabled, let expected = session.expectedMove else { return }
         hadMistake = true
         hintMove = expected
+        applyHintPenalty()
+    }
+
+    /// Charge the rating for using a hint, once per puzzle. Idempotent so
+    /// repeated taps don't stack penalties.
+    private func applyHintPenalty() {
+        guard !ratingAppliedForPuzzle else { return }
+        ratingAppliedForPuzzle = true
+        recordOutcome(.wrong, for: currentIndex)
+        applySolveRating(solved: false)
+        progress?.markAttempted(puzzles[currentIndex].id)
     }
 
     func stepBack() {
@@ -287,6 +315,7 @@ final class TacticsViewModel {
         switch state {
         case .incorrectMove:
             // Wrong move: record it as a failure, then let the user retry.
+            recordOutcome(.wrong, for: currentIndex)
             recordFailure()
             hadMistake = true
             attemptedMove = move
@@ -320,18 +349,25 @@ final class TacticsViewModel {
     }
 
     private func markCurrentSolved() {
+        // Completion is recorded once regardless of the rating outcome: a hint
+        // may have already adjusted the rating before the line is finished.
+        progress?.markCompleted(puzzles[currentIndex].id)
         guard !ratingAppliedForPuzzle else { return }
         ratingAppliedForPuzzle = true
-        guard firstAttemptWasCorrect else {
-            progress?.markCompleted(puzzles[currentIndex].id)
-            return
-        }
-        let puzzleRating = puzzles[currentIndex].rating ?? userRating
+        recordOutcome(.correct, for: currentIndex)
+        guard firstAttemptWasCorrect else { return }
         let cleanSolve = !hadMistake && hintMove == nil
+        applySolveRating(solved: cleanSolve)
+    }
+
+    /// Applies an Elo-style rating change for the current puzzle, persists it,
+    /// and surfaces a level-transition prompt when the user crosses a tier.
+    private func applySolveRating(solved: Bool) {
+        let puzzleRating = puzzles[currentIndex].rating ?? userRating
         let delta = ratingCalculator.change(
             userRating: userRating,
             puzzleRating: puzzleRating,
-            solved: cleanSolve
+            solved: solved
         )
         userRating = ratingStore.apply(delta: delta)
         let newLevel = RatingLevel(rating: userRating)
@@ -340,12 +376,18 @@ final class TacticsViewModel {
             ratingStore.set(rating: userRating)
         }
         lastRatingDelta = delta
-        guard let progress else { return }
-        progress.markCompleted(puzzles[currentIndex].id)
     }
 
     private func recordFailure() {
         guard let progress else { return }
         progress.markFailed(puzzles[currentIndex].id)
+    }
+
+    /// Mark a round outcome for the puzzle at `index`. Idempotent: the first
+    /// recorded result (e.g. a wrong move) wins, so a later clean solve can't
+    /// overwrite an earlier mistake.
+    private func recordOutcome(_ outcome: PuzzleOutcome, for index: Int) {
+        guard results.indices.contains(index), results[index] == nil else { return }
+        results[index] = outcome
     }
 }

@@ -30,6 +30,8 @@ struct TacticsView: View {
                     )
                     .frame(width: min(viewport.size.width, max(280, viewport.size.height - 238)))
 
+                    roundProgress
+
                     ratingPanel
 
                     moveControls
@@ -183,6 +185,12 @@ struct TacticsView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
+    }
+
+    private var roundProgress: some View {
+        PuzzleResultRow(outcomes: viewModel.results)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
     }
 
     private var ratingPanel: some View {

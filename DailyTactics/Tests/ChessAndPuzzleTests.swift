@@ -342,4 +342,33 @@ final class ChessAndPuzzleTests: XCTestCase {
         vm.reload(dataset: [])
         XCTAssertEqual(vm.puzzles.map(\.id), beforeIDs)
     }
+
+    @MainActor
+    func testHintImmediatelyCostsRating() async throws {
+        let defaults = UserDefaults(suiteName: "hint-penalty-\(UUID().uuidString)")!
+        let store = UserRatingStore(defaults: defaults)
+        let vm = TacticsViewModel(dataset: Puzzle.samples, ratingStore: store)
+
+        // Wait for the opening machine move so a hint is enabled.
+        vm.start()
+        var waited = 0
+        while vm.state != .waitingForMove && waited < 40 {
+            try await Task.sleep(for: .milliseconds(100))
+            waited += 1
+        }
+        XCTAssertEqual(vm.state, .waitingForMove)
+
+        let before = vm.userRating
+        vm.requestHint()
+
+        // Using a hint is a failure: rating drops right away and the round
+        // marker records it as wrong.
+        XCTAssertLessThan(vm.userRating, before, "Hint should cost rating points")
+        XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0, "Hint should record a negative delta")
+
+        // A second tap must not stack another penalty.
+        let afterFirstHint = vm.userRating
+        vm.requestHint()
+        XCTAssertEqual(vm.userRating, afterFirstHint)
+    }
 }

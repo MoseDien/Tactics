@@ -170,26 +170,7 @@ struct RatingAssessmentView: View {
     }
 
     private var resultList: some View {
-        HStack(spacing: 10) {
-            ForEach(results.indices, id: \.self) { resultIndex in
-                Group {
-                    if results[resultIndex] == true {
-                        Text("✅")
-                    } else if results[resultIndex] == false {
-                        Text("×")
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.gray)
-                    } else {
-                        Circle()
-                            .fill(Color.secondary.opacity(0.22))
-                            .frame(width: 10, height: 10)
-                    }
-                }
-                .frame(width: 22, height: 22)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Assessment results: \(solvedCount) correct, \(failedCount) failed")
+        PuzzleResultRow(outcomes: results.map { $0.map { $0 ? .correct : .wrong } })
     }
 }
 

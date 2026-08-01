@@ -54,6 +54,7 @@ struct ChessBoardView: View {
                                             .resizable()
                                             .scaledToFit()
                                             .frame(width: squareSide * 0.88, height: squareSide * 0.88)
+                                            .transition(.opacity)
                                             .accessibilityHidden(true)
                                     }
 
@@ -74,6 +75,7 @@ struct ChessBoardView: View {
                 }
             }
             .frame(width: side, height: side)
+            .animation(.easeInOut(duration: 0.2), value: position)
         }
         .aspectRatio(1, contentMode: .fit)
     }
