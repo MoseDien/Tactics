@@ -1,0 +1,19 @@
+# Gradle / build
+.gradle/
+build/
+*/build/
+captures/
+
+# Local config (SDK path is machine-specific)
+local.properties
+
+# IntelliJ / Android Studio
+*.iml
+.idea/
+.DS_Store
+
+# Kotlin synthetic
+.cxx/
+
+# Do NOT ignore the Gradle wrapper — it must be committed.
+!gradle/wrapper/gradle-wrapper.jar

@@ -8,7 +8,7 @@
 
 ### 题目来源
 
-- 从 `rating_puzzles.json` 读取固定的评级题集合。
+- 从 `ios/DailyTactics/Resources/rating_puzzles.json` 读取固定的评级题集合。
 - 按难度分布随机抽取评估题。
 - 当前评估题数量由 App 配置参数控制，目前为 4 道，未来可以改为 10 道。
 
@@ -122,8 +122,8 @@ SwiftData 中使用两个概念保存用户状态：
 ## 8. 持久化职责
 
 ```text
-rating_puzzles.json  → 首次 baseline assessment
-1000.json–1900.json  → 按等级导入的题库
+ios/DailyTactics/Resources/rating_puzzles.json → 首次 baseline assessment
+ios/DailyTactics/Resources/1000.json–1900.json → 按等级导入的题库
 SwiftData             → 题目、题目进度、Assessment 状态
 UserDefaults          → 当前 Rating 和等级缓存
 ```

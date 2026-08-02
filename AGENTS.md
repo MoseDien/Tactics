@@ -5,8 +5,8 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 
 ## Source of truth
 
-- `Project.swift` and `Tuist.swift` define the Xcode project.
-- Generate with `mise x tuist@4.197.3 -- tuist generate`.
+- `ios/Project.swift` and `ios/Tuist.swift` define the Xcode project.
+- Generate from `ios/` with `mise x tuist@4.197.3 -- tuist generate`.
 - Never use the generated `.xcodeproj` as the primary project definition.
 - Preserve Bundle ID `com.dienbell.tactics`.
 - The current product flow is documented in [docs/BUSINESS_LOGIC.md](docs/BUSINESS_LOGIC.md).
@@ -21,7 +21,7 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 
 ## Product rules
 
-- The app is offline and uses bundled `puzzles.json`.
+- The app is offline and uses bundled JSON puzzle buckets under `ios/DailyTactics/Resources/`.
 - Lichess lines are machine-first: `moves[0]` auto-plays, then the player
   starts at `moves[1]` and turns alternate.
 - Hint reveals the expected move visually but never auto-plays it.
@@ -45,6 +45,7 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 ## Commands
 
 ```sh
+cd ios
 mise x tuist@4.197.3 -- tuist generate
 mise x tuist@4.197.3 -- tuist test
 ```

@@ -43,9 +43,10 @@ clamped to `400...3000`. The value is deliberately isolated in
 ## Project layout
 
 ```text
-Project.swift
-Tuist.swift
-DailyTactics/
+ios/
+  Project.swift
+  Tuist.swift
+  DailyTactics/
   Sources/
     ChessCore/              board, FEN, UCI, basic move legality
     PuzzleKit/              puzzle model and line/session state machine
@@ -54,7 +55,10 @@ DailyTactics/
     DailyTacticsApp.swift   app entry point and model container
   Resources/                puzzles.json, SVG pieces, license
   Tests/                    domain and feature behavior tests
-lichess/                    local-only dataset/tools (ignored by Git)
+android/                    Android client
+data/source/                local SQLite source data (ignored by Git)
+tools/                      puzzle import/export scripts
+third_party/                Lichess reference images and notices
 ```
 
 The dependency direction is `Features → PuzzleKit → ChessCore`; persistence is
@@ -64,6 +68,7 @@ SwiftData.
 ## Requirements and commands
 
 ```sh
+cd ios
 # Generate the Xcode workspace
 mise x tuist@4.197.3 -- tuist generate
 
@@ -88,7 +93,8 @@ xcodebuild \
 
 ## Puzzle data
 
-`DailyTactics/Resources/puzzles.json` is the app's compact bundled dataset.
-The raw Lichess export and local import tools live under `lichess/` and are not
-part of the mobile bundle. Third-party artwork and licensing details are in
+`ios/DailyTactics/Resources/` contains the bundled rating assessment and level
+bucket JSON files. The raw Lichess SQLite database lives under `data/source/`
+and local import/export scripts live under `tools/`; neither is part of the
+mobile bundle. Third-party artwork and licensing details are in
 `THIRD_PARTY_NOTICES.md`.

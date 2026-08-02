@@ -13,7 +13,7 @@ subscriptions, analytics, or cloud sync unless explicitly requested.
 
 - Swift 6, SwiftUI, Swift Concurrency
 - iOS 17+
-- Tuist 4.x is the source of truth for the Xcode project
+- Tuist 4.x is the source of truth for the Xcode project under `ios/`
 - SwiftData only behind `Persistence` interfaces
 - XCTest for domain and feature behavior
 
@@ -84,6 +84,7 @@ orientation, Rating, and persistence.
 After changes:
 
 ```sh
+cd ios
 mise x tuist@4.197.3 -- tuist generate
 mise x tuist@4.197.3 -- tuist test
 ```
