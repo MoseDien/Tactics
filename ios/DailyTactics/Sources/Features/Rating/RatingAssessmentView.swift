@@ -11,8 +11,6 @@ struct RatingAssessmentView: View {
     @State private var assessmentMessage: String?
     @State private var results: [Bool?]
     @State private var showCompletionAlert = false
-    @State private var isImporting = false
-    @State private var importProgress = 0.0
     private let puzzles: [Puzzle]
 
     init(puzzles: [Puzzle]) {
@@ -22,9 +20,7 @@ struct RatingAssessmentView: View {
     }
 
     var body: some View {
-        if isImporting {
-            importingView
-        } else if finished {
+        if finished {
             completionView
         } else {
             NavigationStack {
@@ -109,7 +105,7 @@ struct RatingAssessmentView: View {
         }
         .alert("Rating assessment complete", isPresented: $showCompletionAlert) {
             Button("Continue") {
-                importLibraryAndContinue()
+                completeAndContinue()
             }
         } message: {
             Text("Your baseline rating is \(baselineRating). You can reassess it later from Settings.")
@@ -126,30 +122,13 @@ struct RatingAssessmentView: View {
         finished = true
     }
 
-    private var importingView: some View {
-        VStack(spacing: 18) {
-            ProgressView(value: importProgress)
-                .progressViewStyle(.linear)
-                .frame(maxWidth: 280)
-            Text("Preparing your puzzle library…")
-                .font(.headline)
-            Text("\(Int(importProgress * 100))%")
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func importLibraryAndContinue() {
-        isImporting = true
-        Task { @MainActor in
-            await PuzzleLibraryImporter(context: modelContext).importBundled(for: baselineRating) { value in
-                importProgress = value
-            }
-            RatingAssessmentStore(context: modelContext).complete(baselineRating: baselineRating)
-            UserRatingStore().set(rating: baselineRating)
-            isImporting = false
-        }
+    /// Finalize the assessment by persisting the baseline rating. The puzzle
+    /// library is already bulk-imported on first launch, so there is no import
+    /// step here — completing the assessment is all that remains to enter
+    /// training (RootView re-routes once `isCompleted` is set).
+    private func completeAndContinue() {
+        RatingAssessmentStore(context: modelContext).complete(baselineRating: baselineRating)
+        UserRatingStore().set(rating: baselineRating)
     }
 
     private func advanceAfterResult(message: String?) {
@@ -177,6 +156,7 @@ struct RatingAssessmentView: View {
 private extension TacticsFeedbackState {
     var message: String {
         switch self {
+        case .idle: return ""
         case let .error(message): return message
         case let .instruction(message, _): return message
         case .opponentMoving: return "Opponent is moving…"

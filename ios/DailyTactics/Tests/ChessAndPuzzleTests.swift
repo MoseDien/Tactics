@@ -326,24 +326,6 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
-    func testReloadSwapsDatasetAndResetsBatch() {
-        let vm = TacticsViewModel(dataset: Puzzle.samples)
-
-        // Reloading with a single-puzzle tier shrinks the batch to that puzzle
-        // and rewinds the cursor — the new tier's data replaces the init-time
-        // snapshot instead of waiting for an app relaunch.
-        vm.reload(dataset: [Puzzle.samples[0]])
-        XCTAssertEqual(vm.puzzleCount, 1)
-        XCTAssertEqual(vm.puzzles.first?.id, Puzzle.samples[0].id)
-        XCTAssertEqual(vm.puzzleNumber, 1)
-
-        // An empty reload is a no-op so a failed import can't blank the board.
-        let beforeIDs = vm.puzzles.map(\.id)
-        vm.reload(dataset: [])
-        XCTAssertEqual(vm.puzzles.map(\.id), beforeIDs)
-    }
-
-    @MainActor
     func testHintImmediatelyCostsRating() async throws {
         let defaults = UserDefaults(suiteName: "hint-penalty-\(UUID().uuidString)")!
         let store = UserRatingStore(defaults: defaults)
@@ -370,5 +352,55 @@ final class ChessAndPuzzleTests: XCTestCase {
         let afterFirstHint = vm.userRating
         vm.requestHint()
         XCTAssertEqual(vm.userRating, afterFirstHint)
+    }
+
+    // MARK: - DB-backed round selection
+
+    @MainActor
+    func testFetchUnattemptedRoundExcludesAttemptedAndFallsBack() throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: PuzzleRecord.self, PuzzleProgress.self, configurations: config)
+        let context = ModelContext(container)
+        let store = PuzzleProgressStore(context: context)
+
+        let puzzles = (0..<7).map { i in
+            Puzzle(id: "p\(i)", fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1", moves: ["e1e2"], rating: 1500, themes: [])
+        }
+        puzzles.forEach { context.insert(PuzzleRecord(puzzle: $0)) }
+        try context.save()
+
+        // Mark two as attempted.
+        store.markAttempted("p0")
+        store.markAttempted("p1")
+
+        // Enough unattempted remain (5) → returns exactly 5, none attempted.
+        let round = store.fetchUnattemptedRound(count: 5)
+        XCTAssertEqual(round.count, 5)
+        let roundIDs = Set(round.map(\.id))
+        XCTAssertFalse(roundIDs.contains("p0"))
+        XCTAssertFalse(roundIDs.contains("p1"))
+
+        // Mark 6 of 7 attempted → fewer than 5 unattempted → falls back to
+        // random-over-all so a round is still returned.
+        for i in 2...6 { store.markAttempted("p\(i)") }
+        let fallback = store.fetchUnattemptedRound(count: 5)
+        XCTAssertEqual(fallback.count, 5)
+    }
+
+    @MainActor
+    func testImportAllBundledIsIdempotent() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: PuzzleRecord.self, configurations: config)
+        let context = ModelContext(container)
+        let importer = PuzzleLibraryImporter(context: context)
+
+        await importer.importAllBundled { _ in }
+        let firstCount = try context.fetchCount(FetchDescriptor<PuzzleRecord>())
+        try XCTSkipUnless(firstCount > 0, "Bundled tier JSONs are not present in the test host")
+
+        // Re-running must not duplicate rows (dedup by puzzleId).
+        await importer.importAllBundled { _ in }
+        let secondCount = try context.fetchCount(FetchDescriptor<PuzzleRecord>())
+        XCTAssertEqual(secondCount, firstCount)
     }
 }

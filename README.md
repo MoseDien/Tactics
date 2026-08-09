@@ -8,7 +8,11 @@ line at a time, and stores progress locally.
 
 - iOS-only, iOS 17+, Swift 6, SwiftUI, Tuist 4.x
 - Bundle identifier: `com.dienbell.tactics`
-- Three random puzzles are selected for each session
+- On first launch the entire bundled library (10 rating tiers, ~10,000 puzzles)
+  is imported into SwiftData in one pass behind a loading screen
+- A 4-puzzle Rating Assessment sets a baseline Elo score (starts at 1500)
+- Each round draws 5 random not-yet-attempted puzzles from the database
+  (queried only at the start of each round); difficulty is mixed across tiers
 - Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
 - The first move in every Lichess line is the machine's setup move; user and
   machine then alternate through the remaining UCI moves
@@ -53,7 +57,8 @@ ios/
     Persistence/            SwiftData progress and local Rating
     Features/Tactics/       training view, board, and view model
     DailyTacticsApp.swift   app entry point and model container
-  Resources/                puzzles.json, SVG pieces, license
+  Resources/                SVG pieces, license
+  Resources/puzzles/        rating tiers (1000–1900.json) + rating_puzzles.json
   Tests/                    domain and feature behavior tests
 android/                    Android client
 data/source/                local SQLite source data (ignored by Git)
@@ -93,8 +98,15 @@ xcodebuild \
 
 ## Puzzle data
 
-`ios/DailyTactics/Resources/` contains the bundled rating assessment and level
-bucket JSON files. The raw Lichess SQLite database lives under `data/source/`
-and local import/export scripts live under `tools/`; neither is part of the
-mobile bundle. Third-party artwork and licensing details are in
-`THIRD_PARTY_NOTICES.md`.
+`ios/DailyTactics/Resources/puzzles/` contains the bundled puzzle data: ten
+rating-tier files (`1000.json`–`1900.json`, 1000 puzzles each) plus
+`rating_puzzles.json` (the 100-puzzle assessment set). They are generated from
+the raw Lichess SQLite database by `tools/export_tier_puzzles.py`:
+
+```sh
+python tools/export_tier_puzzles.py data/source/lichess_puzzles.sqlite ios/DailyTactics/Resources/puzzles
+```
+
+The raw database lives under `data/source/` (ignored by Git); only the generated
+JSONs are part of the mobile bundle. Third-party artwork and licensing details
+are in `THIRD_PARTY_NOTICES.md`.

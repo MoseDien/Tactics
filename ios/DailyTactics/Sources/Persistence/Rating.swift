@@ -1,28 +1,5 @@
 import Foundation
 
-struct RatingLevel: Codable, Hashable, Sendable {
-    let lowerBound: Int
-
-    init(rating: Int) {
-        lowerBound = min(1900, max(1000, (rating / 100) * 100))
-    }
-
-    init(lowerBound: Int) {
-        self.lowerBound = min(1900, max(1000, lowerBound))
-    }
-
-    init?(rawValue: String) {
-        guard let value = Int(rawValue), stride(from: 1000, through: 1900, by: 100).contains(value) else {
-            return nil
-        }
-        lowerBound = value
-    }
-
-    var upperBound: Int { lowerBound + 100 }
-    var rawValue: String { "\(lowerBound)" }
-    var ratingRange: Range<Int> { lowerBound..<upperBound }
-}
-
 struct PuzzleRatingCalculator: Sendable {
     let kFactor: Double
 
@@ -47,7 +24,6 @@ final class UserRatingStore {
     private let defaults: UserDefaults
     private let key = "dailytactics.userRating"
     private let initialRating = 1500
-    private let levelKey = "dailytactics.ratingLevel"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -57,8 +33,6 @@ final class UserRatingStore {
         let stored = defaults.integer(forKey: key)
         return stored == 0 ? initialRating : stored
     }
-
-    var level: RatingLevel { RatingLevel(rawValue: defaults.string(forKey: levelKey) ?? "") ?? RatingLevel(rating: rating) }
 
     func apply(delta: Int) -> Int {
         let updated = min(3000, max(400, rating + delta))
@@ -73,6 +47,5 @@ final class UserRatingStore {
     func set(rating: Int) {
         let normalized = min(3000, max(400, rating))
         defaults.set(normalized, forKey: key)
-        defaults.set(RatingLevel(rating: normalized).rawValue, forKey: levelKey)
     }
 }

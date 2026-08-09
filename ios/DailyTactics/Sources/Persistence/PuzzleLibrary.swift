@@ -36,6 +36,11 @@ final class PuzzleRecord {
 struct PuzzleLibraryImporter {
     let context: ModelContext
 
+    /// The 10 bundled rating tiers (`1000.json` … `1900.json`), each holding a
+    /// 100-point band of puzzles. All of them are imported in one pass on first
+    /// launch so the whole library lives in SwiftData and rounds can query it.
+    static let tierLevels = Array(stride(from: 1000, through: 1900, by: 100))
+
     private struct ImportPuzzle: Decodable {
         let id: String
         let fen: String
@@ -47,41 +52,88 @@ struct PuzzleLibraryImporter {
         let themes: [String]
         let gameUrl: String?
         let openingTags: [String]?
+
+        var puzzle: Puzzle {
+            Puzzle(id: id, fen: fen, moves: moves, rating: rating,
+                   themes: themes.compactMap(PuzzleTheme.init(rawValue:)),
+                   ratingDeviation: ratingDeviation, popularity: popularity,
+                   playCount: playCount, gameUrl: gameUrl, openingTags: openingTags)
+        }
     }
 
-    func importBundled(for rating: Int, progress: @escaping (Double) -> Void) async {
-        let level = RatingLevel(rating: rating).rawValue
-        guard let url = Bundle.main.url(forResource: level, withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let imported = try? JSONDecoder().decode([ImportPuzzle].self, from: data)
-        else { return }
-
-        let puzzles = imported.map {
-            Puzzle(id: $0.id, fen: $0.fen, moves: $0.moves, rating: $0.rating,
-                   themes: $0.themes.compactMap(PuzzleTheme.init(rawValue:)),
-                   ratingDeviation: $0.ratingDeviation, popularity: $0.popularity,
-                   playCount: $0.playCount, gameUrl: $0.gameUrl, openingTags: $0.openingTags)
+    /// Bulk-import every bundled tier into SwiftData, reporting combined
+    /// progress in `0...1`. Existing puzzle ids are skipped, so the call is
+    /// idempotent and safe to re-run. Saves are batched every 250 inserts with
+    /// a `Task.yield()` between batches to keep the loading screen responsive.
+    func importAllBundled(progress: @escaping (Double) -> Void) async {
+        let tiers = Self.tierLevels.compactMap { level -> [ImportPuzzle]? in
+            guard let url = Bundle.main.url(forResource: "\(level)", withExtension: "json"),
+                  let data = try? Data(contentsOf: url),
+                  let puzzles = try? JSONDecoder().decode([ImportPuzzle].self, from: data)
+            else { return nil }
+            return puzzles
         }
+
+        let total = tiers.reduce(0) { $0 + $1.count }
+        guard total > 0 else { return }
 
         let existingIDs = Set((try? context.fetch(FetchDescriptor<PuzzleRecord>()).map(\.puzzleId)) ?? [])
-
-        for (index, puzzle) in puzzles.enumerated() {
-            if !existingIDs.contains(puzzle.id) {
-                context.insert(PuzzleRecord(puzzle: puzzle))
-            }
-            if (index + 1).isMultiple(of: 250) || index == puzzles.count - 1 {
-                try? context.save()
-                progress(Double(index + 1) / Double(puzzles.count))
-                await Task.yield()
+        var done = 0
+        for puzzles in tiers {
+            for item in puzzles {
+                if !existingIDs.contains(item.id) {
+                    context.insert(PuzzleRecord(puzzle: item.puzzle))
+                }
+                done += 1
+                if done.isMultiple(of: 250) || done == total {
+                    try? context.save()
+                    progress(Double(done) / Double(total))
+                    await Task.yield()
+                }
             }
         }
     }
 
+    /// Delete every `PuzzleRecord` and `PuzzleProgress` row. Used for a full
+    /// reset; the everyday "reassess" path uses `resetProgress` instead so the
+    /// imported library is not wiped.
     func reset() {
         let puzzles = (try? context.fetch(FetchDescriptor<PuzzleRecord>())) ?? []
         puzzles.forEach(context.delete)
+        resetProgress()
+    }
+
+    /// Clear only the user's runtime progress (`PuzzleProgress`), leaving the
+    /// imported puzzle library intact. Puzzles become unattempted again so a
+    /// reassessment starts from a clean slate without re-importing 10k rows.
+    func resetProgress() {
         let progress = (try? context.fetch(FetchDescriptor<PuzzleProgress>())) ?? []
         progress.forEach(context.delete)
         try? context.save()
     }
 }
+
+/// Tracks whether the bundled puzzle library has been bulk-imported into
+/// SwiftData. A first-launch gate independent of the rating assessment. Views
+/// observe `importedKey` via `@AppStorage` so completing the import re-renders
+/// the root routing without manual state plumbing.
+@MainActor
+struct LibraryStateStore {
+    static let importedKey = "dailytactics.libraryImported"
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    var isImported: Bool { defaults.bool(forKey: Self.importedKey) }
+
+    func markImported() {
+        defaults.set(true, forKey: Self.importedKey)
+    }
+
+    func reset() {
+        defaults.removeObject(forKey: Self.importedKey)
+    }
+}
+

@@ -2,6 +2,7 @@ import Foundation
 import Observation
 
 enum TacticsFeedbackState: Equatable {
+    case idle
     case instruction(message: String, systemImage: String)
     case error(message: String)
     case opponentMoving
@@ -16,6 +17,10 @@ enum TacticsFeedbackState: Equatable {
 @Observable
 final class TacticsViewModel {
     private var dataset: [Puzzle]
+    /// In training mode the ViewModel queries the store for each round; in
+    /// assessment mode it reshuffles from the provided `dataset`. Round 1 is
+    /// always supplied via `init(dataset:)` (pre-fetched by the caller).
+    private let databaseBacked: Bool
     private let dailyPuzzleCount: Int
     private(set) var puzzles: [Puzzle]
     private(set) var currentIndex: Int
@@ -34,17 +39,17 @@ final class TacticsViewModel {
     private(set) var userRating: Int
     private(set) var lastRatingDelta: Int?
     private(set) var isBoardFlipped: Bool = false
-    private(set) var levelTransition: RatingLevel?
 
     /// Per-puzzle outcome for the current round, paralleling the rating
     /// assessment row. `nil` = not yet attempted.
     private(set) var results: [PuzzleOutcome?] = []
 
-    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, batchSize: Int? = nil) {
+    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, batchSize: Int? = nil, databaseBacked: Bool = false) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
         let requestedCount = batchSize ?? dailyPuzzleCount
         let batch = Self.pickRandomBatch(from: source, count: requestedCount)
         self.dataset = source
+        self.databaseBacked = databaseBacked
         self.dailyPuzzleCount = requestedCount
         self.progress = progress
         self.ratingStore = ratingStore
@@ -58,10 +63,6 @@ final class TacticsViewModel {
             preconditionFailure("Invalid bundled puzzle: \(error)")
         }
         orientBoardToPlayer()
-    }
-
-    func acknowledgeLevelTransition() {
-        levelTransition = nil
     }
 
     func attachProgress(_ store: PuzzleProgressStore) {
@@ -113,10 +114,9 @@ final class TacticsViewModel {
 
         switch state {
         case .waitingForMove:
-            return .instruction(
-                message: hintMove == nil ? "Find the winning move" : "Move the highlighted piece to the marked square",
-                systemImage: hintMove == nil ? "scope" : "lightbulb.fill"
-            )
+            // No instruction text while simply waiting — the header already
+            // says whose move it is. Only the hint surfaces guidance here.
+            return hintMove == nil ? .idle : .instruction(message: "Move the highlighted piece to the marked square", systemImage: "lightbulb.fill")
         case .opponentMoving:
             return isReviewing ? .opponentReply : .opponentMoving
         case .incorrectMove:
@@ -133,6 +133,16 @@ final class TacticsViewModel {
     var isLastPuzzle: Bool { currentIndex >= puzzles.count - 1 }
     var isBatchComplete: Bool { isLastPuzzle && session.state == .solved }
 
+    /// The current puzzle's Lichess difficulty rating, if the dataset provides it.
+    var currentPuzzleRating: Int? {
+        puzzles.indices.contains(currentIndex) ? puzzles[currentIndex].rating : nil
+    }
+
+    /// How many times the current puzzle has been played on Lichess.
+    var currentPuzzlePlayCount: Int? {
+        puzzles.indices.contains(currentIndex) ? puzzles[currentIndex].playCount : nil
+    }
+
     func nextPuzzle() {
         guard !isAdvancing, currentIndex < puzzles.count - 1 else { return }
         isAdvancing = true
@@ -148,25 +158,30 @@ final class TacticsViewModel {
         }
     }
 
-    /// Reshuffle a fresh random batch from the current dataset.
+    /// Start the next round. This is the only round boundary: in database-backed
+    /// (training) mode it queries the store for 5 random unattempted puzzles;
+    /// in assessment mode it reshuffles from the provided dataset. The round
+    /// cursor always resets to 0.
     func restartBatch() {
-        reshuffleBatch()
+        loadNextRound()
     }
 
-    /// Replace the dataset (e.g. after a rating-level transition imports a new
-    /// tier) and start a fresh batch from it. A no-op when the new dataset is
-    /// empty, so a failed import never leaves the user without puzzles.
-    func reload(dataset: [Puzzle]) {
-        guard !dataset.isEmpty else { return }
-        self.dataset = dataset
-        reshuffleBatch()
-    }
-
-    private func reshuffleBatch() {
-        let available = dataset.filter { !(progress?.hasAttempted($0.id) ?? false) }
-        let source = available.count >= dailyPuzzleCount ? available : dataset
-        puzzles = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
-        results = Array(repeating: nil, count: puzzles.count)
+    private func loadNextRound() {
+        let picked: [Puzzle]
+        if databaseBacked {
+            // The single DB query point: 5 random unattempted puzzles. Falls
+            // back to random-over-all when fewer than `dailyPuzzleCount`
+            // remain unattempted, so the user is never left without a round.
+            guard let progress else { return }
+            picked = progress.fetchUnattemptedRound(count: dailyPuzzleCount)
+        } else {
+            let available = dataset.filter { !(progress?.hasAttempted($0.id) ?? false) }
+            let source = available.count >= dailyPuzzleCount ? available : dataset
+            picked = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
+        }
+        guard !picked.isEmpty else { return }
+        puzzles = picked
+        results = Array(repeating: nil, count: picked.count)
         currentIndex = 0
         loadPuzzle(at: 0)
     }
@@ -360,8 +375,7 @@ final class TacticsViewModel {
         applySolveRating(solved: cleanSolve)
     }
 
-    /// Applies an Elo-style rating change for the current puzzle, persists it,
-    /// and surfaces a level-transition prompt when the user crosses a tier.
+    /// Applies an Elo-style rating change for the current puzzle and persists it.
     private func applySolveRating(solved: Bool) {
         let puzzleRating = puzzles[currentIndex].rating ?? userRating
         let delta = ratingCalculator.change(
@@ -370,11 +384,6 @@ final class TacticsViewModel {
             solved: solved
         )
         userRating = ratingStore.apply(delta: delta)
-        let newLevel = RatingLevel(rating: userRating)
-        if newLevel != ratingStore.level {
-            levelTransition = newLevel
-            ratingStore.set(rating: userRating)
-        }
         lastRatingDelta = delta
     }
 

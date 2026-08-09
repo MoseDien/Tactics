@@ -3,20 +3,39 @@ import SwiftData
 
 struct TacticsView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var viewModel: TacticsViewModel
+    @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
-    @State private var showLevelTransition = false
-
-    init(dataset: [Puzzle] = Puzzle.loadBundled(), dailyPuzzleCount: Int = 5) {
-        _viewModel = State(initialValue: TacticsViewModel(dataset: dataset.isEmpty ? Puzzle.loadBundled() : dataset, dailyPuzzleCount: dailyPuzzleCount))
-    }
 
     var body: some View {
+        Group {
+            if let viewModel {
+                content(for: viewModel)
+            } else {
+                ProgressView("Loading…")
+            }
+        }
+        .task {
+            // Round 1 is fetched from the store exactly once, here. Subsequent
+            // rounds come from `viewModel.restartBatch()`, which queries the
+            // store again only at that round boundary. An empty result (e.g. an
+            // empty preview container) falls back to the bundled samples so the
+            // board is never blank.
+            let store = PuzzleProgressStore(context: modelContext)
+            var round = store.fetchUnattemptedRound(count: 5)
+            if round.isEmpty { round = Puzzle.samples }
+            let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: 5, databaseBacked: true)
+            vm.start()
+            viewModel = vm
+        }
+    }
+
+    @ViewBuilder
+    private func content(for viewModel: TacticsViewModel) -> some View {
         NavigationStack {
             GeometryReader { viewport in
                 ScrollView {
                     VStack(spacing: 0) {
-                    header
+                    header(for: viewModel)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
 
@@ -30,13 +49,13 @@ struct TacticsView: View {
                     )
                     .frame(width: min(viewport.size.width, max(280, viewport.size.height - 238)))
 
-                    roundProgress
+                    roundProgress(for: viewModel)
 
-                    ratingPanel
+                    ratingPanel(for: viewModel)
 
-                    moveControls
+                    moveControls(for: viewModel)
 
-                    feedback
+                    feedback(for: viewModel)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 12)
                 }
@@ -58,39 +77,10 @@ struct TacticsView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
-            .task {
-                viewModel.attachProgress(PuzzleProgressStore(context: modelContext))
-                viewModel.start()
-            }
-            .onChange(of: viewModel.levelTransition) { _, newLevel in
-                showLevelTransition = newLevel != nil
-            }
-            .alert("New rating level", isPresented: $showLevelTransition) {
-                Button("Load \(viewModel.levelTransition?.rawValue ?? "next") puzzles") {
-                    importLevelData()
-                }
-            } message: {
-                Text("Your rating is now \(viewModel.userRating), so your level is \(viewModel.levelTransition?.rawValue ?? "updated").")
-            }
         }
     }
 
-    private func importLevelData() {
-        Task { @MainActor in
-            let importer = PuzzleLibraryImporter(context: modelContext)
-            await importer.importBundled(for: viewModel.userRating) { _ in }
-            // Refresh the in-memory dataset from SwiftData so the new tier's
-            // puzzles actually reach the board (the init-time snapshot is stale).
-            let level = RatingLevel(rating: viewModel.userRating)
-            let scoped = ((try? modelContext.fetch(FetchDescriptor<PuzzleRecord>())) ?? [])
-                .filter { level.ratingRange.contains($0.rating) }
-                .map(\.puzzle)
-            viewModel.reload(dataset: scoped)
-            viewModel.acknowledgeLevelTransition()
-        }
-    }
-
-    private var header: some View {
+    private func header(for viewModel: TacticsViewModel) -> some View {
         VStack(spacing: 5) {
             Text("PUZZLE \(viewModel.puzzleNumber) OF \(viewModel.puzzleCount)")
                 .font(.caption.weight(.bold))
@@ -113,6 +103,21 @@ struct TacticsView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    if let rating = viewModel.currentPuzzleRating {
+                        Label("\(rating)", systemImage: "gauge.medium")
+                            .accessibilityLabel("Puzzle rating \(rating)")
+                    }
+                    if let plays = viewModel.currentPuzzlePlayCount {
+                        Label(plays.formatted(), systemImage: "play.circle")
+                            .accessibilityLabel("Played \(plays.formatted()) times")
+                    }
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
                 Spacer(minLength: 0)
             }
             .padding(8)
@@ -123,7 +128,7 @@ struct TacticsView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var moveControls: some View {
+    private func moveControls(for viewModel: TacticsViewModel) -> some View {
         HStack {
             Button {
                 viewModel.toggleBoardFlip()
@@ -187,13 +192,13 @@ struct TacticsView: View {
         .padding(.vertical, 8)
     }
 
-    private var roundProgress: some View {
+    private func roundProgress(for viewModel: TacticsViewModel) -> some View {
         PuzzleResultRow(outcomes: viewModel.results)
             .padding(.horizontal, 20)
             .padding(.top, 8)
     }
 
-    private var ratingPanel: some View {
+    private func ratingPanel(for viewModel: TacticsViewModel) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("Rating")
                 .font(.title3)
@@ -215,8 +220,10 @@ struct TacticsView: View {
     }
 
     @ViewBuilder
-    private var feedback: some View {
+    private func feedback(for viewModel: TacticsViewModel) -> some View {
         switch viewModel.feedbackState {
+        case .idle:
+            EmptyView()
         case let .error(message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
@@ -239,40 +246,23 @@ struct TacticsView: View {
             Label("Not quite — look for a forcing move.", systemImage: "arrow.counterclockwise")
                 .foregroundStyle(.orange)
         case .puzzleComplete, .trainingComplete:
-            VStack(spacing: 12) {
-                if case .trainingComplete = viewModel.feedbackState {
-                    Label("Training complete!", systemImage: "star.fill")
-                        .font(.headline)
-                        .foregroundStyle(.green)
+            HStack(spacing: 12) {
+                Button("Play again", action: viewModel.restart)
+                    .buttonStyle(.bordered)
+                if viewModel.isBatchComplete {
+                    Button("Start over", action: viewModel.restartBatch)
+                        .buttonStyle(.borderedProminent)
                 } else {
-                    Label("Puzzle complete!", systemImage: "checkmark.seal.fill")
-                        .font(.headline)
-                        .foregroundStyle(.green)
-                }
-
-                if let delta = viewModel.lastRatingDelta {
-                    Text(delta >= 0 ? "Rating changed by +\(delta)" : "Rating changed by \(delta)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                HStack(spacing: 12) {
-                    Button("Play again", action: viewModel.restart)
-                        .buttonStyle(.bordered)
-                    if viewModel.isBatchComplete {
-                        Button("Start over", action: viewModel.restartBatch)
-                            .buttonStyle(.borderedProminent)
-                    } else {
-                        Button("Next puzzle", action: viewModel.nextPuzzle)
-                            .buttonStyle(.borderedProminent)
-                    }
+                    Button("Next puzzle", action: viewModel.nextPuzzle)
+                        .buttonStyle(.borderedProminent)
                 }
             }
+            .padding(.bottom, 28)
         }
     }
 }
 
 #Preview {
     TacticsView()
-        .modelContainer(for: PuzzleProgress.self, inMemory: true)
+        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self, RatingAssessment.self], inMemory: true)
 }

@@ -28,11 +28,26 @@ final class PuzzleProgress {
 /// swapped (or made in-memory for previews/tests) without leaking SwiftData
 /// through the feature layer.
 @MainActor
-struct PuzzleProgressStore {
+final class PuzzleProgressStore {
     private let context: ModelContext
+    /// The imported puzzle library is static for a session — `PuzzleRecord` rows
+    /// only change on first-launch import or a full reset, both of which
+    /// re-route to a fresh screen (and a fresh store). So the library is fetched
+    /// once and cached. Without this, every round re-materialized ~10k SwiftData
+    /// objects, which was the per-round loading lag.
+    private var cachedLibrary: [Puzzle]?
 
     init(context: ModelContext) {
         self.context = context
+    }
+
+    /// All puzzles in the imported library, fetched once and cached for the
+    /// lifetime of this store (i.e. the Tactics screen session).
+    func allPuzzles() -> [Puzzle] {
+        if let cachedLibrary { return cachedLibrary }
+        let all = ((try? context.fetch(FetchDescriptor<PuzzleRecord>())) ?? []).map(\.puzzle)
+        cachedLibrary = all
+        return all
     }
 
     func markCompleted(_ puzzleId: String) {
@@ -105,5 +120,22 @@ struct PuzzleProgressStore {
             predicate: #Predicate { $0.isCompleted == true }
         )
         return (try? context.fetchCount(descriptor)) ?? 0
+    }
+
+    /// The round-start query: `count` random puzzles that have not been
+    /// attempted yet, drawn from the cached library (no rating-band filter).
+    /// Falls back to random-over-all when fewer than `count` remain unattempted
+    /// so a round is always available. The static library is cached; only the
+    /// small `PuzzleProgress` table is queried each round.
+    func fetchUnattemptedRound(count: Int) -> [Puzzle] {
+        let all = allPuzzles()
+        guard !all.isEmpty else { return [] }
+        let attemptedDescriptor = FetchDescriptor<PuzzleProgress>(
+            predicate: #Predicate { $0.isAttempted == true }
+        )
+        let attempted = Set(((try? context.fetch(attemptedDescriptor)) ?? []).map(\.puzzleId))
+        let pool = all.filter { !attempted.contains($0.id) }
+        let source = pool.count >= count ? pool : all
+        return Array(source.shuffled().prefix(min(count, source.count)))
     }
 }

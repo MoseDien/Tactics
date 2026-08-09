@@ -14,19 +14,20 @@ struct DailyTacticsApp: App {
 private struct RootView: View {
     private let assessmentPuzzleCount = 4
     @Query private var assessments: [RatingAssessment]
-    @Query private var puzzleRecords: [PuzzleRecord]
-    @State private var puzzles = RatingAssessmentLoader.loadBundled()
+    /// First-launch gate: the puzzle library is bulk-imported into SwiftData
+    /// once. Observed via `@AppStorage` so completing the import re-routes.
+    @AppStorage(LibraryStateStore.importedKey) private var libraryImported = false
+    @State private var assessmentPuzzles = RatingAssessmentLoader.loadBundled()
 
     var body: some View {
-        if assessments.contains(where: { $0.isCompleted }) {
-            let rating = UserRatingStore().rating
-            let level = RatingLevel(rating: rating)
-            let scopedPuzzles = puzzleRecords
-                .filter { level.ratingRange.contains($0.rating) }
-                .map(\.puzzle)
-            TacticsView(dataset: scopedPuzzles, dailyPuzzleCount: 5)
+        if !libraryImported {
+            LibraryLoadingView()
+        } else if assessments.contains(where: { $0.isCompleted }) {
+            // Rounds are queried from SwiftData at each round boundary inside
+            // TacticsView, so no dataset is pre-built here.
+            TacticsView()
         } else {
-            RatingAssessmentView(puzzles: RatingAssessmentPlan.make(from: puzzles, count: assessmentPuzzleCount).puzzles)
+            RatingAssessmentView(puzzles: RatingAssessmentPlan.make(from: assessmentPuzzles, count: assessmentPuzzleCount).puzzles)
         }
     }
 }
