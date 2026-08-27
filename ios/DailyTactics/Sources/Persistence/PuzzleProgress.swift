@@ -29,7 +29,7 @@ final class PuzzleProgress {
 /// through the feature layer.
 @MainActor
 final class PuzzleProgressStore {
-    private let context: ModelContext
+    let context: ModelContext
     /// The imported puzzle library is static for a session — `PuzzleRecord` rows
     /// only change on first-launch import or a full reset, both of which
     /// re-route to a fresh screen (and a fresh store). So the library is fetched

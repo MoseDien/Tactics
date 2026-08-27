@@ -2,6 +2,8 @@
 
 ## Mission
 
+当前阶段只开发和维护 iOS 版本。Android 工程暂时冻结，待 iOS 完成后再恢复 Android 开发。
+
 Maintain a small, offline iOS chess-tactics trainer. Prioritize a fast loop:
 load a puzzle, play the correct line, receive feedback, review the line, and
 move to the next puzzle.

@@ -5,6 +5,7 @@ struct TacticsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
+    @State private var reviewPuzzle: Puzzle?
 
     var body: some View {
         Group {
@@ -77,6 +78,9 @@ struct TacticsView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
+            .sheet(item: $reviewPuzzle) { puzzle in
+                ReviewRoundView(puzzle: puzzle)
+            }
         }
     }
 
@@ -88,23 +92,27 @@ struct TacticsView: View {
                 .tracking(1.2)
 
             HStack(spacing: 14) {
-                Image(viewModel.playerColor == .white ? "wK" : "bK")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(10)
-                    .frame(width: 54, height: 54)
-                    .background(Color(red: 0.94, green: 0.85, blue: 0.70))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(viewModel.headerTitle)
-                        .font(.headline.bold())
-                    Text(viewModel.headerSubtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                HStack {
+                    Image(viewModel.playerColor == .white ? "wK" : "bK")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(10)
+                        .frame(width: 54, height: 54)
+                        .background(Color(red: 0.94, green: 0.85, blue: 0.70))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(viewModel.headerTitle)
+                            .font(.headline.bold())
+                        Text(viewModel.headerSubtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
-                VStack(alignment: .trailing, spacing: 6) {
+                Spacer(minLength: 0)
+                
+                VStack(alignment: .leading, spacing: 6) {
                     if let rating = viewModel.currentPuzzleRating {
                         Label("\(rating)", systemImage: "gauge.medium")
                             .accessibilityLabel("Puzzle rating \(rating)")
@@ -117,8 +125,6 @@ struct TacticsView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-
-                Spacer(minLength: 0)
             }
             .padding(8)
             .background(Color(.secondarySystemBackground).opacity(0.72))
@@ -247,7 +253,9 @@ struct TacticsView: View {
                 .foregroundStyle(.orange)
         case .puzzleComplete, .trainingComplete:
             HStack(spacing: 12) {
-                Button("Play again", action: viewModel.restart)
+                Button("Review") {
+                    reviewPuzzle = viewModel.puzzles[viewModel.currentIndex]
+                }
                     .buttonStyle(.bordered)
                 if viewModel.isBatchComplete {
                     Button("Start over", action: viewModel.restartBatch)

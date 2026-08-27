@@ -5,6 +5,8 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 
 ## Source of truth
 
+- 当前只开发 iOS；Android 暂停，直到 iOS 版本完成并稳定。
+
 - `ios/Project.swift` and `ios/Tuist.swift` define the Xcode project.
 - Generate from `ios/` with `mise x tuist@4.197.3 -- tuist generate`.
 - Never use the generated `.xcodeproj` as the primary project definition.

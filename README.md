@@ -6,6 +6,8 @@ line at a time, and stores progress locally.
 
 ## Current product
 
+当前开发优先级为 iOS。Android 工程暂时保留在 `android/`，但暂停功能开发；待 iOS 版本完成并稳定后再继续 Android。
+
 - iOS-only, iOS 17+, Swift 6, SwiftUI, Tuist 4.x
 - Bundle identifier: `com.dienbell.tactics`
 - On first launch the entire bundled library (10 rating tiers, ~10,000 puzzles)

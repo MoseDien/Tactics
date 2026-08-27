@@ -370,6 +370,9 @@ final class TacticsViewModel {
         guard !ratingAppliedForPuzzle else { return }
         ratingAppliedForPuzzle = true
         recordOutcome(.correct, for: currentIndex)
+        if isBatchComplete {
+            progress?.recordRound(puzzles: puzzles, outcomes: results)
+        }
         guard firstAttemptWasCorrect else { return }
         let cleanSolve = !hadMistake && hintMove == nil
         applySolveRating(solved: cleanSolve)

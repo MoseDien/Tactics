@@ -72,10 +72,12 @@ struct RatingAssessmentView: View {
                     case .solved:
                         solvedCount += 1
                         results[index] = true
+                        RatingAssessmentStore(context: modelContext).recordProgress(puzzleID: puzzles[index].id)
                         advanceAfterResult(message: "Correct — next puzzle")
                     case .incorrectMove:
                         failedCount += 1
                         results[index] = false
+                        RatingAssessmentStore(context: modelContext).recordProgress(puzzleID: puzzles[index].id)
                         assessmentMessage = "Failed — moving to the next puzzle"
                         advanceAfterResult(message: nil)
                     default:

@@ -10,6 +10,7 @@
 		0FF5DF1D3D37A1BE95BD88EC /* DailyTacticsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5D992D2C3D4EF4DFED765C8 /* DailyTacticsApp.swift */; };
 		11D4F1275048704EE43CFE58 /* TuistAssets+DailyTactics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3830186C07D3FF0EC183799 /* TuistAssets+DailyTactics.swift */; };
 		16B5E5FFB24B388D10AAADD0 /* TacticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010F95FCAB9FA7E3CEB1E685 /* TacticsViewModel.swift */; };
+		1922645718A0C9F63D54CABF /* RoundHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 943D1FE6492688A743DC754E /* RoundHistory.swift */; };
 		2B879A8B748ECB3423E6B10C /* Puzzle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EC405E600D74ED046172ECB /* Puzzle.swift */; };
 		348E2A1C7B12705A11228E11 /* 1200.json in Resources */ = {isa = PBXBuildFile; fileRef = E81CB85BC58F145E544F4B63 /* 1200.json */; };
 		3566242A25E4BB81654D530A /* ChessAndPuzzleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC9F345C6E5E40DD6EF6006 /* ChessAndPuzzleTests.swift */; };
@@ -37,6 +38,7 @@
 		F094A9B21BD533B305B60DF9 /* RatingAssessment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 032F64684960008592CAB1DF /* RatingAssessment.swift */; };
 		F612CDEC9694E31B16122FB0 /* Apache-2.0.txt in Resources */ = {isa = PBXBuildFile; fileRef = 84D5DF44D457D92E2C684247 /* Apache-2.0.txt */; };
 		F7150917B2A1DD807606CD9E /* ChessBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB14588E6E034F08019E8D37 /* ChessBoardView.swift */; };
+		F940C1CE3FAD8B7D2C799E25 /* ReviewRoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C2C663BE13A51AEA8D44E8 /* ReviewRoundView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,9 +96,11 @@
 		88651AD67F821FD0CE49CD3E /* 1100.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 1100.json; sourceTree = "<group>"; };
 		891597114E2FE073AE4DED7C /* 1800.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 1800.json; sourceTree = "<group>"; };
 		8E3EBFC254A29B0235DE5595 /* DailyTactics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DailyTactics.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		943D1FE6492688A743DC754E /* RoundHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundHistory.swift; sourceTree = "<group>"; };
 		98ACFCB6D0D2D6103EEE9C68 /* 1600.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 1600.json; sourceTree = "<group>"; };
 		98B76F5A4F26BE6B7C1B508A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9A1E896939455E1ECC78956D /* 1700.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 1700.json; sourceTree = "<group>"; };
+		A8C2C663BE13A51AEA8D44E8 /* ReviewRoundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewRoundView.swift; sourceTree = "<group>"; };
 		BEBF9E83E6799A0FA2E03757 /* 1000.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 1000.json; sourceTree = "<group>"; };
 		C01F8B9B3BCB96770133D895 /* 1400.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 1400.json; sourceTree = "<group>"; };
 		C0CA743907B86588A00533E6 /* rating_puzzles.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = rating_puzzles.json; sourceTree = "<group>"; };
@@ -148,6 +152,7 @@
 			children = (
 				FB14588E6E034F08019E8D37 /* ChessBoardView.swift */,
 				8792ACAC9D11586724CD09B3 /* PuzzleResultRow.swift */,
+				A8C2C663BE13A51AEA8D44E8 /* ReviewRoundView.swift */,
 				3EC186D47898E9A000DA77C5 /* TacticsView.swift */,
 				010F95FCAB9FA7E3CEB1E685 /* TacticsViewModel.swift */,
 			);
@@ -229,6 +234,7 @@
 				51661F859E636813ABC382CD /* PuzzleProgress.swift */,
 				7445F33FD7E9D543CC9ADFCF /* Rating.swift */,
 				032F64684960008592CAB1DF /* RatingAssessment.swift */,
+				943D1FE6492688A743DC754E /* RoundHistory.swift */,
 			);
 			path = Persistence;
 			sourceTree = "<group>";
@@ -446,12 +452,14 @@
 				C5F80E720770A03BE7F8DCE2 /* SettingsView.swift in Sources */,
 				F7150917B2A1DD807606CD9E /* ChessBoardView.swift in Sources */,
 				D979F72B4477CEAC912CBCDF /* PuzzleResultRow.swift in Sources */,
+				F940C1CE3FAD8B7D2C799E25 /* ReviewRoundView.swift in Sources */,
 				864DE680FF34AD6A5B0405A1 /* TacticsView.swift in Sources */,
 				16B5E5FFB24B388D10AAADD0 /* TacticsViewModel.swift in Sources */,
 				B23A112657ACE1FA89C2FA83 /* PuzzleLibrary.swift in Sources */,
 				A31B2E1775F97707A547A482 /* PuzzleProgress.swift in Sources */,
 				A5EA06A303BC1D0A582E2339 /* Rating.swift in Sources */,
 				F094A9B21BD533B305B60DF9 /* RatingAssessment.swift in Sources */,
+				1922645718A0C9F63D54CABF /* RoundHistory.swift in Sources */,
 				2B879A8B748ECB3423E6B10C /* Puzzle.swift in Sources */,
 				11D4F1275048704EE43CFE58 /* TuistAssets+DailyTactics.swift in Sources */,
 				CE3DD6C79D7A2FC3BBC29048 /* TuistBundle+DailyTactics.swift in Sources */,
