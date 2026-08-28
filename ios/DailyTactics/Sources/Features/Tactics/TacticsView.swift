@@ -141,7 +141,7 @@ struct TacticsView: View {
             } label: {
                 Image(systemName: "arrow.up.arrow.down")
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(Color.primary)
+                    .foregroundStyle(Color.accentColor)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
@@ -152,10 +152,9 @@ struct TacticsView: View {
             Button {
                 viewModel.requestHint()
             } label: {
-                
                 Image(systemName: "info.circle")
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(viewModel.hintEnabled ? Color.primary : Color.secondary)
+                    .foregroundStyle(viewModel.hintEnabled ? Color.accentColor : Color.secondary)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
@@ -170,7 +169,7 @@ struct TacticsView: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(viewModel.canStepBack ? Color.primary : Color.secondary)
+                        .foregroundStyle(viewModel.canStepBack ? Color.accentColor : Color.secondary)
                         .frame(width: 38, height: 38)
                         .background(Circle().fill(Color(.secondarySystemBackground)))
                 }
@@ -187,7 +186,7 @@ struct TacticsView: View {
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(viewModel.canStepForward ? Color.primary : Color.secondary)
+                        .foregroundStyle(viewModel.canStepForward ? Color.accentColor : Color.secondary)
                         .frame(width: 38, height: 38)
                         .background(Circle().fill(Color(.secondarySystemBackground)))
                 }
