@@ -152,7 +152,8 @@ struct TacticsView: View {
             Button {
                 viewModel.requestHint()
             } label: {
-                Image(systemName: "lightbulb")
+                
+                Image(systemName: "info.circle")
                     .font(.title3.weight(.bold))
                     .foregroundStyle(viewModel.hintEnabled ? Color.primary : Color.secondary)
                     .frame(width: 38, height: 38)

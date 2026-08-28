@@ -116,7 +116,7 @@ final class TacticsViewModel {
         case .waitingForMove:
             // No instruction text while simply waiting — the header already
             // says whose move it is. Only the hint surfaces guidance here.
-            return hintMove == nil ? .idle : .instruction(message: "Move the highlighted piece to the marked square", systemImage: "lightbulb.fill")
+            return hintMove == nil ? .idle : .instruction(message: "Move the highlighted piece to the marked square", systemImage: "info.circle")
         case .opponentMoving:
             return isReviewing ? .opponentReply : .opponentMoving
         case .incorrectMove:
