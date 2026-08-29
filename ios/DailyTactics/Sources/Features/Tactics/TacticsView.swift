@@ -6,6 +6,7 @@ struct TacticsView: View {
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
     @State private var reviewPuzzle: Puzzle?
+    @State private var showingPuzzleDetails = false
 
     var body: some View {
         Group {
@@ -50,9 +51,12 @@ struct TacticsView: View {
                     )
                     .frame(width: min(viewport.size.width, max(280, viewport.size.height - 238)))
 
-                    roundProgress(for: viewModel)
-
-                    ratingPanel(for: viewModel)
+                    HStack(alignment: .center, spacing: 12) {
+                        ratingPanel(for: viewModel)
+                        Spacer(minLength: 8)
+                        roundProgress(for: viewModel)
+                    }
+                    .padding(.horizontal, 4)
 
                     moveControls(for: viewModel)
 
@@ -63,7 +67,7 @@ struct TacticsView: View {
                 }
             }
             .background(Color(.systemBackground))
-            .navigationTitle("DailyTactics")
+            .navigationTitle("iTactics")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -112,19 +116,33 @@ struct TacticsView: View {
 
                 Spacer(minLength: 0)
                 
-                VStack(alignment: .leading, spacing: 6) {
-                    if let rating = viewModel.currentPuzzleRating {
-                        Label("\(rating)", systemImage: "gauge.medium")
-                            .accessibilityLabel("Puzzle rating \(rating)")
-                    }
-                    if let plays = viewModel.currentPuzzlePlayCount {
-                        Label(plays.formatted(), systemImage: "play.circle")
-                            .accessibilityLabel("Played \(plays.formatted()) times")
+                Button {
+                    showingPuzzleDetails.toggle()
+                } label: {
+                    VStack(alignment: .trailing, spacing: 6) {
+                        HStack(spacing: 2) {
+                            ForEach(1...5, id: \.self) { level in
+                                Image(systemName: level <= difficultyLevel(for: viewModel.currentPuzzleRating) ? "star.fill" : "star")
+                                    .foregroundStyle(level <= difficultyLevel(for: viewModel.currentPuzzleRating) ? Color.primary : Color.secondary.opacity(0.45))
+                            }
+                        }
+                        if showingPuzzleDetails {
+                            HStack(spacing: 8) {
+                                if let rating = viewModel.currentPuzzleRating {
+                                    Label("\(rating)", systemImage: "gauge.medium")
+                                }
+                                if let plays = viewModel.currentPuzzlePlayCount {
+                                    Label(plays.formatted(), systemImage: "play.circle")
+                                }
+                            }
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        }
                     }
                 }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                .buttonStyle(.plain)
+                .accessibilityLabel("Puzzle difficulty")
+                .accessibilityHint("Tap to reveal the puzzle rating and play count")
             }
             .padding(8)
             .background(Color(.secondarySystemBackground).opacity(0.72))
@@ -134,65 +152,42 @@ struct TacticsView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private func difficultyLevel(for rating: Int?) -> Int {
+        guard let rating else { return 3 }
+        return min(5, max(1, (rating - 800) / 240 + 1))
+    }
+
     private func moveControls(for viewModel: TacticsViewModel) -> some View {
         HStack {
             Button {
                 viewModel.toggleBoardFlip()
             } label: {
                 Image(systemName: "arrow.up.arrow.down")
-                    .font(.title3.weight(.bold))
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
             .accessibilityLabel("Flip board")
 
-            Spacer(minLength: 24)
+            Spacer()
+            
+            Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 36)
 
+            Spacer()
+            
             Button {
                 viewModel.requestHint()
             } label: {
-                Image(systemName: "info.circle")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(viewModel.hintEnabled ? Color.accentColor : Color.secondary)
+                Image(systemName: "lightbulb")
+                    .foregroundStyle(Color.accentColor)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
             .disabled(!viewModel.hintEnabled)
             .accessibilityLabel("Hint")
-
-            Spacer(minLength: 16)
-
-            HStack(spacing: 12) {
-                Button {
-                    viewModel.stepBack()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(viewModel.canStepBack ? Color.accentColor : Color.secondary)
-                        .frame(width: 38, height: 38)
-                        .background(Circle().fill(Color(.secondarySystemBackground)))
-                }
-                .disabled(!viewModel.canStepBack)
-                .accessibilityLabel("Previous move")
-
-                Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
-                    .font(.subheadline.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 36)
-
-                Button {
-                    viewModel.stepForward()
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(viewModel.canStepForward ? Color.accentColor : Color.secondary)
-                        .frame(width: 38, height: 38)
-                        .background(Circle().fill(Color(.secondarySystemBackground)))
-                }
-                .disabled(!viewModel.canStepForward)
-                .accessibilityLabel("Next move")
-            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
@@ -200,7 +195,6 @@ struct TacticsView: View {
 
     private func roundProgress(for viewModel: TacticsViewModel) -> some View {
         PuzzleResultRow(outcomes: viewModel.results)
-            .padding(.horizontal, 20)
             .padding(.top, 8)
     }
 
@@ -209,19 +203,17 @@ struct TacticsView: View {
             Text("Rating")
                 .font(.title3)
             Text("\(viewModel.userRating)")
-                .font(.title2.bold().monospacedDigit())
+                //.font(.title2.bold().monospacedDigit())
             if let delta = viewModel.lastRatingDelta {
                 Text(delta >= 0 ? "+\(delta)" : "\(delta)")
                     .font(.subheadline.bold().monospacedDigit())
-                    .foregroundStyle(delta >= 0 ? .green : .red)
+                    .foregroundStyle(delta >= 0 ? Color.primary : .red)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)
                     .background((delta >= 0 ? Color.green : Color.red).opacity(0.13))
                     .clipShape(Capsule())
             }
-            Spacer()
         }
-        .padding(.horizontal, 20)
         .padding(.top, 8)
     }
 
@@ -252,11 +244,11 @@ struct TacticsView: View {
             Label("Not quite — look for a forcing move.", systemImage: "arrow.counterclockwise")
                 .foregroundStyle(.orange)
         case .puzzleComplete, .trainingComplete:
-            HStack(spacing: 12) {
+            HStack(spacing: 24) {
                 Button("Review") {
                     reviewPuzzle = viewModel.puzzles[viewModel.currentIndex]
-                }
-                    .buttonStyle(.bordered)
+                }.buttonStyle(.bordered)
+                
                 if viewModel.isBatchComplete {
                     Button("Start over", action: viewModel.restartBatch)
                         .buttonStyle(.borderedProminent)

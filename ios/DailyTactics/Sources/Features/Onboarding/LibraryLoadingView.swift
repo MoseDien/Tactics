@@ -18,7 +18,7 @@ struct LibraryLoadingView: View {
                 Image(systemName: "crown")
                     .font(.system(size: 54))
                     .foregroundStyle(.tint)
-                Text("DailyTactics")
+                Text("iTactics")
                     .font(.title.bold())
                 Text("Loading your puzzle library…")
                     .font(.subheadline)

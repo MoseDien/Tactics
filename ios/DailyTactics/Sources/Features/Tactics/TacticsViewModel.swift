@@ -36,6 +36,9 @@ final class TacticsViewModel {
     private var ratingAppliedForPuzzle = false
     private var firstAttemptWasCorrect = false
     private var isAdvancing = false
+    /// Remains true after the puzzle is solved, even while the user scrubs
+    /// backward through the solution during review.
+    private var currentPuzzleFinished = false
     private(set) var userRating: Int
     private(set) var lastRatingDelta: Int?
     private(set) var isBoardFlipped: Bool = false
@@ -108,6 +111,9 @@ final class TacticsViewModel {
         if errorMessage != nil {
             return .error(message: errorMessage ?? "")
         }
+        if currentPuzzleFinished {
+            return isLastPuzzle ? .trainingComplete : .puzzleComplete
+        }
         if inReview && state != .solved {
             return .reviewing
         }
@@ -131,7 +137,11 @@ final class TacticsViewModel {
     var puzzleCount: Int { puzzles.count }
     var puzzleNumber: Int { currentIndex + 1 }
     var isLastPuzzle: Bool { currentIndex >= puzzles.count - 1 }
-    var isBatchComplete: Bool { isLastPuzzle && session.state == .solved }
+    var isBatchComplete: Bool { isLastPuzzle && currentPuzzleFinished }
+
+    /// The puzzle has been completed at least once. Review navigation must not
+    /// revoke this state or disable the Next puzzle action.
+    var canAdvanceToNextPuzzle: Bool { currentPuzzleFinished && !isLastPuzzle }
 
     /// The current puzzle's Lichess difficulty rating, if the dataset provides it.
     var currentPuzzleRating: Int? {
@@ -144,7 +154,7 @@ final class TacticsViewModel {
     }
 
     func nextPuzzle() {
-        guard !isAdvancing, currentIndex < puzzles.count - 1 else { return }
+        guard !isAdvancing, canAdvanceToNextPuzzle else { return }
         isAdvancing = true
         let target = currentIndex + 1
         // A brief beat before the next puzzle appears so the transition reads
@@ -191,26 +201,12 @@ final class TacticsViewModel {
     /// `<`/`>` are review-only: available once the puzzle is solved (or while
     /// scrubbing the line afterwards). Disabled during active play.
     var inReview: Bool { session.state == .solved || session.isReviewing }
-    var canStepForward: Bool { inReview && session.canStepForward }
-    var canStepBack: Bool { inReview && session.canStepBack }
     var hintEnabled: Bool {
         !inReview && (session.state == .waitingForMove || session.state == .incorrectMove)
     }
     var isReviewing: Bool { session.isReviewing }
     var currentMoveNumber: Int { session.currentMoveNumber }
     var totalUserMoves: Int { session.totalUserMoves }
-
-    func stepForward() {
-        guard canStepForward else { return }
-        do {
-            try session.stepForward()
-            selectedSquare = nil
-            attemptedMove = nil
-            hintMove = nil
-        } catch {
-            errorMessage = "The next move could not be shown."
-        }
-    }
 
     /// Revealing a hint counts as giving up on this puzzle: it is scored
     /// immediately as a loss (rating decreases) and marked attempted, so a
@@ -230,18 +226,6 @@ final class TacticsViewModel {
         recordOutcome(.wrong, for: currentIndex)
         applySolveRating(solved: false)
         progress?.markAttempted(puzzles[currentIndex].id)
-    }
-
-    func stepBack() {
-        guard canStepBack else { return }
-        do {
-            try session.stepBack()
-            selectedSquare = nil
-            attemptedMove = nil
-            hintMove = nil
-        } catch {
-            errorMessage = "The previous move could not be shown."
-        }
     }
 
     // MARK: - Session actions
@@ -285,6 +269,7 @@ final class TacticsViewModel {
     private func loadPuzzle(at index: Int) {
         do {
             session = try PuzzleSession(puzzle: puzzles[index])
+            currentPuzzleFinished = false
             selectedSquare = nil
             hintMove = nil
             attemptedMove = nil
@@ -364,13 +349,14 @@ final class TacticsViewModel {
     }
 
     private func markCurrentSolved() {
+        currentPuzzleFinished = true
         // Completion is recorded once regardless of the rating outcome: a hint
         // may have already adjusted the rating before the line is finished.
         progress?.markCompleted(puzzles[currentIndex].id)
         guard !ratingAppliedForPuzzle else { return }
         ratingAppliedForPuzzle = true
         recordOutcome(.correct, for: currentIndex)
-        if isBatchComplete {
+        if isLastPuzzle {
             progress?.recordRound(puzzles: puzzles, outcomes: results)
         }
         guard firstAttemptWasCorrect else { return }
