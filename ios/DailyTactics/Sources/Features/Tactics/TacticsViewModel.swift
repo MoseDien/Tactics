@@ -147,6 +147,7 @@ final class TacticsViewModel {
     /// The puzzle has been completed at least once. Review navigation must not
     /// revoke this state or disable the Next puzzle action.
     var canAdvanceToNextPuzzle: Bool { currentPuzzleFinished && !isLastPuzzle }
+    var canStartNewBatch: Bool { mode == .review && !BatchStore.isWithinDuration }
 
     /// The current puzzle's Lichess difficulty rating, if the dataset provides it.
     var currentPuzzleRating: Int? {
@@ -297,7 +298,7 @@ final class TacticsViewModel {
             ratingAppliedForPuzzle = false
             lastRatingDelta = nil
             orientBoardToPlayer()
-            if mode == .play { Task { await playOpponentMove() } }
+            Task { await playOpponentMove() }
         } catch {
             errorMessage = "The puzzle could not be loaded."
         }
@@ -361,7 +362,7 @@ final class TacticsViewModel {
             errorMessage = "The reply could not be applied."
             return
         }
-        if session.state == .solved {
+        if session.state == .solved && mode == .play {
             markCurrentSolved()
         }
     }

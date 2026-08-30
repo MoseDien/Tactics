@@ -9,6 +9,7 @@ struct TacticsView: View {
     @State private var reviewPuzzle: Puzzle?
     @State private var showingPuzzleDetails = false
     @State private var showingReviewInfo = false
+    @State private var currentDate = Date()
 
     init(mode: TacticsMode = .play) { self.mode = mode }
 
@@ -37,8 +38,11 @@ struct TacticsView: View {
             if round.isEmpty { round = Puzzle.samples }
             if mode == .play { BatchStore.begin(with: round) }
             let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: BatchConfiguration.puzzleCount, databaseBacked: true, mode: mode)
-            if mode == .play { vm.start() }
+            vm.start()
             viewModel = vm
+        }
+        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { date in
+            currentDate = date
         }
     }
 
@@ -270,6 +274,9 @@ struct TacticsView: View {
                 }.buttonStyle(.bordered)
                 
                 if viewModel.isBatchComplete {
+                    Button("Start New Batch", action: viewModel.restartBatch)
+                        .buttonStyle(.borderedProminent)
+                } else if viewModel.canStartNewBatch {
                     Button("Start New Batch", action: viewModel.restartBatch)
                         .buttonStyle(.borderedProminent)
                 } else {
