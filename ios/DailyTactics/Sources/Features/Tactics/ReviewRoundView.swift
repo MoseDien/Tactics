@@ -1,6 +1,8 @@
 import SwiftUI
 
-struct ReviewRoundView: View {
+/// Review for one completed puzzle. Batch review remains handled by
+/// `TacticsView(mode: .reviewBatch)`.
+struct ReviewPuzzleView: View {
     @Environment(\.dismiss) private var dismiss
     let puzzle: Puzzle
     @State private var session: PuzzleSession?
@@ -89,7 +91,7 @@ private struct RoundHistoryDetail: View {
         List(Array(round.puzzleIDs.enumerated()), id: \.offset) { index, id in
             if let puzzle = puzzleLookup[id] {
                 NavigationLink {
-                    ReviewRoundView(puzzle: puzzle)
+                    ReviewPuzzleView(puzzle: puzzle)
                 } label: {
                     HStack {
                         Text("Puzzle \(index + 1)")

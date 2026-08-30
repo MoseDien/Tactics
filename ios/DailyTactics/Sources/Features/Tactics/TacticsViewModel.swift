@@ -13,7 +13,7 @@ enum TacticsFeedbackState: Equatable {
     case trainingComplete
 }
 
-enum TacticsMode { case play, review }
+enum TacticsMode { case play, reviewBatch }
 
 @MainActor
 @Observable
@@ -140,7 +140,9 @@ final class TacticsViewModel {
     /// The puzzle has been completed at least once. Review navigation must not
     /// revoke this state or disable the Next puzzle action.
     var canAdvanceToNextPuzzle: Bool { currentPuzzleFinished && !isLastPuzzle }
-    var canStartNewBatch: Bool { mode == .review && !BatchStore.isWithinDuration }
+    var canStartNewBatch: Bool { mode == .reviewBatch && !BatchStore.isWithinDuration }
+    var canUpdateRating: Bool { mode == .play }
+    var canInteractWithPuzzle: Bool { !inReview && (state == .waitingForMove || state == .incorrectMove) }
 
     /// The current puzzle's Lichess difficulty rating, if the dataset provides it.
     var currentPuzzleRating: Int? {
@@ -153,9 +155,9 @@ final class TacticsViewModel {
     }
 
     func nextPuzzle() {
-        guard !isAdvancing, (mode == .review || canAdvanceToNextPuzzle) else { return }
+        guard !isAdvancing, (mode == .reviewBatch || canAdvanceToNextPuzzle) else { return }
         isAdvancing = true
-        let target = mode == .review ? (currentIndex + 1) % puzzles.count : currentIndex + 1
+        let target = mode == .reviewBatch ? (currentIndex + 1) % puzzles.count : currentIndex + 1
         // A brief beat before the next puzzle appears so the transition reads
         // as deliberate rather than an instant snap. Re-entry is blocked until
         // the load completes so repeated taps can't skip puzzles.
@@ -170,7 +172,15 @@ final class TacticsViewModel {
     /// Starts a fresh batch only after the user explicitly taps Next batch.
     /// Expiry alone never changes Review mode.
     func startNextBatch() {
-        guard !BatchStore.isWithinDuration else { return }
+        if BatchStore.isWithinDuration {
+            // The current batch is still inside its time window. Keep its
+            // puzzles and explicitly enter batch review instead of silently
+            // doing nothing or creating a replacement batch.
+            mode = .reviewBatch
+            currentIndex = 0
+            loadPuzzle(at: 0)
+            return
+        }
         mode = .play
         loadNextRound()
     }
@@ -243,8 +253,7 @@ final class TacticsViewModel {
     }
 
     func select(_ square: Square) {
-        guard !inReview,
-              state == .waitingForMove || state == .incorrectMove else { return }
+        guard canInteractWithPuzzle else { return }
         attemptedMove = nil
         hintMove = nil
 
@@ -366,14 +375,14 @@ final class TacticsViewModel {
         if isLastPuzzle {
             progress?.recordRound(puzzles: puzzles, outcomes: results)
         }
-        guard mode == .play, firstAttemptWasCorrect else { return }
+        guard canUpdateRating, firstAttemptWasCorrect else { return }
         let cleanSolve = !hadMistake && hintMove == nil
         applySolveRating(solved: cleanSolve)
     }
 
     /// Applies an Elo-style rating change for the current puzzle and persists it.
     private func applySolveRating(solved: Bool) {
-        guard mode == .play else { return }
+        guard canUpdateRating else { return }
         let puzzleRating = puzzles[currentIndex].rating ?? userRating
         let delta = ratingCalculator.change(
             userRating: userRating,

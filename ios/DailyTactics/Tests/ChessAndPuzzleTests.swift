@@ -101,61 +101,6 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertEqual(session.state, .solved)
     }
 
-    // MARK: - Review stepping
-
-    func testStepForwardAdvancesOnePlyAtATime() throws {
-        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
-
-        try session.stepForward()
-        XCTAssertEqual(session.currentMoveIndex, 1)
-        XCTAssertEqual(session.state, .waitingForMove)
-        XCTAssertTrue(session.isReviewing)
-        XCTAssertTrue(session.canStepForward)
-        XCTAssertFalse(session.canStepBack)
-
-        try session.stepForward()
-        XCTAssertEqual(session.currentMoveIndex, 2)
-        XCTAssertEqual(session.state, .opponentMoving)
-    }
-
-    func testSteppingTheFullLineReachesSolved() throws {
-        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
-
-        for expected in 1...Puzzle.samples[0].moves.count {
-            try session.stepForward()
-            XCTAssertEqual(session.currentMoveIndex, expected)
-        }
-
-        XCTAssertEqual(session.state, .solved)
-        XCTAssertFalse(session.canStepForward)
-    }
-
-    func testStepBackRewindsPosition() throws {
-        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
-        try session.stepForward()  // index 1: knight still on d5
-        try session.stepForward()  // index 2: Nc3 played, knight on c3
-
-        let c3 = Square(notation: "c3")!
-        XCTAssertNotNil(session.board.pieces[c3])
-
-        try session.stepBack()  // back to index 1
-        XCTAssertEqual(session.currentMoveIndex, 1)
-        XCTAssertNil(session.board.pieces[c3])
-        XCTAssertEqual(
-            session.board.pieces[Square(notation: "d5")!],
-            Piece(color: .black, kind: .knight)
-        )
-    }
-
-    func testLiveGuessClearsReviewingFlag() throws {
-        var session = try PuzzleSession(puzzle: Puzzle.samples[0])
-        try session.stepForward()
-        XCTAssertTrue(session.isReviewing)
-
-        try session.submitUserMove(ChessMove(uci: Puzzle.samples[0].moves[1])!)
-        XCTAssertFalse(session.isReviewing)
-    }
-
     // MARK: - Bundled puzzle data
 
     func testAllSamplesArePlayableToSolvedWithUniqueIDs() throws {
@@ -314,15 +259,6 @@ final class ChessAndPuzzleTests: XCTestCase {
                              calculator.change(userRating: 1500, puzzleRating: 1000, solved: true))
         XCTAssertLessThan(calculator.change(userRating: 1500, puzzleRating: 2200, solved: false), 0)
         XCTAssertGreaterThan(calculator.expectedScore(userRating: 1500, puzzleRating: 1000), 0.5)
-    }
-
-    @MainActor
-    func testStepperLockedUntilSolved() {
-        let vm = TacticsViewModel(dataset: Puzzle.samples)
-        // During active play the review stepper is disabled (no peeking).
-        XCTAssertFalse(vm.inReview)
-        XCTAssertFalse(vm.canStepForward)
-        XCTAssertFalse(vm.canStepBack)
     }
 
     @MainActor

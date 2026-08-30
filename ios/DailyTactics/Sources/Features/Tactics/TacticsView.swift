@@ -28,9 +28,8 @@ struct TacticsView: View {
             // board is never blank.
             let store = PuzzleProgressStore(context: modelContext)
             var round: [Puzzle]
-            if mode == .review {
-                let lookup = Dictionary(uniqueKeysWithValues: store.allPuzzles().map { ($0.id, $0) })
-                round = BatchStore.activePuzzleIDs.compactMap { lookup[$0] }
+            if mode == .reviewBatch {
+                round = BatchStore.currentPuzzles(from: store.allPuzzles())
             } else {
                 round = store.fetchUnattemptedRound(count: BatchConfiguration.puzzleCount)
             }
@@ -97,7 +96,7 @@ struct TacticsView: View {
                 SettingsView()
             }
             .sheet(item: $reviewPuzzle) { puzzle in
-                ReviewRoundView(puzzle: puzzle)
+                ReviewPuzzleView(puzzle: puzzle)
             }
         }
     }
@@ -271,10 +270,14 @@ struct TacticsView: View {
                     reviewPuzzle = viewModel.puzzles[viewModel.currentIndex]
                 }.buttonStyle(.bordered)
                 
-                if viewModel.isBatchComplete {
-                    Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
-                        .buttonStyle(.borderedProminent)
-                } else if viewModel.canStartNewBatch {
+                if viewModel.mode == .reviewBatch {
+                    Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
+                        .buttonStyle(.bordered)
+                    if viewModel.canStartNewBatch {
+                        Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
+                            .buttonStyle(.borderedProminent)
+                    }
+                } else if viewModel.isBatchComplete {
                     Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
                         .buttonStyle(.borderedProminent)
                 } else {

@@ -20,7 +20,7 @@ private struct RootView: View {
         if !libraryImported {
             LibraryLoadingView()
         } else if BatchStore.isWithinDuration && !BatchStore.activePuzzleIDs.isEmpty {
-            TacticsView(mode: .review)
+            TacticsView(mode: .reviewBatch)
         } else {
             TacticsView(mode: .play)
         }

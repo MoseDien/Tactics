@@ -42,6 +42,7 @@ Rating 由 `UserRatingStore` 保存在本地，并在首次有效尝试完成题
 - 只有当 `当前时间 - batchStartTime >= BatchConfiguration.batchDuration` 时，才能开始下一个 batch；当前默认 `batchDuration = 4 小时`。
 - 冷却期间重新打开 App 不会随机生成新题，只进入当前 batch 的 Review mode。
 - 冷却结束后显示 `Start New Batch`，用户点击后才创建下一组题目并更新开始时间。
+- Review mode 下 `Next puzzle` 只循环当前 batch；`Next batch` 与其分离，只有用户主动点击才会尝试创建新 batch。时间未到时点击会显示等待提示，仍停留在 Review mode。
 
 ### Round
 
@@ -103,4 +104,5 @@ UserDefaults
   ├ dailytactics.libraryImported → 题库是否已一次性导入（首次启动 gate）
   └ dailytactics.userRating      → 当前 Rating
   └ batchStartTime                → 当前 batch 开始时间
+  └ activeBatchPuzzleIDs          → 当前 batch 的固定题目顺序
 ```
