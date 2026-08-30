@@ -19,10 +19,7 @@ enum TacticsMode { case play, review }
 @Observable
 final class TacticsViewModel {
     private var dataset: [Puzzle]
-    /// In training mode the ViewModel queries the store for each round; in
-    /// assessment mode it reshuffles from the provided `dataset`. Round 1 is
-    /// always supplied via `init(dataset:)` (pre-fetched by the caller).
-    private let databaseBacked: Bool
+    /// Queries SwiftData at each batch boundary.
     private let dailyPuzzleCount: Int
     private(set) var mode: TacticsMode
     private(set) var puzzles: [Puzzle]
@@ -46,17 +43,14 @@ final class TacticsViewModel {
     private(set) var lastRatingDelta: Int?
     private(set) var isBoardFlipped: Bool = false
 
-    /// Per-puzzle outcome for the current round, paralleling the rating
-    /// assessment row. `nil` = not yet attempted.
+    /// Per-puzzle outcome for the current round. `nil` = not yet attempted.
     private(set) var results: [PuzzleOutcome?] = []
 
-    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, batchSize: Int? = nil, databaseBacked: Bool = false, mode: TacticsMode = .play) {
+    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
-        let requestedCount = batchSize ?? dailyPuzzleCount
-        let batch = Self.pickRandomBatch(from: source, count: requestedCount)
+        let batch = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
         self.dataset = source
-        self.databaseBacked = databaseBacked
-        self.dailyPuzzleCount = requestedCount
+        self.dailyPuzzleCount = dailyPuzzleCount
         self.mode = mode
         self.progress = progress
         self.ratingStore = ratingStore
@@ -181,8 +175,7 @@ final class TacticsViewModel {
 
     /// Start the next round. This is the only round boundary: in database-backed
     /// (training) mode it queries the store for 5 random unattempted puzzles;
-    /// in assessment mode it reshuffles from the provided dataset. The round
-    /// cursor always resets to 0.
+    /// The round cursor always resets to 0.
     func restartBatch() {
         if BatchStore.isWithinDuration {
             mode = .review
@@ -195,17 +188,8 @@ final class TacticsViewModel {
 
     private func loadNextRound() {
         let picked: [Puzzle]
-        if databaseBacked {
-            // The single DB query point: 5 random unattempted puzzles. Falls
-            // back to random-over-all when fewer than `dailyPuzzleCount`
-            // remain unattempted, so the user is never left without a round.
-            guard let progress else { return }
-            picked = progress.fetchUnattemptedRound(count: dailyPuzzleCount)
-        } else {
-            let available = dataset.filter { !(progress?.hasAttempted($0.id) ?? false) }
-            let source = available.count >= dailyPuzzleCount ? available : dataset
-            picked = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
-        }
+        guard let progress else { return }
+        picked = progress.fetchUnattemptedRound(count: dailyPuzzleCount)
         guard !picked.isEmpty else { return }
         puzzles = picked
         BatchStore.begin(with: picked)

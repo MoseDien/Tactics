@@ -15,40 +15,14 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 - 整个过程显示一个 Loading 页面和进度，导入完成后翻起
   `LibraryStateStore`（UserDefaults `dailytactics.libraryImported`）标志位。
 - 导入是幂等的：按 `puzzleId` 去重，重复运行不会插入重复题目。
-- 这个 gate 独立于 Rating Assessment，之后每次启动都跳过导入，直接进入后续流程。
+- 这个 gate 独立于 Daily Tactics，之后每次启动都跳过导入，直接进入后续流程。
 
 题目 JSON 由 `tools/export_tier_puzzles.py` 从 `data/source/lichess_puzzles.sqlite`
 按 100 分 Rating 区间抽样生成（可复现）。
 
-## 1. Rating Assessment：建立用户 baseline rating
+## 1. Rating
 
-题库导入完成后，若尚未完成评估，进入 Rating Assessment。
-
-### 题目来源
-
-- 从 `ios/DailyTactics/Resources/puzzles/rating_puzzles.json`（100 道、覆盖宽 Rating 范围）
-  读取评估题集合。
-- 按难度分布随机抽取评估题；当前评估题数量为 4 道（参数可调）。
-
-### 评估规则
-
-- 每道题只允许第一次尝试。
-- 第一次答对，记录为成功。
-- 第一次答错，立即记录为失败并进入下一题。
-- 评估过程中显示当前执棋方、题目进度和成功/失败列表。
-
-### baseline rating
-
-完成所有评估题后，根据题目平均难度和用户答对比例计算 baseline rating。
-
-用户会看到包含具体 Rating 数值的确认弹窗。用户点击确认后：
-
-1. 通过 `RatingAssessmentStore` 保存 baseline rating 和评估完成状态。
-2. 通过 `UserRatingStore` 写入当前 Rating。
-3. 进入 Daily Tactics。
-
-> 注意：评估**不再导入任何等级题库**——题库已在首次启动时一次性全部导入。
-> 如果用户没有确认，评估完成状态不会写入，下一次启动仍会继续评估流程。
+Rating 由 `UserRatingStore` 保存在本地，并在首次有效尝试完成题目后按 Elo 风格规则更新。
 
 ## 2. 题库组织
 
@@ -73,8 +47,7 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 
 - 每个 round 默认包含 5 道题。
 - 题目从整个题库中**随机选择尚未尝试过的** 5 道（不按 Rating 区间筛选，难度混合）。
-- **查询数据库只在 round 开始时发生一次**：round 1 在进入 Tactics 时查询，
-  后续 round 在用户点击「Start over」时查询。一个 round 进行中不再访问数据库。
+- **查询数据库只在 batch 开始时发生一次**。一个 batch 进行中不再重新随机选择题目。
 - 当未做过的题目不足 5 道时，回退为从全部题目中随机选择。
 
 ### Review mode
@@ -120,13 +93,12 @@ Rating 是一个本地训练分数，不再是 Lichess 官方 Rating，也不再
 
 Settings 提供历史记录入口。历史按每 5 道题保存为一个 batch，用户可以逐题进入 Review。
 
-Rating Assessment 当前不提供用户入口。
 
 ## 7. 持久化职责
 
 ```text
 ios/DailyTactics/Resources/puzzles/*.json → 首次启动一次性全部导入
-SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、评估状态（RatingAssessment）
+SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、历史 batch（RoundHistory）
 UserDefaults
   ├ dailytactics.libraryImported → 题库是否已一次性导入（首次启动 gate）
   └ dailytactics.userRating      → 当前 Rating

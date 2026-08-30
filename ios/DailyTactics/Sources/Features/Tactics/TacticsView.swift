@@ -37,7 +37,7 @@ struct TacticsView: View {
             }
             if round.isEmpty { round = Puzzle.samples }
             if mode == .play { BatchStore.begin(with: round) }
-            let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: BatchConfiguration.puzzleCount, databaseBacked: true, mode: mode)
+            let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: BatchConfiguration.puzzleCount, mode: mode)
             vm.start()
             viewModel = vm
         }
@@ -291,5 +291,5 @@ struct TacticsView: View {
 
 #Preview {
     TacticsView()
-        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self, RatingAssessment.self], inMemory: true)
+        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self], inMemory: true)
 }

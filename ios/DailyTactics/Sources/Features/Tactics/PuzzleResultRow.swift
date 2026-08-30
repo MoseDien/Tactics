@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Per-puzzle outcome for a round or rating assessment, used to drive the
+/// Per-puzzle outcome for a round, used to drive the
 /// shared result row shown below the board.
 enum PuzzleOutcome: Sendable, Hashable {
     case correct
@@ -8,7 +8,7 @@ enum PuzzleOutcome: Sendable, Hashable {
 }
 
 /// A horizontal row of per-puzzle markers shown below the board. Shared by the
-/// daily round and the rating assessment so both screens read identically:
+/// daily round so all result screens read identically:
 ///
 /// - green check: solved correctly
 /// - gray check: not yet attempted (initial state)

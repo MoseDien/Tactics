@@ -12,7 +12,7 @@ line at a time, and stores progress locally.
 - Bundle identifier: `com.dienbell.tactics`
 - On first launch the entire bundled library (10 rating tiers, ~10,000 puzzles)
   is imported into SwiftData in one pass behind a loading screen
-- A 4-puzzle Rating Assessment sets a baseline Elo score (starts at 1500)
+- Daily puzzle batches are selected from SwiftData and can be reviewed after completion
 - Each round draws 5 random not-yet-attempted puzzles from the database
   (queried only at the start of each round); difficulty is mixed across tiers
 - Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
@@ -102,7 +102,7 @@ xcodebuild \
 
 `ios/DailyTactics/Resources/puzzles/` contains the bundled puzzle data: ten
 rating-tier files (`1000.json`–`1900.json`, 1000 puzzles each) plus
-`rating_puzzles.json` (the 100-puzzle assessment set). They are generated from
+Puzzle tier JSON files are generated from
 the raw Lichess SQLite database by `tools/export_tier_puzzles.py`:
 
 ```sh

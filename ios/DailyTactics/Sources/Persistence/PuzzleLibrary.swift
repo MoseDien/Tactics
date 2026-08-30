@@ -105,7 +105,7 @@ struct PuzzleLibraryImporter {
 
     /// Clear only the user's runtime progress (`PuzzleProgress`), leaving the
     /// imported puzzle library intact. Puzzles become unattempted again so a
-    /// reassessment starts from a clean slate without re-importing 10k rows.
+    /// A reset starts from a clean slate without re-importing 10k rows.
     func resetProgress() {
         let progress = (try? context.fetch(FetchDescriptor<PuzzleProgress>())) ?? []
         progress.forEach(context.delete)
@@ -114,7 +114,7 @@ struct PuzzleLibraryImporter {
 }
 
 /// Tracks whether the bundled puzzle library has been bulk-imported into
-/// SwiftData. A first-launch gate independent of the rating assessment. Views
+/// SwiftData. A first-launch gate independent of puzzle play. Views
 /// observe `importedKey` via `@AppStorage` so completing the import re-renders
 /// the root routing without manual state plumbing.
 @MainActor
@@ -136,4 +136,3 @@ struct LibraryStateStore {
         defaults.removeObject(forKey: Self.importedKey)
     }
 }
-

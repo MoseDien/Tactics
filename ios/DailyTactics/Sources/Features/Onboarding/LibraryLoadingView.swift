@@ -4,7 +4,7 @@ import SwiftData
 /// First-launch screen that bulk-imports the entire bundled puzzle library
 /// (all 10 rating tiers) into SwiftData. On completion it flips the
 /// `LibraryStateStore.importedKey` flag (observed by `RootView` via
-/// `@AppStorage`), which advances routing to the rating assessment. The
+/// `@AppStorage`), which advances routing to Daily Tactics.
 /// visual treatment is an intentional placeholder pending a final design pass.
 struct LibraryLoadingView: View {
     @Environment(\.modelContext) private var modelContext
