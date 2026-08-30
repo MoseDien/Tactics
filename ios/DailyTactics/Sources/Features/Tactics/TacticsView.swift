@@ -272,10 +272,10 @@ struct TacticsView: View {
                 }.buttonStyle(.bordered)
                 
                 if viewModel.isBatchComplete {
-                    Button(String(localized: "tactics.start_new_batch"), action: viewModel.restartBatch)
+                    Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
                         .buttonStyle(.borderedProminent)
                 } else if viewModel.canStartNewBatch {
-                    Button(String(localized: "tactics.start_new_batch"), action: viewModel.restartBatch)
+                    Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
                         .buttonStyle(.borderedProminent)
                 } else {
                     Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)

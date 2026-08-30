@@ -153,11 +153,6 @@ final class TacticsViewModel {
     }
 
     func nextPuzzle() {
-        if mode == .review && !BatchStore.isWithinDuration {
-            mode = .play
-            loadNextRound()
-            return
-        }
         guard !isAdvancing, (mode == .review || canAdvanceToNextPuzzle) else { return }
         isAdvancing = true
         let target = mode == .review ? (currentIndex + 1) % puzzles.count : currentIndex + 1
@@ -172,17 +167,19 @@ final class TacticsViewModel {
         }
     }
 
+    /// Starts a fresh batch only after the user explicitly taps Next batch.
+    /// Expiry alone never changes Review mode.
+    func startNextBatch() {
+        guard !BatchStore.isWithinDuration else { return }
+        mode = .play
+        loadNextRound()
+    }
+
     /// Start the next round. This is the only round boundary: in database-backed
     /// (training) mode it queries the store for 5 random unattempted puzzles;
     /// The round cursor always resets to 0.
     func restartBatch() {
-        if BatchStore.isWithinDuration {
-            mode = .review
-            loadPuzzle(at: min(currentIndex, puzzles.count - 1))
-            return
-        }
-        mode = .play
-        loadNextRound()
+        startNextBatch()
     }
 
     private func loadNextRound() {

@@ -26,6 +26,7 @@
 "tactics.puzzle_progress" = "第 %ld 题，共 %ld 题";
 "tactics.next_puzzle" = "下一题";
 "tactics.start_new_batch" = "开始新题组";
+"tactics.next_batch" = "下一组题目";
 "review.title" = "复盘";
 "review.label" = "复盘";
 "review.previous_move" = "上一步";
