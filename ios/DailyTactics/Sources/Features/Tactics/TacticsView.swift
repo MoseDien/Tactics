@@ -314,19 +314,20 @@ struct TacticsView: View {
                 .foregroundStyle(.orange)
         case .puzzleComplete, .trainingComplete:
             VStack(spacing: 12) {
-                if let cooldown = viewModel.batchCooldownMessage {
-                    Label(cooldown, systemImage: "clock")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
                 HStack {
-                    if (viewModel.mode == .reviewBatch && viewModel.canStartNewBatch) || viewModel.isBatchComplete {
+                    if viewModel.mode == .reviewBatch || viewModel.isBatchComplete {
                         Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
                             .buttonStyle(.borderedProminent)
+                            .tint(viewModel.isNewBatchAvailable ? .accentColor : Color.gray)
                     }
                     Spacer()
                     Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
                         .buttonStyle(.borderedProminent)
+                }
+                if let cooldown = viewModel.batchCooldownMessage {
+                    Label(cooldown, systemImage: "clock")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(.bottom, 28)

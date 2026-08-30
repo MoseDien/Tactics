@@ -163,6 +163,9 @@ final class TacticsViewModel {
         currentPuzzleFinished && (!isLastPuzzle || isBatchComplete)
     }
     var canStartNewBatch: Bool { mode == .reviewBatch && !BatchStore.isWithinDuration }
+    /// Whether the batch window has expired — a new batch can start right now.
+    /// Purely time-based; `canStartNewBatch` additionally requires review mode.
+    var isNewBatchAvailable: Bool { !BatchStore.isWithinDuration }
     var canUpdateRating: Bool { mode == .play }
     var canInteractWithPuzzle: Bool { !inReview && (state == .waitingForMove || state == .incorrectMove) }
 
