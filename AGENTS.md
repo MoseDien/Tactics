@@ -27,8 +27,9 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 - Lichess lines are machine-first: `moves[0]` auto-plays, then the player
   starts at `moves[1]` and turns alternate.
 - Hint reveals the expected move visually but never auto-plays it.
-- `<` / `>` review controls are not undo. They must not mutate live progress or
-  fire automatic replies.
+- Batch review navigation is not undo. After a Play batch is complete, `Next
+  puzzle` enters Review mode and loops through the current batch.
+- Review may record puzzle progress, but must never update the user's Rating.
 - Keep the normal training screen usable on iPhone SE without scrolling;
   retain `ScrollView` only as a Dynamic Type/accessibility fallback.
 - Do not display `Solved` or `Failed` counters in the training UI.

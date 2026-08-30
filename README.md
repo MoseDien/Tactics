@@ -13,6 +13,8 @@ line at a time, and stores progress locally.
 - On first launch the entire bundled library (10 rating tiers, ~10,000 puzzles)
   is imported into SwiftData in one pass behind a loading screen
 - Daily puzzle batches are selected from SwiftData and can be reviewed after completion
+- After a batch is complete, `Next puzzle` remains available and enters Review mode,
+  looping through the current batch without changing Rating
 - Each round draws 5 random not-yet-attempted puzzles from the database
   (queried only at the start of each round); difficulty is mixed across tiers
 - Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
@@ -22,8 +24,8 @@ line at a time, and stores progress locally.
 - Castling, en passant, and automatic queen promotion in trusted puzzle lines
 - Wrong legal moves are shown briefly and recorded; the player can retry
 - Hint button highlights the expected move without auto-playing it
-- `<` / `>` review controls are locked during active play and become available
-  after the puzzle is solved or review has started
+- Review mode keeps Hint, board flipping, move interaction, and progress available;
+  it never changes the user's Rating
 - Board orientation follows the player's color and can be flipped manually
 - A local Elo-like puzzle Rating starts at 1500 and is persisted with
   `UserDefaults`

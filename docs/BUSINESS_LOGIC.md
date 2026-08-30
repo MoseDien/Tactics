@@ -52,6 +52,7 @@ Settings 中可以选择新 batch 的难度模式，默认是 `Medium`。设置�
 - 冷却期间重新打开 App 不会随机生成新题，只进入当前 batch 的 Review mode。
 - 冷却结束后显示 `Start New Batch`，用户点击后才创建下一组题目并更新开始时间。
 - Review mode 下 `Next puzzle` 只循环当前 batch；`Next batch` 与其分离，只有用户主动点击才会尝试创建新 batch。时间未到时点击会显示等待提示，仍停留在 Review mode。
+- Play mode 完成 batch 后，`Next puzzle` 仍保持可用；用户点击后进入 Review mode，并从当前 batch 循环查看题目。
 
 ### Round
 
@@ -63,8 +64,8 @@ Settings 中可以选择新 batch 的难度模式，默认是 `Medium`。设置�
 ### Review mode
 
 - Review 当前 batch 的 5 道题，最后一道之后循环回第一道。
-- Hint disabled，Flip board 保持可用。
-- Review 不允许落子，不修改 PuzzleProgress，也不改变用户 Rating。
+- Hint 和 Flip board 保持可用，用户可以继续落子并查看当前题目的进度。
+- Review 可以更新题目的完成/失败进度，但不修改用户 Rating。
 
 ### 单题流程
 

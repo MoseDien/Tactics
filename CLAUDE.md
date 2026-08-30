@@ -66,8 +66,10 @@ orientation, Rating, and persistence.
 - The machine's opening move is automatically played after a short transition.
 - A wrong legal move is displayed briefly, recorded, and retryable.
 - A Hint highlights the expected move but does not play it.
-- `<` and `>` are review controls, not undo controls. They are disabled during
-  active solving and become available after solving or entering review.
+- Review navigation is batch-scoped. After the final puzzle, `Next puzzle` loops
+  to the first puzzle and transitions Play mode into Review mode.
+- Review mode keeps Hint, board flipping, move interaction, and progress updates,
+  but must never change the user's Rating.
 - Review must not mutate the live solve result or trigger an automatic reply.
 - The layout should fit iPhone SE and larger devices without scrolling in the
   normal Dynamic Type size. `ScrollView` remains as an accessibility fallback.
