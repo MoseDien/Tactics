@@ -3,15 +3,16 @@
 /* common */
 "common.done" = "Done";
 "common.got_it" = "Got it";
-"common.continue" = "Continue";
-"common.review" = "Review";
+"common.retry" = "Retry";
 /* loading */
 "loading.library" = "Loading your puzzle library…";
+"loading.library_failed" = "The puzzle library could not be loaded. Please try again.";
 /* settings */
 "settings.title" = "Settings";
 "settings.history" = "History";
 "settings.history_footer" = "Review completed puzzles grouped into rounds of five.";
 "settings.how_to_play" = "How to play";
+"settings.how_to_play_body" = "- Don't guess through a move: hold the whole position in your head and find the solution there before touching a piece.\n- Each batch has 5 puzzles. A new batch unlocks every 4 hours; until then you can review the current batch.";
 "settings.difficulty" = "Difficulty";
 "settings.difficulty_easy" = "Easy";
 "settings.difficulty_medium" = "Medium";
@@ -23,18 +24,28 @@
 "tactics.find_best_black" = "Find the best move for Black.";
 "tactics.hint_instruction" = "Move the highlighted piece to the marked square";
 "tactics.hint" = "Hint";
-"tactics.review_info" = "In review mode, can start new puzzle next hour";
 "tactics.opponent_moving" = "Opponent is moving…";
 "tactics.opponent_reply" = "Opponent's reply";
 "tactics.incorrect_move" = "Not quite — look for a forcing move.";
 "tactics.puzzle_difficulty" = "Puzzle difficulty";
+"tactics.puzzle_difficulty_hint" = "Tap to reveal the puzzle rating and play count";
+"tactics.mode_play" = "Play mode";
+"tactics.mode_review" = "Review mode";
+"tactics.batch_cooldown" = "The next batch unlocks 4 hours after this one started — keep reviewing until then.";
+"tactics.promotion_title" = "Promote to…";
+"tactics.promotion_queen" = "Queen";
+"tactics.promotion_rook" = "Rook";
+"tactics.promotion_bishop" = "Bishop";
+"tactics.promotion_knight" = "Knight";
+"tactics.error_load" = "The puzzle could not be loaded.";
+"tactics.error_apply" = "The move could not be applied.";
+"tactics.error_reply" = "The reply could not be applied.";
 "tactics.flip_board" = "Flip board";
 "tactics.settings" = "Settings";
 "tactics.rating" = "Rating";
 "tactics.reviewing_move" = "Reviewing move %ld / %ld";
 "tactics.puzzle_progress" = "PUZZLE %ld OF %ld";
 "tactics.next_puzzle" = "Next";
-"tactics.start_new_batch" = "Start New Batch";
 "tactics.next_batch" = "Next batch";
 /* review */
 "review.title" = "Review";
@@ -45,6 +56,17 @@
 "history.round_review" = "Round Review";
 "history.puzzles_count" = "%lld puzzles";
 "history.puzzle" = "Puzzle %@";
-/* rating */
-"rating.baseline_title" = "BASELINE RATING";
-"rating.baseline_ready" = "Baseline rating ready";
+"history.empty" = "No history yet";
+/* board accessibility */
+"board.square_occupied" = "%@ %@ on %@";
+"board.square_empty" = "Empty square %@";
+"piece.white.name" = "White";
+"piece.black.name" = "Black";
+"piece.king.name" = "king";
+"piece.queen.name" = "queen";
+"piece.rook.name" = "rook";
+"piece.bishop.name" = "bishop";
+"piece.knight.name" = "knight";
+"piece.pawn.name" = "pawn";
+/* results */
+"results.summary" = "Results: %ld correct, %ld wrong";

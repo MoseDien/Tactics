@@ -30,7 +30,8 @@ struct ChessBoardView: View {
                 ForEach(ranks, id: \.self) { rank in
                     HStack(spacing: 0) {
                         ForEach(files, id: \.self) { file in
-                            let square = Square(file: file, rank: rank)
+                            // file/rank come from bounded 0..<8 loops.
+                            let square = Square(file: file, rank: rank)!
                             Button {
                                 onSelect(square)
                             } label: {
@@ -103,9 +104,13 @@ struct ChessBoardView: View {
     }
 
     private func accessibilityLabel(for square: Square) -> String {
-        if let piece = position[square] {
-            return "\(piece.color.rawValue) \(piece.kind.rawValue) on \(square.notation)"
+        guard let piece = position[square] else {
+            let template = NSLocalizedString("board.square_empty", comment: "Accessibility label for an empty square")
+            return String(format: template, square.notation)
         }
-        return "Empty square \(square.notation)"
+        let colorName = NSLocalizedString("piece.\(piece.color.rawValue).name", comment: "Piece color name")
+        let kindName = NSLocalizedString("piece.\(piece.kind.rawValue).name", comment: "Piece kind name")
+        let template = NSLocalizedString("board.square_occupied", comment: "Accessibility label for an occupied square")
+        return String(format: template, colorName, kindName, square.notation)
     }
 }

@@ -46,7 +46,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertEqual(session.state, .incorrectMove)
         XCTAssertEqual(session.board, originalBoard)
 
-        try session.resumeAfterIncorrectMove()
+        session.resumeAfterIncorrectMove()
         XCTAssertEqual(session.state, .waitingForMove)
     }
 
@@ -119,6 +119,43 @@ final class ChessAndPuzzleTests: XCTestCase {
 
     // MARK: - Legal move validation
 
+    func testUnderpromotionPuzzlesSolveWithChosenPromotionPiece() throws {
+        // Bundled puzzles that expect an under-promotion (o8GIU: rook,
+        // LnGZ6: knight). They were unsolvable when the UI forced queen.
+        let expectations: [(file: String, id: String)] = [("1000", "o8GIU"), ("1100", "LnGZ6")]
+        for spec in expectations {
+            guard let url = Bundle.main.url(forResource: spec.file, withExtension: "json"),
+                  let data = try? Data(contentsOf: url),
+                  let all = try? JSONDecoder().decode([ImportTestPuzzle].self, from: data),
+                  let raw = all.first(where: { $0.id == spec.id })
+            else { continue } // resource absent in some test hosts
+
+            let puzzle = Puzzle(id: raw.id, fen: raw.fen, moves: raw.moves, rating: raw.rating, themes: [])
+            var session = try PuzzleSession(puzzle: puzzle)
+            try session.applyOpponentMove()
+
+            // The expected move carries the under-promotion suffix; submitting
+            // the exact move must be accepted (not .incorrectMove).
+            let expected = try XCTUnwrap(session.expectedMove)
+            XCTAssertNotNil(expected.promotion, "expected move \(expected.uci) must carry a promotion suffix")
+            try session.submitUserMove(expected)
+            XCTAssertNotEqual(session.state, .incorrectMove, "under-promotion \(expected.uci) must be accepted")
+
+            // A queen promotion of the same pawn must NOT match the expected
+            // line — this is the exact regression the picker fixes.
+            if let queenMove = ChessMove(uci: expected.uci.dropLast().appending("q").description) {
+                XCTAssertNotEqual(queenMove, expected, "queen variant must differ from an under-promotion line")
+            }
+        }
+    }
+
+    private struct ImportTestPuzzle: Decodable {
+        let id: String
+        let fen: String
+        let moves: [String]
+        let rating: Int?
+    }
+
     func testLegalMovesRespectPieceShapesAndBlocking() throws {
         let rookBoard = try Board(fen: "7k/8/8/8/8/8/8/R3K3 w - - 0 1")
         XCTAssertTrue(rookBoard.isLegal(ChessMove(uci: "a1a7")!, for: .white))    // rook straight, clear
@@ -144,6 +181,98 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertTrue(board.isLegal(ChessMove(uci: "e2e3")!, for: .white))   // one-square push
         XCTAssertTrue(board.isLegal(ChessMove(uci: "e2d3")!, for: .white))   // diagonal capture
         XCTAssertFalse(board.isLegal(ChessMove(uci: "e2f3")!, for: .white))  // diagonal to empty — no capture
+    }
+
+    // MARK: - Full legality: check, pin, castling, en passant, promotion
+
+    func testKingCannotMoveIntoCheck() throws {
+        // Black rook on e-file controls e2/e3: the white king may not step up.
+        let board = try Board(fen: "4k3/8/8/8/4r3/8/8/4K3 w - - 0 1")
+        XCTAssertFalse(board.isLegal(ChessMove(uci: "e1e2")!, for: .white))
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "e1d1")!, for: .white))
+    }
+
+    func testPinnedPieceCannotExposeItsKing() throws {
+        // The rook on e8 pins the e2 pawn against Ke1. Any move that leaves
+        // the e-file (a diagonal capture) would expose the king: rejected.
+        let board = try Board(fen: "4r3/8/8/8/8/3p4/4P3/4K3 w - - 0 1")
+        XCTAssertFalse(board.isLegal(ChessMove(uci: "e2d3")!, for: .white))
+        // Pushing along the pin line keeps the king shielded: legal.
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "e2e3")!, for: .white))
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "e2e4")!, for: .white))
+    }
+
+    func testCastlingLegality() throws {
+        // Rights present, path clear, no attacks: legal.
+        let legal = try Board(fen: "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1")
+        XCTAssertTrue(legal.isLegal(ChessMove(uci: "e1g1")!, for: .white))
+        XCTAssertTrue(legal.isLegal(ChessMove(uci: "e1c1")!, for: .white))
+
+        // No rights in the FEN: illegal even with the path clear.
+        let noRights = try Board(fen: "4k3/8/8/8/8/8/8/R3K2R w - - 0 1")
+        XCTAssertFalse(noRights.isLegal(ChessMove(uci: "e1g1")!, for: .white))
+
+        // King in check may not castle out of it.
+        let checked = try Board(fen: "4k3/8/8/8/8/8/4r3/R3K2R w KQ - 0 1")
+        XCTAssertFalse(checked.isLegal(ChessMove(uci: "e1g1")!, for: .white))
+
+        // Passing through an attacked square is illegal.
+        let throughAttacked = try Board(fen: "4k3/8/8/8/8/5r2/8/R3K2R w KQ - 0 1")
+        XCTAssertFalse(throughAttacked.isLegal(ChessMove(uci: "e1g1")!, for: .white))
+    }
+
+    func testEnPassantIsLegalWhenTargetMatches() throws {
+        // FEN says d6 is the en-passant target; the diagonal shape is otherwise
+        // an illegal capture onto an empty square.
+        let board = try Board(fen: "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1")
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "e5d6")!, for: .white))
+        // Without the en-passant field the same shape is illegal.
+        let plain = try Board(fen: "4k3/8/8/3pP3/8/8/8/4K3 w - - 0 1")
+        XCTAssertFalse(plain.isLegal(ChessMove(uci: "e5d6")!, for: .white))
+    }
+
+    func testPromotionRequirementInIsLegal() throws {
+        // Pawn to last rank without a promotion piece: rejected.
+        let board = try Board(fen: "4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
+        XCTAssertFalse(board.isLegal(ChessMove(uci: "a7a8")!, for: .white))
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "a7a8q")!, for: .white))
+        XCTAssertTrue(board.isLegal(ChessMove(uci: "a7a8n")!, for: .white))
+        // A promotion suffix on a non-pawn move is rejected.
+        XCTAssertFalse(board.isLegal(ChessMove(uci: "e1e2q")!, for: .white))
+    }
+
+    func testApplyUpdatesSideToMoveAndEnPassantContext() throws {
+        var board = try Board(fen: "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1")
+        XCTAssertEqual(board.sideToMove, .white)
+        XCTAssertTrue(board.apply(ChessMove(uci: "e2e4")!))
+        XCTAssertEqual(board.sideToMove, .black, "apply must toggle the recorded turn")
+        XCTAssertEqual(board.enPassantTarget?.notation, "e3")
+        XCTAssertNil(board.pieces[Square(notation: "e2")!])
+    }
+
+    func testEnPassantApplyOnlyRemovesAnEnemyPawn() throws {
+        // Regression for the destructive heuristic: a pawn moving diagonally to
+        // an empty square must not remove anything unless an enemy pawn stands
+        // beside its origin. b5→a6 with a friendly piece left on b4 must leave
+        // the board otherwise intact.
+        var board = try Board(fen: "4k3/8/8/1P6/8/8/8/4K3 w - a6 0 1")
+        XCTAssertTrue(board.apply(ChessMove(uci: "b5a6")!))
+        XCTAssertNotNil(board.pieces[Square(notation: "a6")!], "the pawn lands on a6")
+        XCTAssertNil(board.pieces[Square(notation: "b4")!], "no friendly piece is deleted")
+    }
+
+    func testFENParsesCastlingAndEnPassantFields() throws {
+        let board = try Board(fen: "r3k2r/8/8/8/8/8/8/R3K2R w KQkq e3 12 33")
+        XCTAssertEqual(board.sideToMove, .white)
+        XCTAssertEqual(board.enPassantTarget?.notation, "e3")
+    }
+
+    func testFENRejectsNonASCIIDigitsAndBadRanks() throws {
+        XCTAssertThrowsError(try Board(fen: "٣٣３٣٣٣٣/8/8/8/8/8/8/4K3 w - - 0 1"))
+        // "44" is two digit runs in one rank (FEN requires a single digit 8).
+        XCTAssertThrowsError(try Board(fen: "44/8/8/8/8/8/8/4K3 w - - 0 1"),
+                             "multi-digit rank runs must not pass as skips")
+        XCTAssertThrowsError(try Board(fen: "8/8/8/8/8/8/8/4K3"))              // missing side-to-move
     }
 
     // MARK: - Special moves (castling / en passant) in apply
@@ -242,13 +371,19 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
-    func testBoardAutoOrientsToPlayerColor() {
-        let vm = TacticsViewModel(dataset: Puzzle.samples)
-        // Whatever puzzle loaded first, the board faces the player's color.
+    func testBoardAutoOrientsToPlayerColor() async throws {
+        // A single-puzzle dataset makes the "which puzzle loaded" variable
+        // deterministic, so the orientation invariant is actually exercised.
+        let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)))
         XCTAssertEqual(vm.isBoardFlipped, vm.playerColor == .black)
 
-        // Re-orienting on each reload keeps the invariant.
-        vm.restartBatch()
+        // After the machine's opening move the orientation must still hold.
+        vm.start()
+        var waited = 0
+        while vm.state != .waitingForMove && waited < 40 {
+            try await Task.sleep(for: .milliseconds(50))
+            waited += 1
+        }
         XCTAssertEqual(vm.isBoardFlipped, vm.playerColor == .black)
     }
 
@@ -259,6 +394,33 @@ final class ChessAndPuzzleTests: XCTestCase {
                              calculator.change(userRating: 1500, puzzleRating: 1000, solved: true))
         XCTAssertLessThan(calculator.change(userRating: 1500, puzzleRating: 2200, solved: false), 0)
         XCTAssertGreaterThan(calculator.expectedScore(userRating: 1500, puzzleRating: 1000), 0.5)
+    }
+
+    func testRatingChangeForcesMinimumMagnitudeOfOne() {
+        let calculator = PuzzleRatingCalculator()
+        // An equal rating with a solve rounds to 32*(1-0.5)=16; the forced ±1
+        // only shows at extreme gaps where 32*(1-e) rounds to 0.
+        let hugeSolve = calculator.change(userRating: 3000, puzzleRating: 400, solved: true)
+        XCTAssertGreaterThanOrEqual(hugeSolve, 1, "a solve must never yield a zero/negative delta")
+        let hugeLoss = calculator.change(userRating: 400, puzzleRating: 3000, solved: false)
+        XCTAssertLessThanOrEqual(hugeLoss, -1, "a loss must never yield a zero/positive delta")
+    }
+
+    @MainActor
+    func testRatingStoreClampsToRange() {
+        let defaults = UserDefaults(suiteName: "rating-clamp-\(UUID().uuidString)")!
+        let store = UserRatingStore(defaults: defaults)
+
+        store.set(rating: 2995)
+        _ = store.apply(delta: 100)
+        XCTAssertEqual(store.rating, 3000, "rating clamps at the ceiling")
+
+        store.set(rating: 405)
+        _ = store.apply(delta: -100)
+        XCTAssertEqual(store.rating, 400, "rating clamps at the floor")
+
+        store.reset()
+        XCTAssertEqual(store.rating, 1500, "a fresh store starts at 1500")
     }
 
     @MainActor
@@ -282,13 +444,14 @@ final class ChessAndPuzzleTests: XCTestCase {
     func testHintImmediatelyCostsRating() async throws {
         let defaults = UserDefaults(suiteName: "hint-penalty-\(UUID().uuidString)")!
         let store = UserRatingStore(defaults: defaults)
-        let vm = TacticsViewModel(dataset: Puzzle.samples, ratingStore: store)
+        let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)), ratingStore: store)
 
-        // Wait for the opening machine move so a hint is enabled.
+        // Wait for the opening machine move so a hint is enabled. Generous
+        // bound keeps this stable under CI load; it waits only as long as needed.
         vm.start()
         var waited = 0
-        while vm.state != .waitingForMove && waited < 40 {
-            try await Task.sleep(for: .milliseconds(100))
+        while vm.state != .waitingForMove && waited < 100 {
+            try await Task.sleep(for: .milliseconds(50))
             waited += 1
         }
         XCTAssertEqual(vm.state, .waitingForMove)
@@ -305,6 +468,82 @@ final class ChessAndPuzzleTests: XCTestCase {
         let afterFirstHint = vm.userRating
         vm.requestHint()
         XCTAssertEqual(vm.userRating, afterFirstHint)
+    }
+
+    // MARK: - Round history records exactly once per batch
+
+    @MainActor
+    func testRoundHistoryRecordsOnceDespiteHintOnLastPuzzleAndReviewReplay() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, configurations: config)
+        let store = PuzzleProgressStore(context: ModelContext(container))
+
+        // One puzzle in the dataset so it is also the last puzzle of the batch.
+        let puzzle = Puzzle.samples[0]
+        let vm = TacticsViewModel(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
+
+        vm.start()
+        var waited = 0
+        while vm.state != .waitingForMove && waited < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            waited += 1
+        }
+        XCTAssertEqual(vm.state, .waitingForMove)
+
+        // Hint on the (only, thus last) puzzle…
+        vm.requestHint()
+
+        // …then play the expected line through to solved. The old code lost
+        // the round here; the new code must still record it exactly once.
+        try await solveActivePuzzle(on: vm)
+        XCTAssertEqual(store.history().count, 1, "hint on the last puzzle must not lose the round record")
+
+        // Re-solving the batch in review must not insert a second row.
+        vm.startNextBatch()  // inside the cooldown: stays on the same batch
+        try await solveActivePuzzle(on: vm)
+        XCTAssertEqual(store.history().count, 1, "review replay must not duplicate the round record")
+    }
+
+    /// Drives the view model through the expected line of the active puzzle
+    /// until solved, waiting out the opponent-reply delays.
+    @MainActor
+    private func solveActivePuzzle(on vm: TacticsViewModel) async throws {
+        var guardCount = 0
+        while vm.state != .solved && guardCount < 150 {
+            if vm.state == .waitingForMove, let expected = vm.sessionForTest().expectedMove {
+                if vm.selectedSquare == nil {
+                    vm.select(expected.from)
+                } else {
+                    // A pending promotion (not in the samples) would need a
+                    // piece choice; supply the expected one.
+                    if vm.pendingPromotionForTest() != nil {
+                        vm.choosePromotion(expected.promotion ?? .queen)
+                    } else {
+                        vm.select(expected.to)
+                    }
+                }
+            }
+            try await Task.sleep(for: .milliseconds(50))
+            guardCount += 1
+        }
+        XCTAssertEqual(vm.state, .solved)
+    }
+
+    // MARK: - BatchStore
+
+    func testBatchStoreDurationIsFourHours() {
+        XCTAssertEqual(BatchConfiguration.batchDuration, 4 * 60 * 60)
+        XCTAssertEqual(BatchConfiguration.puzzleCount, 5)
+    }
+
+    func testBatchStoreCurrentPuzzlesToleratesDuplicateLibraryIDs() {
+        let puzzle = Puzzle.samples[0]
+        let library = [puzzle, puzzle]  // duplicate id in the library
+        let ids = [puzzle.id]
+        UserDefaults.standard.set(ids, forKey: BatchStore.puzzleIDsKey)
+        defer { UserDefaults.standard.removeObject(forKey: BatchStore.puzzleIDsKey) }
+        // Must not trap despite the duplicated id.
+        XCTAssertEqual(BatchStore.currentPuzzles(from: library).count, 1)
     }
 
     // MARK: - DB-backed round selection
@@ -340,6 +579,29 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertEqual(fallback.count, 5)
     }
 
+    /// Replays every bundled puzzle through `PuzzleSession` with the full
+    /// legality checker active. The dataset was validated against the old
+    /// shape-only checker; this guards it against the stricter rules.
+    func testAllBundledPuzzlesReplayThroughSession() throws {
+        var replayed = 0
+        for level in PuzzleLibraryImporter.tierLevels {
+            guard let url = Bundle.main.url(forResource: "\(level)", withExtension: "json"),
+                  let data = try? Data(contentsOf: url),
+                  let all = try? JSONDecoder().decode([ImportTestPuzzle].self, from: data)
+            else { continue }
+            for raw in all {
+                let puzzle = Puzzle(id: raw.id, fen: raw.fen, moves: raw.moves, rating: raw.rating, themes: [])
+                var session = try PuzzleSession(puzzle: puzzle)
+                while session.canStepForward {
+                    try session.stepForward()
+                }
+                XCTAssertEqual(session.state, .solved, "puzzle \(raw.id) must replay to solved")
+                replayed += 1
+            }
+        }
+        try XCTSkipUnless(replayed > 0, "Bundled tier JSONs are not present in the test host")
+    }
+
     @MainActor
     func testImportAllBundledIsIdempotent() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -347,12 +609,14 @@ final class ChessAndPuzzleTests: XCTestCase {
         let context = ModelContext(container)
         let importer = PuzzleLibraryImporter(context: context)
 
-        await importer.importAllBundled { _ in }
+        let failures = await importer.importAllBundled { _ in }
+        XCTAssertEqual(failures, 0, "every bundled tier must decode")
         let firstCount = try context.fetchCount(FetchDescriptor<PuzzleRecord>())
         try XCTSkipUnless(firstCount > 0, "Bundled tier JSONs are not present in the test host")
 
         // Re-running must not duplicate rows (dedup by puzzleId).
-        await importer.importAllBundled { _ in }
+        let rerunFailures = await importer.importAllBundled { _ in }
+        XCTAssertEqual(rerunFailures, 0)
         let secondCount = try context.fetchCount(FetchDescriptor<PuzzleRecord>())
         XCTAssertEqual(secondCount, firstCount)
     }

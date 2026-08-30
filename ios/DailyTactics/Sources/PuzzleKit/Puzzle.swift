@@ -79,22 +79,6 @@ struct Puzzle: Identifiable, Codable, Sendable {
     ]
 }
 
-extension Puzzle {
-    /// Loads the bundled puzzle set (`Resources/puzzles.json`). Falls back to the
-    /// hand-written `samples` only when the file is absent. Malformed data is a
-    /// fatal development error rather than a silent empty puzzle set.
-    static func loadBundled() -> [Puzzle] {
-        guard let url = Bundle.main.url(forResource: "puzzles", withExtension: "json") else {
-            return Puzzle.samples
-        }
-        do {
-            return try JSONDecoder().decode([Puzzle].self, from: try Data(contentsOf: url))
-        } catch {
-            fatalError("Malformed bundled puzzles.json: \(error)")
-        }
-    }
-}
-
 enum PuzzleSessionState: Equatable, Sendable {
     case waitingForMove
     case opponentMoving
@@ -114,6 +98,11 @@ struct PuzzleSession: Sendable {
     private(set) var state: PuzzleSessionState
     private(set) var currentMoveIndex: Int
     private(set) var lastMove: ChessMove?
+    /// The side the user controls, fixed for the whole line. Derived from the
+    /// FEN's initial side to move — the machine opens, so the user is always
+    /// the opponent of whoever moves first. Kept separate from `board.sideToMove`,
+    /// which toggles as the line advances.
+    let userColor: PieceColor
     /// True while the displayed position was reached by stepping rather than by
     /// the live solve flow. The view uses this to avoid the "opponent is moving"
     /// spinner during review, and the auto-reply ignores it.
@@ -126,6 +115,9 @@ struct PuzzleSession: Sendable {
         }
         self.puzzle = puzzle
         board = try Board(fen: puzzle.fen)
+        // Lichess puzzle lines begin with the setup move made by the machine,
+        // so the user controls the opponent of the side to move in the FEN.
+        userColor = board.sideToMove.opponent
         state = .opponentMoving
         currentMoveIndex = 0
         lastMove = nil
@@ -136,18 +128,15 @@ struct PuzzleSession: Sendable {
         return ChessMove(uci: puzzle.moves[currentMoveIndex])
     }
 
-    /// Lichess puzzle lines begin with the setup move made by the opponent.
-    var userColor: PieceColor { board.sideToMove.opponent }
-
     /// Whether `move` is a legal chess move for the side the user controls.
     func isLegalUserMove(_ move: ChessMove) -> Bool {
         board.isLegal(move, for: userColor)
     }
 
-    /// Whether `move` sends a pawn to its promotion rank. The UI auto-promotes to queen.
+    /// Whether `move` sends a pawn to its promotion rank, so the UI should
+    /// ask which piece to promote to.
     func moveNeedsPromotion(_ move: ChessMove) -> Bool {
-        guard let piece = board.pieces[move.from], piece.kind == .pawn else { return false }
-        return move.to.rank == 0 || move.to.rank == 7
+        board.isPromotion(move, for: userColor)
     }
 
     mutating func submitUserMove(_ move: ChessMove) throws {

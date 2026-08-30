@@ -8,7 +8,9 @@ let project = Project(
             "SWIFT_VERSION": "6.0",
             "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
             "CODE_SIGN_STYLE": "Automatic",
-            "DEVELOPMENT_TEAM": "4V4QEMAAYL"
+            "DEVELOPMENT_TEAM": "4V4QEMAAYL",
+            "MARKETING_VERSION": "1.0",
+            "CURRENT_PROJECT_VERSION": "1"
         ]
     ),
     targets: [

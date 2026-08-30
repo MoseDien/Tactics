@@ -6,9 +6,11 @@ struct TacticsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
-    @State private var reviewPuzzle: Puzzle?
     @State private var showingPuzzleDetails = false
-    @State private var currentDate = Date()
+    /// Re-evaluated on a short cadence so `canStartNewBatch` (which reads the
+    /// untracked `BatchStore.isWithinDuration`) refreshes when the batch
+    /// expires while the screen is open.
+    @State private var batchExpiryTick = 0
 
     init(mode: TacticsMode = .play) { self.mode = mode }
 
@@ -39,8 +41,20 @@ struct TacticsView: View {
             vm.start()
             viewModel = vm
         }
-        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { date in
-            currentDate = date
+        .task {
+            // Wait until the active batch's window ends (at most 4 hours), then
+            // nudge the view once so the Next-batch button unlocks exactly on
+            // expiry rather than on an arbitrary 30-second tick.
+            while !Task.isCancelled {
+                if let start = BatchStore.startTime() {
+                    let remaining = BatchConfiguration.batchDuration - Date.now.timeIntervalSince(start)
+                    if remaining <= 0 { break }
+                    try? await Task.sleep(for: .seconds(min(remaining + 0.5, 60)))
+                } else {
+                    try? await Task.sleep(for: .seconds(60))
+                }
+            }
+            batchExpiryTick += 1
         }
     }
 
@@ -79,6 +93,11 @@ struct TacticsView: View {
                 }
                 }
             }
+            .overlay {
+                if let promotion = viewModel.pendingPromotion {
+                    promotionPicker(for: viewModel, promotion: promotion)
+                }
+            }
             .background(Color(.systemBackground))
             .navigationTitle(String(localized: "app.name"))
             .navigationBarTitleDisplayMode(.inline)
@@ -95,9 +114,38 @@ struct TacticsView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
-            .sheet(item: $reviewPuzzle) { puzzle in
-                ReviewPuzzleView(puzzle: puzzle)
+        }
+    }
+
+    /// The four promotion choices shown over the board when a pawn reaches the
+    /// last rank. The move itself is only submitted once a piece is picked.
+    private func promotionPicker(for viewModel: TacticsViewModel, promotion: (from: Square, to: Square)) -> some View {
+        VStack {
+            Spacer()
+            VStack(spacing: 12) {
+                Text(String(localized: "tactics.promotion_title"))
+                    .font(.subheadline.weight(.semibold))
+                HStack(spacing: 18) {
+                    ForEach([PieceKind.queen, .rook, .bishop, .knight], id: \.self) { kind in
+                        Button {
+                            viewModel.choosePromotion(kind)
+                        } label: {
+                            Image(Piece(color: viewModel.playerColor, kind: kind).assetName)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 44, height: 44)
+                                .padding(6)
+                                .background(Color(.secondarySystemBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .accessibilityLabel(String(localized: "tactics.promotion_\(kind.rawValue)"))
+                    }
+                }
             }
+            .padding(18)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .padding(24)
+            Spacer()
         }
     }
 
@@ -155,7 +203,7 @@ struct TacticsView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(String(localized: "tactics.puzzle_difficulty"))
-                .accessibilityHint("Tap to reveal the puzzle rating and play count")
+                .accessibilityHint(String(localized: "tactics.puzzle_difficulty_hint"))
             }
             .padding(8)
             .background(Color(.secondarySystemBackground).opacity(0.72))
@@ -194,7 +242,7 @@ struct TacticsView: View {
                     .frame(width: 20, height: 20)
                     .background(viewModel.mode == .reviewBatch ? Color.secondary : Color.accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 5))
-                    .accessibilityLabel(viewModel.mode == .reviewBatch ? "Review mode" : "Play mode")
+                    .accessibilityLabel(String(localized: viewModel.mode == .reviewBatch ? "tactics.mode_review" : "tactics.mode_play"))
             }
 
             Spacer()
@@ -207,7 +255,7 @@ struct TacticsView: View {
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
-            .disabled(viewModel.mode == .play && !viewModel.hintEnabled)
+            .disabled(!viewModel.hintEnabled)
             .accessibilityLabel(String(localized: "tactics.hint"))
         }
         .padding(.horizontal, 20)
@@ -266,6 +314,11 @@ struct TacticsView: View {
                 .foregroundStyle(.orange)
         case .puzzleComplete, .trainingComplete:
             VStack(spacing: 12) {
+                if let cooldown = viewModel.batchCooldownMessage {
+                    Label(cooldown, systemImage: "clock")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
                 HStack {
                     if (viewModel.mode == .reviewBatch && viewModel.canStartNewBatch) || viewModel.isBatchComplete {
                         Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
@@ -283,5 +336,5 @@ struct TacticsView: View {
 
 #Preview {
     TacticsView()
-        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self], inMemory: true)
+        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self], inMemory: true)
 }

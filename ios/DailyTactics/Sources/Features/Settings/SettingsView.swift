@@ -23,7 +23,7 @@ struct SettingsView: View {
                         Label(String(localized: "settings.history"), systemImage: "clock.arrow.circlepath")
                     }
                 } footer: {
-                    Text(String(localized: "settings.historyFooter"))
+                    Text(String(localized: "settings.history_footer"))
                 }
             }
             .navigationTitle(String(localized: "settings.title"))
@@ -35,16 +35,16 @@ struct SettingsView: View {
                     } label: {
                         Image(systemName: "info.circle")
                     }
-                    .accessibilityLabel("How to play")
+                    .accessibilityLabel(String(localized: "settings.how_to_play"))
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(String(localized: "common.done")) { dismiss() }
                 }
             }
-            .alert("How to Play", isPresented: $showingHowToPlay) {
-                Button("Got it", role: .cancel) { }
+            .alert(String(localized: "settings.how_to_play"), isPresented: $showingHowToPlay) {
+                Button(String(localized: "common.got_it"), role: .cancel) { }
             } message: {
-                Text("- Do not guess through a move, or do not try with a move, put the whole chessboard in brain, and find a solution in brain. \n- Can play 5 puzzle within an hour.")
+                Text(String(localized: "settings.how_to_play_body"))
             }
         }
     }

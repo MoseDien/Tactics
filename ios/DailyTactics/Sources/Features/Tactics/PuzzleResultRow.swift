@@ -48,6 +48,9 @@ struct PuzzleResultRow: View {
         let resolved = outcomes.compactMap { $0 }
         let correct = resolved.filter { $0 == .correct }.count
         let wrong = resolved.filter { $0 == .wrong }.count
-        return "Results: \(correct) correct, \(wrong) wrong"
+        return String(
+            format: NSLocalizedString("results.summary", comment: "Accessibility summary of round results"),
+            correct, wrong
+        )
     }
 }

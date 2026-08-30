@@ -3,10 +3,15 @@ Derived/
 DerivedData/
 ios/Derived/
 ios/DerivedData/
-ios/*.xcworkspace/xcuserdata/
-ios/*.xcodeproj/xcuserdata/
 .build/
 .tuist-cache/
+
+# Generated Xcode state (Tuist regenerates these; never commit them).
+*.xcuserstate/
+xcuserdata/
+*.xcodeproj
+*.xcworkspace
+*.tuist-generated
 
 # Local datasets and generated exports.
 data/source/

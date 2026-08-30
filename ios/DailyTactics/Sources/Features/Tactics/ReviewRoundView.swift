@@ -10,7 +10,7 @@ struct ReviewPuzzleView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 14) {
-                Text("REVIEW")
+                Text(String(localized: "review.label"))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
                 if let session {
@@ -19,10 +19,10 @@ struct ReviewPuzzleView: View {
                                    onSelect: { _ in })
                     .aspectRatio(1, contentMode: .fit)
                     HStack {
-                        Button { step(-1) } label: { Label("Previous move", systemImage: "chevron.left") }
+                        Button { step(-1) } label: { Label(String(localized: "review.previous_move"), systemImage: "chevron.left") }
                             .disabled(!session.canStepBack)
                         Spacer()
-                        Button { step(1) } label: { Label("Next move", systemImage: "chevron.right") }
+                        Button { step(1) } label: { Label(String(localized: "review.next_move"), systemImage: "chevron.right") }
                             .disabled(!session.canStepForward)
                     }
                     .buttonStyle(.bordered)
@@ -71,13 +71,18 @@ struct HistoryView: View {
                     }
                 }
             }
-            .overlay { if rounds.isEmpty { ContentUnavailableView("No history yet", systemImage: "clock") } }
-            .navigationTitle("History")
-            .toolbar { Button("Done") { dismiss() } }
+            .overlay { if rounds.isEmpty { ContentUnavailableView(String(localized: "history.empty"), systemImage: "clock") } }
+            .navigationTitle(String(localized: "settings.history"))
+            .toolbar { Button(String(localized: "common.done")) { dismiss() } }
             .task {
                 let store = PuzzleProgressStore(context: modelContext)
                 rounds = store.history()
-                puzzleLookup = Dictionary(uniqueKeysWithValues: store.allPuzzles().map { ($0.id, $0) })
+                // First occurrence wins so a duplicated library id can't trap.
+                var lookup: [String: Puzzle] = [:]
+                for puzzle in store.allPuzzles() where lookup[puzzle.id] == nil {
+                    lookup[puzzle.id] = puzzle
+                }
+                puzzleLookup = lookup
             }
         }
     }
@@ -94,7 +99,10 @@ private struct RoundHistoryDetail: View {
                     ReviewPuzzleView(puzzle: puzzle)
                 } label: {
                     HStack {
-                        Text("Puzzle \(index + 1)")
+                        Text(String.localizedStringWithFormat(
+                            NSLocalizedString("history.puzzle", comment: "Puzzle index in a history round"),
+                            "\(index + 1)"
+                        ))
                         Spacer()
                         Text(round.outcomes.indices.contains(index) && round.outcomes[index] == "correct" ? "✓" : "×")
                             .foregroundStyle(round.outcomes.indices.contains(index) && round.outcomes[index] == "correct" ? .green : .secondary)
@@ -102,6 +110,6 @@ private struct RoundHistoryDetail: View {
                 }
             }
         }
-        .navigationTitle("Round Review")
+        .navigationTitle(String(localized: "history.round_review"))
     }
 }

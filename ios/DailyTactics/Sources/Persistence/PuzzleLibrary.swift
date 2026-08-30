@@ -39,9 +39,10 @@ struct PuzzleLibraryImporter {
     /// The 10 bundled rating tiers (`1000.json` … `1900.json`), each holding a
     /// 100-point band of puzzles. All of them are imported in one pass on first
     /// launch so the whole library lives in SwiftData and rounds can query it.
-    static let tierLevels = Array(stride(from: 1000, through: 1900, by: 100))
+    /// Nonisolated so the background decode pass can read it.
+    nonisolated static let tierLevels = Array(stride(from: 1000, through: 1900, by: 100))
 
-    private struct ImportPuzzle: Decodable {
+    private struct ImportPuzzle: Decodable, Sendable {
         let id: String
         let fen: String
         let moves: [String]
@@ -63,24 +64,34 @@ struct PuzzleLibraryImporter {
 
     /// Bulk-import every bundled tier into SwiftData, reporting combined
     /// progress in `0...1`. Existing puzzle ids are skipped, so the call is
-    /// idempotent and safe to re-run. Saves are batched every 250 inserts with
-    /// a `Task.yield()` between batches to keep the loading screen responsive.
-    func importAllBundled(progress: @escaping (Double) -> Void) async {
-        let tiers = Self.tierLevels.compactMap { level -> [ImportPuzzle]? in
-            guard let url = Bundle.main.url(forResource: "\(level)", withExtension: "json"),
-                  let data = try? Data(contentsOf: url),
-                  let puzzles = try? JSONDecoder().decode([ImportPuzzle].self, from: data)
-            else { return nil }
-            return puzzles
-        }
+    /// idempotent and safe to re-run.
+    ///
+    /// JSON reading and decoding run off the main actor; only the SwiftData
+    /// inserts (which must stay on the context's actor) remain on it. Returns
+    /// the number of tiers that failed to decode — the caller must not flip
+    /// the first-launch gate when it is non-zero, or the app would silently
+    /// degrade to the bundled samples forever.
+    func importAllBundled(progress: @escaping @Sendable (Double) -> Void) async -> Int {
+        // ImportPuzzle is Sendable so the decoded tiers can cross back.
+        let tiers: [[ImportPuzzle]] = await Task.detached(priority: .userInitiated) {
+            Self.tierLevels.compactMap { level -> [ImportPuzzle]? in
+                guard let url = Bundle.main.url(forResource: "\(level)", withExtension: "json"),
+                      let data = try? Data(contentsOf: url),
+                      let puzzles = try? JSONDecoder().decode([ImportPuzzle].self, from: data)
+                else { return nil }
+                return puzzles
+            }
+        }.value
 
+        let failedTiers = Self.tierLevels.count - tiers.count
         let total = tiers.reduce(0) { $0 + $1.count }
-        guard total > 0 else { return }
+        guard total > 0 else { return max(failedTiers, 1) }
 
         let existingIDs = Set((try? context.fetch(FetchDescriptor<PuzzleRecord>()).map(\.puzzleId)) ?? [])
         var done = 0
         for puzzles in tiers {
             for item in puzzles {
+                if Task.isCancelled { return failedTiers }
                 if !existingIDs.contains(item.id) {
                     context.insert(PuzzleRecord(puzzle: item.puzzle))
                 }
@@ -92,6 +103,7 @@ struct PuzzleLibraryImporter {
                 }
             }
         }
+        return failedTiers
     }
 
     /// Delete every `PuzzleRecord` and `PuzzleProgress` row. Used for a full

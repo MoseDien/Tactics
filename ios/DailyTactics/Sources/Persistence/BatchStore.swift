@@ -2,7 +2,8 @@ import Foundation
 
 enum BatchConfiguration {
     static let puzzleCount = 5
-    static let batchDuration: TimeInterval = 2 * 60
+    /// A new batch can be started every 4 hours (see docs/BUSINESS_LOGIC.md).
+    static let batchDuration: TimeInterval = 4 * 60 * 60
 }
 
 enum BatchStore {
@@ -21,7 +22,12 @@ enum BatchStore {
     }
 
     static func currentPuzzles(from library: [Puzzle]) -> [Puzzle] {
-        let lookup = Dictionary(uniqueKeysWithValues: library.map { ($0.id, $0) })
+        var lookup: [String: Puzzle] = [:]
+        lookup.reserveCapacity(library.count)
+        // First occurrence wins, so a duplicated id in the library cannot trap.
+        for puzzle in library {
+            if lookup[puzzle.id] == nil { lookup[puzzle.id] = puzzle }
+        }
         return activePuzzleIDs.compactMap { lookup[$0] }
     }
     static func begin(with puzzles: [Puzzle]) {

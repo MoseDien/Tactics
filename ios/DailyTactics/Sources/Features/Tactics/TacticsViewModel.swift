@@ -29,6 +29,9 @@ final class TacticsViewModel {
     private(set) var attemptedMove: ChessMove?
     private(set) var hintMove: ChessMove?
     private(set) var errorMessage: String?
+    /// Pending promotion: set when a pawn move reaches the last rank, cleared
+    /// once the player picks a piece (or the move is cancelled by re-selection).
+    private(set) var pendingPromotion: (from: Square, to: Square)?
     private var progress: PuzzleProgressStore?
     private let ratingStore: UserRatingStore
     private let ratingCalculator = PuzzleRatingCalculator()
@@ -36,17 +39,24 @@ final class TacticsViewModel {
     private var ratingAppliedForPuzzle = false
     private var firstAttemptWasCorrect = false
     private var isAdvancing = false
+    /// Whether this batch has already been written to `RoundHistory`. The
+    /// round is recorded exactly once per batch — re-solving puzzles in review
+    /// (or solving the last one after a hint) must not insert or skip a row.
+    private var roundRecorded = false
     /// Remains true after the puzzle is solved, even while the user scrubs
     /// backward through the solution during review.
     private var currentPuzzleFinished = false
     private(set) var userRating: Int
     private(set) var lastRatingDelta: Int?
     private(set) var isBoardFlipped: Bool = false
+    /// Message surfaced when the user taps "Next batch" inside the cooldown
+    /// window. Cleared on the next puzzle load.
+    private(set) var batchCooldownMessage: String?
 
     /// Per-puzzle outcome for the current round. `nil` = not yet attempted.
     private(set) var results: [PuzzleOutcome?] = []
 
-    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
+    init(dataset: [Puzzle], progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
         let batch = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
         self.dataset = source
@@ -57,17 +67,18 @@ final class TacticsViewModel {
         userRating = ratingStore.rating
         self.puzzles = batch
         results = Array(repeating: nil, count: batch.count)
+        roundRecorded = false
         currentIndex = 0
         do {
             session = try PuzzleSession(puzzle: batch[0])
         } catch {
-            preconditionFailure("Invalid bundled puzzle: \(error)")
+            // A puzzle that cannot build a session is unusable, but crashing
+            // the app over one data row is worse: fall back to the samples,
+            // which are hand-verified.
+            session = (try? PuzzleSession(puzzle: Puzzle.samples[0])) ?? PuzzleSession.empty()
+            errorMessage = String(localized: "tactics.error_load")
         }
         orientBoardToPlayer()
-    }
-
-    func attachProgress(_ store: PuzzleProgressStore) {
-        progress = store
     }
 
     /// Flip the board between the two playing perspectives.
@@ -100,6 +111,12 @@ final class TacticsViewModel {
 
     var state: PuzzleSessionState { session.state }
     var playerColor: PieceColor { session.userColor }
+
+    /// Test hook: the live session value.
+    func sessionForTest() -> PuzzleSession { session }
+
+    /// Test hook: whether the promotion picker is up.
+    func pendingPromotionForTest() -> (from: Square, to: Square)? { pendingPromotion }
     var headerTitle: String { String(localized: state == .solved ? "tactics.puzzle_complete" : "tactics.your_turn") }
     var headerSubtitle: String {
         String(localized: playerColor == .white ? "tactics.find_best_white" : "tactics.find_best_black")
@@ -185,14 +202,12 @@ final class TacticsViewModel {
     /// Expiry alone never changes Review mode.
     func startNextBatch() {
         if BatchStore.isWithinDuration {
-            // The current batch is still inside its time window. Keep its
-            // puzzles and explicitly enter batch review instead of silently
-            // doing nothing or creating a replacement batch.
-            mode = .reviewBatch
-            currentIndex = 0
-            loadPuzzle(at: 0)
+            // The current batch is still inside its time window: surface why
+            // nothing new is coming and stay on the batch being reviewed.
+            batchCooldownMessage = String(localized: "tactics.batch_cooldown")
             return
         }
+        batchCooldownMessage = nil
         mode = .play
         loadNextRound()
     }
@@ -220,6 +235,7 @@ final class TacticsViewModel {
         puzzles = picked
         BatchStore.begin(with: picked)
         results = Array(repeating: nil, count: picked.count)
+        roundRecorded = false
         currentIndex = 0
         loadPuzzle(at: 0)
     }
@@ -276,8 +292,10 @@ final class TacticsViewModel {
         if let selectedSquare {
             if selectedSquare == square {
                 self.selectedSquare = nil
+                pendingPromotion = nil
             } else if position[square]?.color == session.userColor {
                 self.selectedSquare = square
+                pendingPromotion = nil
             } else {
                 attemptMove(from: selectedSquare, to: square)
             }
@@ -286,8 +304,12 @@ final class TacticsViewModel {
         }
     }
 
-    func restart() {
-        loadPuzzle(at: currentIndex)
+    /// The player picked a promotion piece for the pending pawn move.
+    func choosePromotion(_ kind: PieceKind) {
+        guard let pending = pendingPromotion else { return }
+        pendingPromotion = nil
+        selectedSquare = nil
+        attemptMove(from: pending.from, to: pending.to, promotion: kind)
     }
 
     private static func pickRandomBatch(from dataset: [Puzzle], count: Int = 5) -> [Puzzle] {
@@ -302,6 +324,8 @@ final class TacticsViewModel {
             hintMove = nil
             attemptedMove = nil
             errorMessage = nil
+            batchCooldownMessage = nil
+            pendingPromotion = nil
             hadMistake = false
             firstAttemptWasCorrect = false
             ratingAppliedForPuzzle = false
@@ -309,21 +333,30 @@ final class TacticsViewModel {
             orientBoardToPlayer()
             Task { await playOpponentMove() }
         } catch {
-            errorMessage = "The puzzle could not be loaded."
+            errorMessage = String(localized: "tactics.error_load")
         }
     }
 
-    private func attemptMove(from origin: Square, to target: Square) {
+    private func attemptMove(from origin: Square, to target: Square, promotion: PieceKind? = nil) {
         hintMove = nil
         var move = ChessMove(from: origin, to: target)
         if session.moveNeedsPromotion(move) {
-            move = ChessMove(from: origin, to: target, promotion: .queen)
+            guard let promotion else {
+                // The player must choose the promotion piece; the choice UI
+                // is up while the move itself waits.
+                pendingPromotion = (origin, target)
+                return
+            }
+            move = ChessMove(from: origin, to: target, promotion: promotion)
         }
         // The expected move is trusted-legal (from the puzzle line), so accept
-        // it even for special moves (castling, en passant) the basic legality
-        // check does not model. Any other move must be basically legal.
+        // it even for moves the legality check would reject on partial data.
+        // Any other move must be fully legal.
         let isExpected = move == session.expectedMove
-        guard isExpected || session.isLegalUserMove(move) else { return }
+        guard isExpected || session.isLegalUserMove(move) else {
+            selectedSquare = nil
+            return
+        }
 
         let puzzleID = puzzles[currentIndex].id
         let isFirstAttempt = !(progress?.hasAttempted(puzzleID) ?? false)
@@ -336,7 +369,7 @@ final class TacticsViewModel {
         do {
             try session.submitUserMove(move)
         } catch {
-            errorMessage = "The move could not be applied."
+            errorMessage = String(localized: "tactics.error_apply")
             return
         }
 
@@ -368,7 +401,7 @@ final class TacticsViewModel {
         do {
             try session.applyOpponentMove()
         } catch {
-            errorMessage = "The reply could not be applied."
+            errorMessage = String(localized: "tactics.error_reply")
             return
         }
         if session.state == .solved && mode == .play {
@@ -381,10 +414,15 @@ final class TacticsViewModel {
         // Completion is recorded once regardless of the rating outcome: a hint
         // may have already adjusted the rating before the line is finished.
         progress?.markCompleted(puzzles[currentIndex].id)
-        guard !ratingAppliedForPuzzle else { return }
-        ratingAppliedForPuzzle = true
-        recordOutcome(.correct, for: currentIndex)
-        if isLastPuzzle {
+        if !ratingAppliedForPuzzle {
+            ratingAppliedForPuzzle = true
+            recordOutcome(.correct, for: currentIndex)
+        }
+        // The round history is independent of the rating flow: a hint on the
+        // final puzzle must not lose the whole batch's history, and re-solving
+        // the batch in review must not insert it a second time.
+        if isLastPuzzle, !roundRecorded {
+            roundRecorded = true
             progress?.recordRound(puzzles: puzzles, outcomes: results)
         }
         guard canUpdateRating, firstAttemptWasCorrect else { return }
@@ -416,5 +454,19 @@ final class TacticsViewModel {
     private func recordOutcome(_ outcome: PuzzleOutcome, for index: Int) {
         guard results.indices.contains(index), results[index] == nil else { return }
         results[index] = outcome
+    }
+}
+
+extension PuzzleSession {
+    /// Stand-in session for a puzzle that failed to build. Shows an empty
+    /// board in the error state instead of crashing the app.
+    static func empty() -> PuzzleSession {
+        try! PuzzleSession(puzzle: Puzzle(
+            id: "empty",
+            fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+            moves: ["e1e2", "e8e7"],
+            rating: nil,
+            themes: []
+        ))
     }
 }

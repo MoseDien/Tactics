@@ -37,8 +37,8 @@ struct Square: Hashable, Sendable {
     let file: Int
     let rank: Int
 
-    init(file: Int, rank: Int) {
-        precondition((0..<8).contains(file) && (0..<8).contains(rank))
+    init?(file: Int, rank: Int) {
+        guard (0..<8).contains(file), (0..<8).contains(rank) else { return nil }
         self.file = file
         self.rank = rank
     }
@@ -51,7 +51,8 @@ struct Square: Hashable, Sendable {
               (97...104).contains(fileValue),
               (1...8).contains(rank)
         else { return nil }
-        self.init(file: Int(fileValue - 97), rank: rank - 1)
+        // The guard bounds both values to the board, so this cannot be nil.
+        self.init(file: Int(fileValue - 97), rank: rank - 1)!
     }
 
     var notation: String {
@@ -115,8 +116,28 @@ struct Board: Equatable, Sendable {
         case invalidSideToMove(String)
     }
 
+    /// Castling availability parsed from the FEN's third field ("KQkq" style).
+    /// Empty when the FEN omits or blanks the field.
+    struct CastlingRights: OptionSet, Equatable, Sendable {
+        let rawValue: Int
+        static let whiteKingSide = CastlingRights(rawValue: 1 << 0)
+        static let whiteQueenSide = CastlingRights(rawValue: 1 << 1)
+        static let blackKingSide = CastlingRights(rawValue: 1 << 2)
+        static let blackQueenSide = CastlingRights(rawValue: 1 << 3)
+    }
+
     private(set) var pieces: [Square: Piece]
-    let sideToMove: PieceColor
+    private(set) var sideToMove: PieceColor
+    /// FEN fields 3–4. Kept for validation and special-move handling; the
+    /// halfmove clock and fullmove number (fields 5–6) are not needed for
+    /// tactics lines and are not stored.
+    private(set) var castlingRights: CastlingRights
+    /// The square where en passant capture is possible, if any.
+    private(set) var enPassantTarget: Square?
+    /// Set by `apply` when a move leaves the mover's king attacked. The board
+    /// is a passive record of the position; check detection lives here so
+    /// `isLegal` can reject self-checks and `apply` stays unchecked.
+    private(set) var sideToMoveInCheck: Bool = false
 
     init(fen: String) throws {
         let fields = fen.split(separator: " ")
@@ -128,18 +149,24 @@ struct Board: Equatable, Sendable {
         var parsedPieces: [Square: Piece] = [:]
         for (rankIndex, encodedRank) in ranks.enumerated() {
             var file = 0
+            var previousWasDigit = false
             for character in encodedRank {
-                if let emptyCount = character.wholeNumberValue {
-                    guard (1...8).contains(emptyCount) else {
+                // Only a single ASCII digit 1–8 is a rank skip. Non-ASCII
+                // digits ("٣") and multi-digit runs ("44") are rejected rather
+                // than summed or silently accepted.
+                if let emptyCount = character.wholeNumberValue, character.isASCII {
+                    guard (1...8).contains(emptyCount), !previousWasDigit else {
                         throw FENError.invalidRank(String(encodedRank))
                     }
                     file += emptyCount
+                    previousWasDigit = true
                 } else {
                     guard file < 8, let piece = Self.piece(for: character) else {
                         throw FENError.invalidPiece(character)
                     }
-                    parsedPieces[Square(file: file, rank: 7 - rankIndex)] = piece
+                    parsedPieces[Square(file: file, rank: 7 - rankIndex)!] = piece
                     file += 1
+                    previousWasDigit = false
                 }
             }
             guard file == 8 else { throw FENError.invalidRank(String(encodedRank)) }
@@ -150,7 +177,24 @@ struct Board: Equatable, Sendable {
         case "b": sideToMove = .black
         default: throw FENError.invalidSideToMove(String(fields[1]))
         }
+        castlingRights = Self.castlingRights(fields.count > 2 ? String(fields[2]) : "")
+        enPassantTarget = fields.count > 3 ? Square(notation: String(fields[3])) : nil
         pieces = parsedPieces
+        sideToMoveInCheck = Self.isAttacked(
+            kingSquare(of: sideToMove, in: parsedPieces),
+            by: sideToMove.opponent,
+            in: parsedPieces,
+            enPassantTarget: nil
+        )
+    }
+
+    private static func castlingRights(_ field: String) -> CastlingRights {
+        var rights: CastlingRights = []
+        if field.contains("K") { rights.insert(.whiteKingSide) }
+        if field.contains("Q") { rights.insert(.whiteQueenSide) }
+        if field.contains("k") { rights.insert(.blackKingSide) }
+        if field.contains("q") { rights.insert(.blackQueenSide) }
+        return rights
     }
 
     mutating func apply(_ move: ChessMove) -> Bool {
@@ -160,24 +204,93 @@ struct Board: Equatable, Sendable {
         pieces[move.to] = Piece(color: movingPiece.color, kind: resultingKind)
 
         // Castling: a king advancing two files also relocates the corner rook.
+        // The rook must actually be there; otherwise the king simply moved
+        // (a data bug, not a position we should corrupt with a phantom rook).
         if movingPiece.kind == .king, abs(move.to.file - move.from.file) == 2 {
             let rank = move.from.rank
-            if move.to.file == 6, let rook = pieces.removeValue(forKey: Square(file: 7, rank: rank)) {
-                pieces[Square(file: 5, rank: rank)] = rook
-            } else if move.to.file == 2, let rook = pieces.removeValue(forKey: Square(file: 0, rank: rank)) {
-                pieces[Square(file: 3, rank: rank)] = rook
+            if move.to.file == 6, let rook = pieces.removeValue(forKey: Square(file: 7, rank: rank)!) {
+                pieces[Square(file: 5, rank: rank)!] = rook
+            } else if move.to.file == 2, let rook = pieces.removeValue(forKey: Square(file: 0, rank: rank)!) {
+                pieces[Square(file: 3, rank: rank)!] = rook
             }
         }
 
-        // En passant: a pawn moving diagonally onto an empty square captures the
-        // enemy pawn that just advanced beside its origin.
+        // En passant: a pawn moving diagonally onto an empty square captures
+        // the enemy pawn beside its origin. Only the square an en-passant
+        // capture can actually remove — an enemy pawn on it — is cleared.
         if movingPiece.kind == .pawn,
            move.from.file != move.to.file,
            targetWasEmpty {
-            pieces[Square(file: move.to.file, rank: move.from.rank)] = nil
+            let capturedSquare = Square(file: move.to.file, rank: move.from.rank)!
+            if pieces[capturedSquare]?.color == movingPiece.color.opponent {
+                pieces.removeValue(forKey: capturedSquare)
+            }
         }
 
+        // Toggle the recorded turn and update the special-move context so the
+        // next `isLegal` call answers for the side about to move.
+        sideToMove = sideToMove.opponent
+        enPassantTarget = (movingPiece.kind == .pawn && abs(move.to.rank - move.from.rank) == 2)
+            ? Square(file: move.from.file, rank: (move.from.rank + move.to.rank) / 2)!
+            : nil
+        if !castlingRights.isEmpty {
+            if movingPiece.kind == .king {
+                let whiteRights: CastlingRights = [.whiteKingSide, .whiteQueenSide]
+                let blackRights: CastlingRights = [.blackKingSide, .blackQueenSide]
+                castlingRights.subtract(movingPiece.color == .white ? whiteRights : blackRights)
+            }
+            if movingPiece.kind == .rook {
+                let backRank = movingPiece.color == .white ? 0 : 7
+                if move.from == Square(file: 0, rank: backRank)! {
+                    castlingRights.subtract(movingPiece.color == .white ? .whiteQueenSide : .blackQueenSide)
+                } else if move.from == Square(file: 7, rank: backRank)! {
+                    castlingRights.subtract(movingPiece.color == .white ? .whiteKingSide : .blackKingSide)
+                }
+            }
+        }
+        sideToMoveInCheck = Self.isAttacked(
+            kingSquare(of: sideToMove, in: pieces),
+            by: sideToMove.opponent,
+            in: pieces,
+            enPassantTarget: enPassantTarget
+        )
         return true
+    }
+
+    private func kingSquare(of color: PieceColor, in pieces: [Square: Piece]) -> Square? {
+        pieces.first { _, piece in piece.color == color && piece.kind == .king }?.key
+    }
+
+    /// Whether any piece of `attacker`'s color attacks `square` in the classic
+    /// sense (capture moves, ignoring en-passant-only oddities).
+    private static func isAttacked(
+        _ square: Square?,
+        by attacker: PieceColor,
+        in pieces: [Square: Piece],
+        enPassantTarget: Square?
+    ) -> Bool {
+        guard let square else { return false }
+
+        for (origin, piece) in pieces where piece.color == attacker {
+            switch piece.kind {
+            case .pawn:
+                let direction = attacker == .white ? 1 : -1
+                if abs(square.file - origin.file) == 1, square.rank - origin.rank == direction { return true }
+            case .knight:
+                if (abs(square.file - origin.file), abs(square.rank - origin.rank)) == (1, 2)
+                    || (abs(square.file - origin.file), abs(square.rank - origin.rank)) == (2, 1) { return true }
+            case .king:
+                if max(abs(square.file - origin.file), abs(square.rank - origin.rank)) == 1 { return true }
+            case .bishop, .rook, .queen:
+                if shapeIsLegal(piece, from: origin, to: square, in: pieces) {
+                    // A king adjacent to the checked king still attacks it even
+                    // though the reverse would be illegal; shapeIsLegal already
+                    // covers that, so the shape test alone is sufficient here.
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private static func piece(for character: Character) -> Piece? {
@@ -197,16 +310,114 @@ struct Board: Equatable, Sendable {
 }
 
 extension Board {
-    /// Whether `move` is a legal move for `mover` under basic piece-movement rules.
-    ///
-    /// Validates movement shape, path blocking, and self-capture. It does **not**
-    /// cover check/pin legality, castling, en passant, or promotion — those are
-    /// deferred per the project's phased roadmap.
+    /// Whether `move` is a legal chess move for `mover`: movement shape, path
+    /// blocking, self-capture, check and pin legality, castling, en passant,
+    /// and promotion requirements. Trusted puzzle-line moves that involve
+    /// unusual data still flow through `apply`, which remains unchecked.
     func isLegal(_ move: ChessMove, for mover: PieceColor) -> Bool {
         guard let piece = pieces[move.from], piece.color == mover else { return false }
         if let occupant = pieces[move.to], occupant.color == mover { return false }
-        return Self.shapeIsLegal(piece, from: move.from, to: move.to, in: pieces)
+
+        // Pawn pushes and captures onto the last rank must promote, and the
+        // promotion piece must be one a pawn can promote to.
+        if piece.kind == .pawn, move.to.rank == 0 || move.to.rank == 7 {
+            guard let promotion = move.promotion,
+                  promotion == .queen || promotion == .rook || promotion == .bishop || promotion == .knight
+            else { return false }
+        } else if move.promotion != nil {
+            return false
+        }
+
+        // Castling: a king advancing two files. King-shape validation would
+        // reject it, so it has its own full rule here.
+        if piece.kind == .king, abs(move.to.file - move.from.file) == 2 {
+            return castleIsLegal(move, for: mover)
+        }
+
+        guard Self.shapeIsLegal(piece, from: move.from, to: move.to, in: pieces)
+            || enPassantShapeApplies(piece, to: move.to)
+        else { return false }
+
+        // The mover's own king may not be left attacked (covers pins and
+        // moving into check). En-passant captures expose the king along the
+        // rank in rare positions, so the candidate position is always tested.
+        var candidate = self
+        guard candidate.applyUncheckedForLegality(move) else { return false }
+        let kingSquare = candidate.kingSquare(of: mover, in: candidate.pieces)
+            ?? kingSquare(of: mover, in: pieces)
+        return !Self.isAttacked(
+            kingSquare,
+            by: mover.opponent,
+            in: candidate.pieces,
+            enPassantTarget: nil
+        )
     }
+
+    /// En passant target squares are empty, so the pawn diagonal-capture shape
+    /// does not apply. This recognizes the shape when the FEN's en-passant
+    /// field matches the destination.
+    private func enPassantShapeApplies(_ pawn: Piece, to target: Square) -> Bool {
+        pawn.kind == .pawn && enPassantTarget == target
+    }
+
+    /// Full castling rule: rights, empty path, unattacked path (including the
+    /// king's origin and destination).
+    private func castleIsLegal(_ move: ChessMove, for mover: PieceColor) -> Bool {
+        let kingSide = move.to.file == 6
+        let backRank = mover == .white ? 0 : 7
+        guard move.from == Square(file: 4, rank: backRank)! else { return false }
+
+        let rights: CastlingRights = kingSide
+            ? (mover == .white ? .whiteKingSide : .blackKingSide)
+            : (mover == .white ? .whiteQueenSide : .blackQueenSide)
+        guard castlingRights.contains(rights) else { return false }
+
+        let rookFile = kingSide ? 7 : 0
+        guard pieces[Square(file: rookFile, rank: backRank)!] == Piece(color: mover, kind: .rook) else { return false }
+
+        let pathFiles = kingSide ? [5, 6] : [1, 2, 3]
+        for file in pathFiles where pieces[Square(file: file, rank: backRank)!] != nil {
+            return false
+        }
+        // The king may not castle out of, through, or into check.
+        let checkedFiles = kingSide ? [4, 5, 6] : [4, 3, 2]
+        for file in checkedFiles
+        where Self.isAttacked(
+            Square(file: file, rank: backRank)!,
+            by: mover.opponent,
+            in: pieces,
+            enPassantTarget: nil
+        ) {
+            return false
+        }
+        return true
+    }
+
+    /// `apply` minus the bookkeeping `isLegal` doesn't need. Kept separate so
+    /// the legality probe cannot observe intermediate rights/turn updates.
+    private mutating func applyUncheckedForLegality(_ move: ChessMove) -> Bool {
+        guard let movingPiece = pieces.removeValue(forKey: move.from) else { return false }
+        let targetWasEmpty = pieces[move.to] == nil
+        pieces[move.to] = Piece(color: movingPiece.color, kind: move.promotion ?? movingPiece.kind)
+
+        if movingPiece.kind == .king, abs(move.to.file - move.from.file) == 2 {
+            let rank = move.from.rank
+            if move.to.file == 6, let rook = pieces.removeValue(forKey: Square(file: 7, rank: rank)!) {
+                pieces[Square(file: 5, rank: rank)!] = rook
+            } else if move.to.file == 2, let rook = pieces.removeValue(forKey: Square(file: 0, rank: rank)!) {
+                pieces[Square(file: 3, rank: rank)!] = rook
+            }
+        }
+
+        if movingPiece.kind == .pawn, move.from.file != move.to.file, targetWasEmpty {
+            let capturedSquare = Square(file: move.to.file, rank: move.from.rank)!
+            if pieces[capturedSquare]?.color == movingPiece.color.opponent {
+                pieces.removeValue(forKey: capturedSquare)
+            }
+        }
+        return true
+    }
+
 
     private static func shapeIsLegal(
         _ piece: Piece,
@@ -252,16 +463,25 @@ extension Board {
         if fileDelta == 0 {
             if rankDelta == direction, pieces[to] == nil { return true }
             if from.rank == startRank, rankDelta == 2 * direction {
-                let middle = Square(file: from.file, rank: from.rank + direction)
+                let middle = Square(file: from.file, rank: from.rank + direction)!
                 return pieces[to] == nil && pieces[middle] == nil
             }
             return false
         }
-        // Diagonal capture: one file over, one rank forward, onto an enemy piece.
+        // Diagonal capture: one file over, one rank forward, onto an enemy
+        // piece. The en-passant exception (empty target) is handled by the
+        // caller, which knows the FEN's en-passant field.
         if abs(fileDelta) == 1, rankDelta == direction {
             return pieces[to]?.color == pawn.color.opponent
         }
         return false
+    }
+
+    /// Whether `move` sends a pawn of `mover` to its promotion rank. The UI
+    /// uses this to ask which piece to promote to.
+    func isPromotion(_ move: ChessMove, for mover: PieceColor) -> Bool {
+        guard let piece = pieces[move.from], piece.color == mover, piece.kind == .pawn else { return false }
+        return move.to.rank == 0 || move.to.rank == 7
     }
 
     private static func pathIsClear(from: Square, to: Square, in pieces: [Square: Piece]) -> Bool {
@@ -270,7 +490,7 @@ extension Board {
         var file = from.file + stepFile
         var rank = from.rank + stepRank
         while file != to.file || rank != to.rank {
-            if pieces[Square(file: file, rank: rank)] != nil { return false }
+            if pieces[Square(file: file, rank: rank)!] != nil { return false }
             file += stepFile
             rank += stepRank
         }
