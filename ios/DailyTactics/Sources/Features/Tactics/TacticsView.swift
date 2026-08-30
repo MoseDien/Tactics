@@ -31,7 +31,7 @@ struct TacticsView: View {
             if mode == .reviewBatch {
                 round = BatchStore.currentPuzzles(from: store.allPuzzles())
             } else {
-                round = store.fetchUnattemptedRound(count: BatchConfiguration.puzzleCount)
+                round = store.fetchUnattemptedRound(count: BatchConfiguration.puzzleCount, difficulty: DifficultyModeStore.current, userRating: UserRatingStore().rating)
             }
             if round.isEmpty { round = Puzzle.samples }
             if mode == .play { BatchStore.begin(with: round) }

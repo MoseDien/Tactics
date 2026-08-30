@@ -127,7 +127,7 @@ final class PuzzleProgressStore {
     /// Falls back to random-over-all when fewer than `count` remain unattempted
     /// so a round is always available. The static library is cached; only the
     /// small `PuzzleProgress` table is queried each round.
-    func fetchUnattemptedRound(count: Int) -> [Puzzle] {
+    func fetchUnattemptedRound(count: Int, difficulty: DifficultyMode = .medium, userRating: Int = 1500) -> [Puzzle] {
         let all = allPuzzles()
         guard !all.isEmpty else { return [] }
         let attemptedDescriptor = FetchDescriptor<PuzzleProgress>(
@@ -135,7 +135,13 @@ final class PuzzleProgressStore {
         )
         let attempted = Set(((try? context.fetch(attemptedDescriptor)) ?? []).map(\.puzzleId))
         let pool = all.filter { !attempted.contains($0.id) }
-        let source = pool.count >= count ? pool : all
+        let filtered: [Puzzle]
+        switch difficulty {
+        case .easy: filtered = pool.filter { ($0.rating ?? 0) <= userRating + 200 }
+        case .hard: filtered = pool.filter { ($0.rating ?? Int.max) >= userRating - 200 }
+        case .medium: filtered = pool
+        }
+        let source = filtered.count >= count ? filtered : (pool.count >= count ? pool : all)
         return Array(source.shuffled().prefix(min(count, source.count)))
     }
 }

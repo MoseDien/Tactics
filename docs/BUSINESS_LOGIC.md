@@ -35,6 +35,15 @@ Rating 由 `UserRatingStore` 保存在本地，并在首次有效尝试完成题
 
 进入主训练后，题目来自 SwiftData。
 
+### Difficulty Mode
+
+Settings 中可以选择新 batch 的难度模式，默认是 `Medium`。设置保存在 UserDefaults，仅影响后续创建的 Play batch，当前 batch 和 Review 不受影响。
+
+- `Easy`：选择 rating 不高于用户当前 Rating + 200 的题目。
+- `Medium`：完全随机选择，不考虑题目 rating。
+- `Hard`：选择 rating 不低于用户当前 Rating - 200 的题目。
+- 当符合筛选条件的题目不足一个 batch 时，回退到未尝试题目池；未尝试题目不足时再从全部题库随机选择。
+
 ### Batch（4 小时节奏）
 
 - 每个 batch 默认包含 5 道题，数量由 `BatchConfiguration.puzzleCount` 配置。

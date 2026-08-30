@@ -262,6 +262,23 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
+    func testDifficultyModeFilteringUsesRatingBounds() {
+        let context = ModelContext(try! ModelContainer(for: PuzzleRecord.self, PuzzleProgress.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+        let store = PuzzleProgressStore(context: context)
+        let puzzles = [
+            Puzzle(id: "easy", fen: Puzzle.samples[0].fen, moves: Puzzle.samples[0].moves, rating: 1200, themes: []),
+            Puzzle(id: "mid", fen: Puzzle.samples[0].fen, moves: Puzzle.samples[0].moves, rating: 1500, themes: []),
+            Puzzle(id: "hard", fen: Puzzle.samples[0].fen, moves: Puzzle.samples[0].moves, rating: 1900, themes: [])
+        ]
+        puzzles.forEach { context.insert(PuzzleRecord(puzzle: $0)) }
+        try? context.save()
+        let easy = store.fetchUnattemptedRound(count: 1, difficulty: .easy, userRating: 1500)
+        let hard = store.fetchUnattemptedRound(count: 1, difficulty: .hard, userRating: 1500)
+        XCTAssertTrue(easy.allSatisfy { ($0.rating ?? 0) <= 1700 })
+        XCTAssertTrue(hard.allSatisfy { ($0.rating ?? 0) >= 1300 })
+    }
+
+    @MainActor
     func testHintImmediatelyCostsRating() async throws {
         let defaults = UserDefaults(suiteName: "hint-penalty-\(UUID().uuidString)")!
         let store = UserRatingStore(defaults: defaults)

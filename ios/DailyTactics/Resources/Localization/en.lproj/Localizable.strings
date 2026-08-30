@@ -12,6 +12,10 @@
 "settings.history" = "History";
 "settings.history_footer" = "Review completed puzzles grouped into rounds of five.";
 "settings.how_to_play" = "How to play";
+"settings.difficulty" = "Difficulty";
+"settings.difficulty_easy" = "Easy";
+"settings.difficulty_medium" = "Medium";
+"settings.difficulty_hard" = "Hard";
 /* tactics */
 "tactics.your_turn" = "Your turn";
 "tactics.puzzle_complete" = "Puzzle complete!";

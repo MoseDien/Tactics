@@ -8,6 +8,10 @@
 "settings.history" = "历史记录";
 "settings.history_footer" = "按每组五道题复盘已完成的题目。";
 "settings.how_to_play" = "玩法说明";
+"settings.difficulty" = "难度";
+"settings.difficulty_easy" = "简单";
+"settings.difficulty_medium" = "中等";
+"settings.difficulty_hard" = "困难";
 "tactics.your_turn" = "轮到你了";
 "tactics.puzzle_complete" = "题目完成！";
 "tactics.find_best_white" = "为白方找出最佳着法。";

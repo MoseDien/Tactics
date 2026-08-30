@@ -196,7 +196,7 @@ final class TacticsViewModel {
         let picked: [Puzzle]
         guard let progress else { return }
         let previousBatchIDs = Set(BatchStore.activePuzzleIDs)
-        let candidatePool = progress.fetchUnattemptedRound(count: dailyPuzzleCount)
+        let candidatePool = progress.fetchUnattemptedRound(count: dailyPuzzleCount, difficulty: DifficultyModeStore.current, userRating: userRating)
             .filter { !previousBatchIDs.contains($0.id) }
         if candidatePool.count >= dailyPuzzleCount {
             picked = Array(candidatePool.prefix(dailyPuzzleCount))
