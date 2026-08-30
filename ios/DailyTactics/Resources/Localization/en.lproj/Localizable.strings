@@ -33,7 +33,7 @@
 "tactics.rating" = "Rating";
 "tactics.reviewing_move" = "Reviewing move %ld / %ld";
 "tactics.puzzle_progress" = "PUZZLE %ld OF %ld";
-"tactics.next_puzzle" = "Next puzzle";
+"tactics.next_puzzle" = "Next";
 "tactics.start_new_batch" = "Start New Batch";
 "tactics.next_batch" = "Next batch";
 /* review */

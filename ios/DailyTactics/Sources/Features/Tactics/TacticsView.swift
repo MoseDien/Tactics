@@ -188,13 +188,13 @@ struct TacticsView: View {
                 Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.secondary)
-                Text(viewModel.mode == .play ? "P" : "R")
+                Text(viewModel.mode == .reviewBatch ? "R" : "P")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(width: 20, height: 20)
-                    .background(viewModel.mode == .play ? Color.accentColor : Color.secondary)
+                    .background(viewModel.mode == .reviewBatch ? Color.secondary : Color.accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 5))
-                    .accessibilityLabel(viewModel.mode == .play ? "Play mode" : "Review mode")
+                    .accessibilityLabel(viewModel.mode == .reviewBatch ? "Review mode" : "Play mode")
             }
 
             Spacer()
@@ -265,22 +265,13 @@ struct TacticsView: View {
             Label(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise")
                 .foregroundStyle(.orange)
         case .puzzleComplete, .trainingComplete:
-            HStack(spacing: 24) {
-                Button(String(localized: "common.review")) {
-                    reviewPuzzle = viewModel.puzzles[viewModel.currentIndex]
-                }.buttonStyle(.bordered)
-                
-                if viewModel.mode == .reviewBatch {
-                    Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
-                        .buttonStyle(.bordered)
-                    if viewModel.canStartNewBatch {
+            VStack(spacing: 12) {
+                HStack {
+                    if (viewModel.mode == .reviewBatch && viewModel.canStartNewBatch) || viewModel.isBatchComplete {
                         Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
                             .buttonStyle(.borderedProminent)
                     }
-                } else if viewModel.isBatchComplete {
-                    Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
-                        .buttonStyle(.borderedProminent)
-                } else {
+                    Spacer()
                     Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
                         .buttonStyle(.borderedProminent)
                 }

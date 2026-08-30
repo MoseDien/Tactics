@@ -139,7 +139,12 @@ final class TacticsViewModel {
 
     /// The puzzle has been completed at least once. Review navigation must not
     /// revoke this state or disable the Next puzzle action.
-    var canAdvanceToNextPuzzle: Bool { currentPuzzleFinished && !isLastPuzzle }
+    /// Once the current puzzle is finished, navigation is available. At the
+    /// end of a batch we deliberately keep it enabled so the user can loop
+    /// back through the completed batch for review, even in Play mode.
+    var canAdvanceToNextPuzzle: Bool {
+        currentPuzzleFinished && (!isLastPuzzle || isBatchComplete)
+    }
     var canStartNewBatch: Bool { mode == .reviewBatch && !BatchStore.isWithinDuration }
     var canUpdateRating: Bool { mode == .play }
     var canInteractWithPuzzle: Bool { !inReview && (state == .waitingForMove || state == .incorrectMove) }
@@ -157,7 +162,14 @@ final class TacticsViewModel {
     func nextPuzzle() {
         guard !isAdvancing, (mode == .reviewBatch || canAdvanceToNextPuzzle) else { return }
         isAdvancing = true
-        let target = mode == .reviewBatch ? (currentIndex + 1) % puzzles.count : currentIndex + 1
+        // Reaching the end of a Play batch and choosing Next puzzle means the
+        // user is reviewing that completed batch. Keep the mode indicator and
+        // rating rules aligned with this transition.
+        if mode == .play && isBatchComplete {
+            mode = .reviewBatch
+        }
+        let shouldLoopBatch = mode == .reviewBatch || isBatchComplete
+        let target = shouldLoopBatch ? (currentIndex + 1) % puzzles.count : currentIndex + 1
         // A brief beat before the next puzzle appears so the transition reads
         // as deliberate rather than an instant snap. Re-entry is blocked until
         // the load completes so repeated taps can't skip puzzles.
