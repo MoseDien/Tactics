@@ -11,13 +11,13 @@ struct SettingsView: View {
                     NavigationLink {
                         HistoryView()
                     } label: {
-                        Label("History", systemImage: "clock.arrow.circlepath")
+                        Label(String(localized: "settings.history"), systemImage: "clock.arrow.circlepath")
                     }
                 } footer: {
-                    Text("Review completed puzzles grouped into rounds of five.")
+                    Text(String(localized: "settings.historyFooter"))
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle(String(localized: "settings.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -29,7 +29,7 @@ struct SettingsView: View {
                     .accessibilityLabel("How to play")
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button(String(localized: "common.done")) { dismiss() }
                 }
             }
             .alert("How to Play", isPresented: $showingHowToPlay) {

@@ -1,0 +1,44 @@
+/* app */
+"app.name" = "iTactics";
+/* common */
+"common.done" = "Done";
+"common.got_it" = "Got it";
+"common.continue" = "Continue";
+"common.review" = "Review";
+/* loading */
+"loading.library" = "Loading your puzzle library…";
+/* settings */
+"settings.title" = "Settings";
+"settings.history" = "History";
+"settings.history_footer" = "Review completed puzzles grouped into rounds of five.";
+"settings.how_to_play" = "How to play";
+/* tactics */
+"tactics.your_turn" = "Your turn";
+"tactics.puzzle_complete" = "Puzzle complete!";
+"tactics.find_best_white" = "Find the best move for White.";
+"tactics.find_best_black" = "Find the best move for Black.";
+"tactics.hint_instruction" = "Move the highlighted piece to the marked square";
+"tactics.review_info" = "In review mode, can start new puzzle next hour";
+"tactics.opponent_moving" = "Opponent is moving…";
+"tactics.opponent_reply" = "Opponent's reply";
+"tactics.incorrect_move" = "Not quite — look for a forcing move.";
+"tactics.puzzle_difficulty" = "Puzzle difficulty";
+"tactics.flip_board" = "Flip board";
+"tactics.settings" = "Settings";
+"tactics.rating" = "Rating";
+"tactics.reviewing_move" = "Reviewing move %ld / %ld";
+"tactics.puzzle_progress" = "PUZZLE %ld OF %ld";
+"tactics.next_puzzle" = "Next puzzle";
+"tactics.start_new_batch" = "Start New Batch";
+/* review */
+"review.title" = "Review";
+"review.label" = "REVIEW";
+"review.previous_move" = "Previous move";
+"review.next_move" = "Next move";
+/* history */
+"history.round_review" = "Round Review";
+"history.puzzles_count" = "%lld puzzles";
+"history.puzzle" = "Puzzle %@";
+/* rating */
+"rating.baseline_title" = "BASELINE RATING";
+"rating.baseline_ready" = "Baseline rating ready";

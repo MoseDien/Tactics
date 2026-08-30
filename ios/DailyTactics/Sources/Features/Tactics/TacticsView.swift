@@ -82,7 +82,7 @@ struct TacticsView: View {
                 }
             }
             .background(Color(.systemBackground))
-            .navigationTitle("iTactics")
+            .navigationTitle(String(localized: "app.name"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -91,7 +91,7 @@ struct TacticsView: View {
                     } label: {
                         Image(systemName: "gearshape")
                     }
-                    .accessibilityLabel("Settings")
+                    .accessibilityLabel(String(localized: "tactics.settings"))
                 }
             }
             .sheet(isPresented: $showingSettings) {
@@ -105,7 +105,7 @@ struct TacticsView: View {
 
     private func header(for viewModel: TacticsViewModel) -> some View {
         VStack(spacing: 5) {
-            Text("PUZZLE \(viewModel.puzzleNumber) OF \(viewModel.puzzleCount)")
+            Text(String(format: NSLocalizedString("tactics.puzzle_progress", comment: "Puzzle progress"), viewModel.puzzleNumber, viewModel.puzzleCount))
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.secondary)
                 .tracking(1.2)
@@ -156,7 +156,7 @@ struct TacticsView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Puzzle difficulty")
+                .accessibilityLabel(String(localized: "tactics.puzzle_difficulty"))
                 .accessibilityHint("Tap to reveal the puzzle rating and play count")
             }
             .padding(8)
@@ -182,7 +182,7 @@ struct TacticsView: View {
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
-            .accessibilityLabel("Flip board")
+            .accessibilityLabel(String(localized: "tactics.flip_board"))
 
             Spacer()
             
@@ -205,7 +205,7 @@ struct TacticsView: View {
             .disabled(viewModel.mode == .play && !viewModel.hintEnabled)
             .accessibilityLabel(viewModel.mode == .review ? "Review information" : "Hint")
             .popover(isPresented: $showingReviewInfo) {
-                Text("In review mode, can start new puzzle next hour")
+                Text(String(localized: "tactics.review_info"))
                     .font(.body)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -224,7 +224,7 @@ struct TacticsView: View {
 
     private func ratingPanel(for viewModel: TacticsViewModel) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("Rating")
+            Text(String(localized: "tactics.rating"))
                 .font(.title3)
             Text("\(viewModel.userRating)")
                 //.font(.title2.bold().monospacedDigit())
@@ -253,34 +253,34 @@ struct TacticsView: View {
             Label(message, systemImage: systemImage)
                 .foregroundStyle(.secondary)
         case .reviewing:
-            Label("Reviewing move \(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)", systemImage: "eye")
+            Label(String(format: NSLocalizedString("tactics.reviewing_move", comment: "Review move progress"), viewModel.currentMoveNumber, viewModel.totalUserMoves), systemImage: "eye")
                 .foregroundStyle(.secondary)
         case .opponentMoving:
             HStack(spacing: 10) {
                 ProgressView()
-                Text("Opponent is moving…")
+                Text(String(localized: "tactics.opponent_moving"))
             }
             .foregroundStyle(.secondary)
         case .opponentReply:
-                Label("Opponent's reply", systemImage: "arrow.left.and.right")
+                Label(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right")
                     .foregroundStyle(.secondary)
         case .incorrectMove:
-            Label("Not quite — look for a forcing move.", systemImage: "arrow.counterclockwise")
+            Label(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise")
                 .foregroundStyle(.orange)
         case .puzzleComplete, .trainingComplete:
             HStack(spacing: 24) {
-                Button("Review") {
+                Button(String(localized: "common.review")) {
                     reviewPuzzle = viewModel.puzzles[viewModel.currentIndex]
                 }.buttonStyle(.bordered)
                 
                 if viewModel.isBatchComplete {
-                    Button("Start New Batch", action: viewModel.restartBatch)
+                    Button(String(localized: "tactics.start_new_batch"), action: viewModel.restartBatch)
                         .buttonStyle(.borderedProminent)
                 } else if viewModel.canStartNewBatch {
-                    Button("Start New Batch", action: viewModel.restartBatch)
+                    Button(String(localized: "tactics.start_new_batch"), action: viewModel.restartBatch)
                         .buttonStyle(.borderedProminent)
                 } else {
-                    Button("Next puzzle", action: viewModel.nextPuzzle)
+                    Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
                         .buttonStyle(.borderedProminent)
                 }
             }

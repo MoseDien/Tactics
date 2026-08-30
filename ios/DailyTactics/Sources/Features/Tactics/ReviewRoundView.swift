@@ -28,8 +28,8 @@ struct ReviewRoundView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Review")
-            .toolbar { Button("Done") { dismiss() } }
+            .navigationTitle(String(localized: "review.title"))
+            .toolbar { Button(String(localized: "common.done")) { dismiss() } }
             .task { loadCurrent() }
         }
     }
@@ -61,7 +61,10 @@ struct HistoryView: View {
                 } label: {
                     VStack(alignment: .leading) {
                         Text(round.completedAt, style: .date)
-                        Text("5 puzzles")
+                        Text(String.localizedStringWithFormat(
+                            NSLocalizedString("history.puzzles_count", comment: "Number of puzzles in a history round"),
+                            round.puzzleIDs.count
+                        ))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }

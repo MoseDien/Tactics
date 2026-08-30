@@ -106,9 +106,9 @@ final class TacticsViewModel {
 
     var state: PuzzleSessionState { session.state }
     var playerColor: PieceColor { session.userColor }
-    var headerTitle: String { state == .solved ? "Puzzle complete!" : "Your turn" }
+    var headerTitle: String { String(localized: state == .solved ? "tactics.puzzle_complete" : "tactics.your_turn") }
     var headerSubtitle: String {
-        "Find the best move for \(playerColor == .white ? "white" : "black")."
+        String(localized: playerColor == .white ? "tactics.find_best_white" : "tactics.find_best_black")
     }
 
     var feedbackState: TacticsFeedbackState {
@@ -127,7 +127,7 @@ final class TacticsViewModel {
         case .waitingForMove:
             // No instruction text while simply waiting — the header already
             // says whose move it is. Only the hint surfaces guidance here.
-            return hintMove == nil ? .idle : .instruction(message: "Move the highlighted piece to the marked square", systemImage: "info.circle")
+            return hintMove == nil ? .idle : .instruction(message: String(localized: "tactics.hint_instruction"), systemImage: "info.circle")
         case .opponentMoving:
             return isReviewing ? .opponentReply : .opponentMoving
         case .incorrectMove:
