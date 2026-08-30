@@ -57,7 +57,8 @@ SwiftData models: `PuzzleRecord` (imported library), `PuzzleProgress`
 (per-puzzle attempt/completion/failure), `RoundHistory` (one row per completed
 batch). Supporting stores: `PuzzleLibrary` (`PuzzleLibraryImporter`,
 `LibraryStateStore`) for the first-launch import gate, `BatchStore` /
-`BatchConfiguration` for the 4-hour batch window, `DifficultyMode` for the
+`BatchConfiguration` for the 8-hour batch window (5 minutes in Debug builds),
+`DifficultyMode` for the
 Easy/Medium/Hard setting, and `Rating.swift` (`PuzzleRatingCalculator`,
 `UserRatingStore`) for the local Elo-like policy — the current Rating starts
 at 1500 and persists through `UserDefaults`. Persistence models must not

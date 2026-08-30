@@ -17,7 +17,8 @@ line at a time, and stores progress locally.
 - After a batch is complete, `Next puzzle` remains available and enters Review mode,
   looping through the current batch without changing Rating
 - Each batch draws 5 random not-yet-attempted puzzles (queried only at batch
-  start); a new batch unlocks every 4 hours, and the difficulty setting
+  start); a new batch unlocks every 8 hours (5 minutes in Debug builds), and
+  the difficulty setting
   (Easy/Medium/Hard) filters new batches relative to the user's Rating
 - Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
 - The first move in every Lichess line is the machine's setup move; user and

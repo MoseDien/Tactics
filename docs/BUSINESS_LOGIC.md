@@ -46,11 +46,11 @@ Settings 中可以选择新 batch 的难度模式，默认是 `Medium`。设置�
 - `Hard`：选择 rating 不低于用户当前 Rating - 200 的题目。
 - 当符合筛选条件的题目不足一个 batch 时，回退到未尝试题目池；未尝试题目不足时再从全部题库随机选择。
 
-### Batch（4 小时节奏）
+### Batch（8 小时节奏）
 
 - 每个 batch 默认包含 5 道题，数量由 `BatchConfiguration.puzzleCount` 配置。
 - 新 batch 开始时记录 `batchStartTime` 到 UserDefaults，并持久化当前题目 ID。
-- 只有当 `当前时间 - batchStartTime >= BatchConfiguration.batchDuration` 时，才能开始下一个 batch；当前默认 `batchDuration = 4 小时`。
+- 只有当 `当前时间 - batchStartTime >= BatchConfiguration.batchDuration` 时，才能开始下一个 batch；正式版 `batchDuration = 8 小时`，Debug 构建缩短为 5 分钟以便手工测试完整周期。
 - 冷却期间重新打开 App 不会随机生成新题，只进入当前 batch 的 Review mode。
 - 冷却结束后 `Next batch` 解锁；用户点击后才创建下一组题目并更新开始时间。
 - Review mode 下 `Next puzzle` 只循环当前 batch；`Next batch` 与其分离，只有用户主动点击才会尝试创建新 batch。时间未到时点击会显示等待提示（剩余冷却说明），仍停留在 Review mode。

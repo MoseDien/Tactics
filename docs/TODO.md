@@ -12,7 +12,7 @@
 - [x] **最后一题使用 Hint 会丢失整轮历史记录** — `recordRound` 与 Rating 流程解耦,改用按 batch 生命周期的 `roundRecorded` 标志保证恰好一次。回归测试:`testRoundHistoryRecordsOnceDespiteHintOnLastPuzzleAndReviewReplay`。
 - [x] **Review 模式重解最后一题会插入重复 RoundHistory 行** — 同上,`roundRecorded` 标志防重。
 - [x] **导入失败仍标记 `libraryImported = true`** — `importAllBundled` 返回失败 tier 数;失败时 Loading 页显示错误 + 重试按钮,不置位 gate。
-- [x] **batch 周期三处互相矛盾** — `BatchStore` 改为 4 小时(已确认的产品预期);Settings 玩法说明与 `tactics.batch_cooldown` 文案同步为 4 小时。测试:`testBatchStoreDurationIsFourHours`。
+- [x] **batch 周期三处互相矛盾** — 统一为一处配置 `BatchStore.batchDuration`(正式版 8 小时,Debug 构建 5 分钟便于手工测试);Settings 玩法说明与 `tactics.batch_cooldown` 文案同步。测试:`testBatchStoreDuration`。
 - [x] **本地化 key 错误** — `settings.historyFooter` → `settings.history_footer`。
 - [x] **`TacticsView` #Preview 缺少 RoundHistory schema** — 预览容器补 `RoundHistory.self`。
 
@@ -40,7 +40,7 @@
 ### 文档
 
 - [x] README Rating 规则失实(答错不更新/仅 Hint 扣分/±1 最小值/钳制)已修正。
-- [x] BUSINESS_LOGIC.md 难度模型、升变、RoundHistory 恰好一次、本地化、导入失败处理全部更新;`batchDuration = 4 小时` 与代码一致。
+- [x] BUSINESS_LOGIC.md 难度模型、升变、RoundHistory 恰好一次、本地化、导入失败处理全部更新;batch 节奏与代码一致(8 小时 / Debug 5 分钟)。
 - [x] CLAUDE.md 架构图补 Settings/Onboarding/ReviewRoundView;Persistence 一节补全类型;交互规则补升变/冷却/历史恰好一次/本地化条目;"localization transition rules" 引用改为真实存在的章节。
 - [x] THIRD_PARTY_NOTICES.md:路径修正为 `ios/DailyTactics/...`;补 Lichess 题库数据(CC0)署名;补 third_party 截图说明与图标条目;覆盖 Android 目录棋子图。
 - [x] README 断句残缺修复;`rating_puzzles.json` 在 README 中不再当作有效资源列出;tools/ 三个脚本均有说明(注明前两者已被取代)。
@@ -53,7 +53,7 @@
 - [x] 升变逻辑:升变必要性、升变后缀校验、低升变题可解性(直接读捆绑 tier 文件验证 `o8GIU`/`LnGZ6`)。
 - [x] Rating 数学:K=32 语义不等式、强制 ±1 最小值、[400,3000] 钳制、重置后回到 1500。
 - [x] flaky 的 `testHintImmediatelyCostsRating` 改为按需等待(最长 5s,只在需要时等);`testBoardAutoOrientsToPlayerColor` 改为单题 dataset 真正驱动重载。
-- [x] 持久化行为:RoundHistory 恰好一次(含 Hint + Review 重放双路径)、BatchStore 4 小时常量与重复 ID 容忍、导入幂等 + 失败计数。
+- [x] 持久化行为:RoundHistory 恰好一次(含 Hint + Review 重放双路径)、BatchStore 时长常量与重复 ID 容忍、导入幂等 + 失败计数。
 - [x] **全库重放测试** `testAllBundledPuzzlesReplayThroughSession`:10,100 题全部通过新规则引擎验证(约 2.2s)。
 
 ### 工程卫生

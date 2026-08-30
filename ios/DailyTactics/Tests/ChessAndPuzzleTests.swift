@@ -531,8 +531,14 @@ final class ChessAndPuzzleTests: XCTestCase {
 
     // MARK: - BatchStore
 
-    func testBatchStoreDurationIsFourHours() {
-        XCTAssertEqual(BatchConfiguration.batchDuration, 4 * 60 * 60)
+    func testBatchStoreDuration() {
+        // Tests build in Debug: the window is shortened to 5 minutes so the
+        // batch cycle is exercisable by hand. Release uses the full cadence.
+        #if DEBUG
+        XCTAssertEqual(BatchConfiguration.batchDuration, 5 * 60)
+        #else
+        XCTAssertEqual(BatchConfiguration.batchDuration, 8 * 60 * 60)
+        #endif
         XCTAssertEqual(BatchConfiguration.puzzleCount, 5)
     }
 

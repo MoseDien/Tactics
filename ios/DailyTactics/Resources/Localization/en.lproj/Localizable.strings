@@ -12,7 +12,7 @@
 "settings.history" = "History";
 "settings.history_footer" = "Review completed puzzles grouped into rounds of five.";
 "settings.how_to_play" = "How to play";
-"settings.how_to_play_body" = "- Don't guess through a move: hold the whole position in your head and find the solution there before touching a piece.\n- Each batch has 5 puzzles. A new batch unlocks every 4 hours; until then you can review the current batch.";
+"settings.how_to_play_body" = "- Don't guess through a move: hold the whole position in your head and find the solution there before touching a piece.\n- Each batch has 5 puzzles. A new batch unlocks every 8 hours; until then you can review the current batch.";
 "settings.difficulty" = "Difficulty";
 "settings.difficulty_easy" = "Easy";
 "settings.difficulty_medium" = "Medium";
@@ -31,7 +31,7 @@
 "tactics.puzzle_difficulty_hint" = "Tap to reveal the puzzle rating and play count";
 "tactics.mode_play" = "Play mode";
 "tactics.mode_review" = "Review mode";
-"tactics.batch_cooldown" = "The next batch unlocks 4 hours after this one started — keep reviewing until then.";
+"tactics.batch_cooldown" = "The next batch unlocks 8 hours after this one started — keep reviewing until then.";
 "tactics.promotion_title" = "Promote to…";
 "tactics.promotion_queen" = "Queen";
 "tactics.promotion_rook" = "Rook";

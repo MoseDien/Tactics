@@ -8,7 +8,7 @@
 "settings.history" = "历史记录";
 "settings.history_footer" = "按每组五道题复盘已完成的题目。";
 "settings.how_to_play" = "玩法说明";
-"settings.how_to_play_body" = "- 不要试棋：先在脑中记住整个局面，想出解法后再落子。\n- 每组共 5 道题。每 4 小时解锁新的一组；期间可以复盘当前题目组。";
+"settings.how_to_play_body" = "- 不要试棋：先在脑中记住整个局面，想出解法后再落子。\n- 每组共 5 道题。每 8 小时解锁新的一组；期间可以复盘当前题目组。";
 "settings.difficulty" = "难度";
 "settings.difficulty_easy" = "简单";
 "settings.difficulty_medium" = "中等";
@@ -26,7 +26,7 @@
 "tactics.puzzle_difficulty_hint" = "点按查看题目难度和游玩次数";
 "tactics.mode_play" = "练习模式";
 "tactics.mode_review" = "复盘模式";
-"tactics.batch_cooldown" = "本题组开始 4 小时后解锁下一组，期间可继续复盘。";
+"tactics.batch_cooldown" = "本题组开始 8 小时后解锁下一组，期间可继续复盘。";
 "tactics.promotion_title" = "升变为…";
 "tactics.promotion_queen" = "皇后";
 "tactics.promotion_rook" = "车";

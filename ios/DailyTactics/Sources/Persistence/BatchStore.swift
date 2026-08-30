@@ -2,8 +2,15 @@ import Foundation
 
 enum BatchConfiguration {
     static let puzzleCount = 5
-    /// A new batch can be started every 4 hours (see docs/BUSINESS_LOGIC.md).
-    static let batchDuration: TimeInterval = 4 * 60 * 60
+    /// A new batch can be started after this window (see docs/BUSINESS_LOGIC.md).
+    /// Debug builds use a short window so the batch cycle is testable by hand.
+    static var batchDuration: TimeInterval {
+        #if DEBUG
+        5 * 60
+        #else
+        8 * 60 * 60
+        #endif
+    }
 }
 
 enum BatchStore {
