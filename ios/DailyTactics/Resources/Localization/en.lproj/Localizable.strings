@@ -18,6 +18,7 @@
 "tactics.find_best_white" = "Find the best move for White.";
 "tactics.find_best_black" = "Find the best move for Black.";
 "tactics.hint_instruction" = "Move the highlighted piece to the marked square";
+"tactics.hint" = "Hint";
 "tactics.review_info" = "In review mode, can start new puzzle next hour";
 "tactics.opponent_moving" = "Opponent is moving…";
 "tactics.opponent_reply" = "Opponent's reply";

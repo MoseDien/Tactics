@@ -8,7 +8,6 @@ struct TacticsView: View {
     @State private var showingSettings = false
     @State private var reviewPuzzle: Puzzle?
     @State private var showingPuzzleDetails = false
-    @State private var showingReviewInfo = false
     @State private var currentDate = Date()
 
     init(mode: TacticsMode = .play) { self.mode = mode }
@@ -186,32 +185,31 @@ struct TacticsView: View {
 
             Spacer()
             
-            Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(minWidth: 36)
+            HStack(spacing: 5) {
+                Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Text(viewModel.mode == .play ? "P" : "R")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(viewModel.mode == .play ? Color.accentColor : Color.secondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .accessibilityLabel(viewModel.mode == .play ? "Play mode" : "Review mode")
+            }
 
             Spacer()
             
             Button {
-                if viewModel.mode == .review { showingReviewInfo = true }
-                else { viewModel.requestHint() }
+                viewModel.requestHint()
             } label: {
-                Image(systemName: viewModel.mode == .review ? "info.circle" : "lightbulb")
+                Image(systemName: "lightbulb")
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
             .disabled(viewModel.mode == .play && !viewModel.hintEnabled)
-            .accessibilityLabel(viewModel.mode == .review ? "Review information" : "Hint")
-            .popover(isPresented: $showingReviewInfo) {
-                Text(String(localized: "tactics.review_info"))
-                    .font(.body)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding()
-                    .presentationCompactAdaptation(.popover)
-            }
+            .accessibilityLabel(String(localized: "tactics.hint"))
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)

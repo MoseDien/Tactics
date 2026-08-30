@@ -106,7 +106,6 @@ final class TacticsViewModel {
     }
 
     var feedbackState: TacticsFeedbackState {
-        if mode == .review { return .puzzleComplete }
         if errorMessage != nil {
             return .error(message: errorMessage ?? "")
         }
@@ -189,7 +188,15 @@ final class TacticsViewModel {
     private func loadNextRound() {
         let picked: [Puzzle]
         guard let progress else { return }
-        picked = progress.fetchUnattemptedRound(count: dailyPuzzleCount)
+        let previousBatchIDs = Set(BatchStore.activePuzzleIDs)
+        let candidatePool = progress.fetchUnattemptedRound(count: dailyPuzzleCount)
+            .filter { !previousBatchIDs.contains($0.id) }
+        if candidatePool.count >= dailyPuzzleCount {
+            picked = Array(candidatePool.prefix(dailyPuzzleCount))
+        } else {
+            let fallback = progress.allPuzzles().filter { !previousBatchIDs.contains($0.id) }
+            picked = Array(fallback.shuffled().prefix(min(dailyPuzzleCount, fallback.count)))
+        }
         guard !picked.isEmpty else { return }
         puzzles = picked
         BatchStore.begin(with: picked)
@@ -362,13 +369,14 @@ final class TacticsViewModel {
         if isLastPuzzle {
             progress?.recordRound(puzzles: puzzles, outcomes: results)
         }
-        guard firstAttemptWasCorrect else { return }
+        guard mode == .play, firstAttemptWasCorrect else { return }
         let cleanSolve = !hadMistake && hintMove == nil
         applySolveRating(solved: cleanSolve)
     }
 
     /// Applies an Elo-style rating change for the current puzzle and persists it.
     private func applySolveRating(solved: Bool) {
+        guard mode == .play else { return }
         let puzzleRating = puzzles[currentIndex].rating ?? userRating
         let delta = ratingCalculator.change(
             userRating: userRating,

@@ -13,6 +13,7 @@
 "tactics.find_best_white" = "为白方找出最佳着法。";
 "tactics.find_best_black" = "为黑方找出最佳着法。";
 "tactics.hint_instruction" = "将高亮的棋子移动到标记的格子";
+"tactics.hint" = "提示";
 "tactics.review_info" = "当前为复盘模式，一小时后可以开始新的题目组";
 "tactics.opponent_moving" = "对手正在走棋…";
 "tactics.opponent_reply" = "对手回应";

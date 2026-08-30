@@ -2,7 +2,7 @@ import Foundation
 
 enum BatchConfiguration {
     static let puzzleCount = 5
-    static let batchDuration: TimeInterval = 10 * 60
+    static let batchDuration: TimeInterval = 1 * 60
 }
 
 enum BatchStore {
