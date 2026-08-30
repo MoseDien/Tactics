@@ -19,6 +19,7 @@
 		51B728524DF055581B42BF5B /* 1900.json in Resources */ = {isa = PBXBuildFile; fileRef = 0F3A476B21D2A5EC32CBD877 /* 1900.json */; };
 		557950A7543E88C507BA6E24 /* RatingAssessmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D96E6FD0C5E29EE7B05D32 /* RatingAssessmentView.swift */; };
 		6D7F6AFD64461FF6DFB22017 /* 1000.json in Resources */ = {isa = PBXBuildFile; fileRef = BEBF9E83E6799A0FA2E03757 /* 1000.json */; };
+		6E299B7258CD84F1019C310F /* BatchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8F91E3F8FDF8266E72B20E5 /* BatchStore.swift */; };
 		864DE680FF34AD6A5B0405A1 /* TacticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC186D47898E9A000DA77C5 /* TacticsView.swift */; };
 		8E9A75E49471B26517E6DCE1 /* rating_puzzles.json in Resources */ = {isa = PBXBuildFile; fileRef = C0CA743907B86588A00533E6 /* rating_puzzles.json */; };
 		8F373442A46EDB3657B6DC9C /* 1500.json in Resources */ = {isa = PBXBuildFile; fileRef = 231779B7D880BC25D20E106B /* 1500.json */; };
@@ -108,6 +109,7 @@
 		D3D96E6FD0C5E29EE7B05D32 /* RatingAssessmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingAssessmentView.swift; sourceTree = "<group>"; };
 		E5D992D2C3D4EF4DFED765C8 /* DailyTacticsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyTacticsApp.swift; sourceTree = "<group>"; };
 		E81CB85BC58F145E544F4B63 /* 1200.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 1200.json; sourceTree = "<group>"; };
+		E8F91E3F8FDF8266E72B20E5 /* BatchStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchStore.swift; sourceTree = "<group>"; };
 		F374EB416046FC492545BCC6 /* 1300.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 1300.json; sourceTree = "<group>"; };
 		FB14588E6E034F08019E8D37 /* ChessBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessBoardView.swift; sourceTree = "<group>"; };
 		FF54C86FB7D4E8280D96A0B8 /* TuistBundle+DailyTactics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistBundle+DailyTactics.swift"; sourceTree = "<group>"; };
@@ -230,6 +232,7 @@
 		738C1EA7DEBCB21F3A2A658A /* Persistence */ = {
 			isa = PBXGroup;
 			children = (
+				E8F91E3F8FDF8266E72B20E5 /* BatchStore.swift */,
 				53AB966905C0247F9F8F1DF2 /* PuzzleLibrary.swift */,
 				51661F859E636813ABC382CD /* PuzzleProgress.swift */,
 				7445F33FD7E9D543CC9ADFCF /* Rating.swift */,
@@ -455,6 +458,7 @@
 				F940C1CE3FAD8B7D2C799E25 /* ReviewRoundView.swift in Sources */,
 				864DE680FF34AD6A5B0405A1 /* TacticsView.swift in Sources */,
 				16B5E5FFB24B388D10AAADD0 /* TacticsViewModel.swift in Sources */,
+				6E299B7258CD84F1019C310F /* BatchStore.swift in Sources */,
 				B23A112657ACE1FA89C2FA83 /* PuzzleLibrary.swift in Sources */,
 				A31B2E1775F97707A547A482 /* PuzzleProgress.swift in Sources */,
 				A5EA06A303BC1D0A582E2339 /* Rating.swift in Sources */,

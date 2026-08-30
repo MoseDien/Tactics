@@ -61,6 +61,14 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 
 进入主训练后，题目来自 SwiftData。
 
+### Batch（4 小时节奏）
+
+- 每个 batch 默认包含 5 道题，数量由 `BatchConfiguration.puzzleCount` 配置。
+- 新 batch 开始时记录 `batchStartTime` 到 UserDefaults，并持久化当前题目 ID。
+- 只有当 `当前时间 - batchStartTime >= BatchConfiguration.batchDuration` 时，才能开始下一个 batch；当前默认 `batchDuration = 4 小时`。
+- 冷却期间重新打开 App 不会随机生成新题，只进入当前 batch 的 Review mode。
+- 冷却结束后显示 `Start New Batch`，用户点击后才创建下一组题目并更新开始时间。
+
 ### Round
 
 - 每个 round 默认包含 5 道题。
@@ -68,6 +76,12 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 - **查询数据库只在 round 开始时发生一次**：round 1 在进入 Tactics 时查询，
   后续 round 在用户点击「Start over」时查询。一个 round 进行中不再访问数据库。
 - 当未做过的题目不足 5 道时，回退为从全部题目中随机选择。
+
+### Review mode
+
+- Review 当前 batch 的 5 道题，最后一道之后循环回第一道。
+- Hint disabled，Flip board 保持可用。
+- Review 不允许落子，不修改 PuzzleProgress，也不改变用户 Rating。
 
 ### 单题流程
 
@@ -102,18 +116,11 @@ Rating 是一个本地训练分数，不再是 Lichess 官方 Rating，也不再
 
 即使该题不再影响 Rating，题目仍会记录完成状态和失败状态，用于历史进度。
 
-## 6. Settings：重新评估 baseline rating
+## 6. Settings
 
-用户可以在 Settings 中主动重新评估 baseline rating。
+Settings 提供历史记录入口。历史按每 5 道题保存为一个 batch，用户可以逐题进入 Review。
 
-确认后：
-
-- 通过 `resetProgress()` 清除 SwiftData 中的题目进度 `PuzzleProgress`
-  （题目重新变为「未尝试」，但**保留已导入的题库 `PuzzleRecord`**，避免重新导入万级数据）。
-- 重置 Rating Assessment 完成状态。
-- 重置已保存的 Rating。
-
-`LibraryStateStore` 标志位保持为 true（题库已导入），然后重新进入 Rating Assessment 流程。
+Rating Assessment 当前不提供用户入口。
 
 ## 7. 持久化职责
 
@@ -123,4 +130,5 @@ SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、评
 UserDefaults
   ├ dailytactics.libraryImported → 题库是否已一次性导入（首次启动 gate）
   └ dailytactics.userRating      → 当前 Rating
+  └ batchStartTime                → 当前 batch 开始时间
 ```

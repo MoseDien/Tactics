@@ -35,7 +35,7 @@ struct SettingsView: View {
             .alert("How to Play", isPresented: $showingHowToPlay) {
                 Button("Got it", role: .cancel) { }
             } message: {
-                Text("Do not guess your way through a move. Think through the position one move at a time, calculate the opponent's replies, and continue until you win the puzzle.")
+                Text("- Do not guess through a move, or do not try with a move, put the whole chessboard in brain, and find a solution in brain. \n- Can play 5 puzzle within an hour.")
             }
         }
     }

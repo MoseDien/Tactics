@@ -2,11 +2,15 @@ import SwiftUI
 import SwiftData
 
 struct TacticsView: View {
+    let mode: TacticsMode
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
     @State private var reviewPuzzle: Puzzle?
     @State private var showingPuzzleDetails = false
+    @State private var showingReviewInfo = false
+
+    init(mode: TacticsMode = .play) { self.mode = mode }
 
     var body: some View {
         Group {
@@ -23,10 +27,17 @@ struct TacticsView: View {
             // empty preview container) falls back to the bundled samples so the
             // board is never blank.
             let store = PuzzleProgressStore(context: modelContext)
-            var round = store.fetchUnattemptedRound(count: 5)
+            var round: [Puzzle]
+            if mode == .review {
+                let lookup = Dictionary(uniqueKeysWithValues: store.allPuzzles().map { ($0.id, $0) })
+                round = BatchStore.activePuzzleIDs.compactMap { lookup[$0] }
+            } else {
+                round = store.fetchUnattemptedRound(count: BatchConfiguration.puzzleCount)
+            }
             if round.isEmpty { round = Puzzle.samples }
-            let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: 5, databaseBacked: true)
-            vm.start()
+            if mode == .play { BatchStore.begin(with: round) }
+            let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: BatchConfiguration.puzzleCount, databaseBacked: true, mode: mode)
+            if mode == .play { vm.start() }
             viewModel = vm
         }
     }
@@ -107,7 +118,7 @@ struct TacticsView: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(viewModel.headerTitle)
-                            .font(.headline.bold())
+                            // .font(.headline.bold())
                         Text(viewModel.headerSubtitle)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -179,15 +190,24 @@ struct TacticsView: View {
             Spacer()
             
             Button {
-                viewModel.requestHint()
+                if viewModel.mode == .review { showingReviewInfo = true }
+                else { viewModel.requestHint() }
             } label: {
-                Image(systemName: "lightbulb")
+                Image(systemName: viewModel.mode == .review ? "info.circle" : "lightbulb")
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
-            .disabled(!viewModel.hintEnabled)
-            .accessibilityLabel("Hint")
+            .disabled(viewModel.mode == .play && !viewModel.hintEnabled)
+            .accessibilityLabel(viewModel.mode == .review ? "Review information" : "Hint")
+            .popover(isPresented: $showingReviewInfo) {
+                Text("In review mode, can start new puzzle next hour")
+                    .font(.body)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding()
+                    .presentationCompactAdaptation(.popover)
+            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
@@ -250,7 +270,7 @@ struct TacticsView: View {
                 }.buttonStyle(.bordered)
                 
                 if viewModel.isBatchComplete {
-                    Button("Start over", action: viewModel.restartBatch)
+                    Button("Start New Batch", action: viewModel.restartBatch)
                         .buttonStyle(.borderedProminent)
                 } else {
                     Button("Next puzzle", action: viewModel.nextPuzzle)

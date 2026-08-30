@@ -13,6 +13,8 @@ enum TacticsFeedbackState: Equatable {
     case trainingComplete
 }
 
+enum TacticsMode { case play, review }
+
 @MainActor
 @Observable
 final class TacticsViewModel {
@@ -22,6 +24,7 @@ final class TacticsViewModel {
     /// always supplied via `init(dataset:)` (pre-fetched by the caller).
     private let databaseBacked: Bool
     private let dailyPuzzleCount: Int
+    private(set) var mode: TacticsMode
     private(set) var puzzles: [Puzzle]
     private(set) var currentIndex: Int
     private(set) var session: PuzzleSession
@@ -47,13 +50,14 @@ final class TacticsViewModel {
     /// assessment row. `nil` = not yet attempted.
     private(set) var results: [PuzzleOutcome?] = []
 
-    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, batchSize: Int? = nil, databaseBacked: Bool = false) {
+    init(dataset: [Puzzle] = Puzzle.loadBundled(), progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, batchSize: Int? = nil, databaseBacked: Bool = false, mode: TacticsMode = .play) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
         let requestedCount = batchSize ?? dailyPuzzleCount
         let batch = Self.pickRandomBatch(from: source, count: requestedCount)
         self.dataset = source
         self.databaseBacked = databaseBacked
         self.dailyPuzzleCount = requestedCount
+        self.mode = mode
         self.progress = progress
         self.ratingStore = ratingStore
         userRating = ratingStore.rating
@@ -108,6 +112,7 @@ final class TacticsViewModel {
     }
 
     var feedbackState: TacticsFeedbackState {
+        if mode == .review { return .puzzleComplete }
         if errorMessage != nil {
             return .error(message: errorMessage ?? "")
         }
@@ -154,9 +159,14 @@ final class TacticsViewModel {
     }
 
     func nextPuzzle() {
-        guard !isAdvancing, canAdvanceToNextPuzzle else { return }
+        if mode == .review && !BatchStore.isWithinDuration {
+            mode = .play
+            loadNextRound()
+            return
+        }
+        guard !isAdvancing, (mode == .review || canAdvanceToNextPuzzle) else { return }
         isAdvancing = true
-        let target = currentIndex + 1
+        let target = mode == .review ? (currentIndex + 1) % puzzles.count : currentIndex + 1
         // A brief beat before the next puzzle appears so the transition reads
         // as deliberate rather than an instant snap. Re-entry is blocked until
         // the load completes so repeated taps can't skip puzzles.
@@ -173,6 +183,12 @@ final class TacticsViewModel {
     /// in assessment mode it reshuffles from the provided dataset. The round
     /// cursor always resets to 0.
     func restartBatch() {
+        if BatchStore.isWithinDuration {
+            mode = .review
+            loadPuzzle(at: min(currentIndex, puzzles.count - 1))
+            return
+        }
+        mode = .play
         loadNextRound()
     }
 
@@ -191,6 +207,7 @@ final class TacticsViewModel {
         }
         guard !picked.isEmpty else { return }
         puzzles = picked
+        BatchStore.begin(with: picked)
         results = Array(repeating: nil, count: picked.count)
         currentIndex = 0
         loadPuzzle(at: 0)
@@ -207,6 +224,7 @@ final class TacticsViewModel {
     var isReviewing: Bool { session.isReviewing }
     var currentMoveNumber: Int { session.currentMoveNumber }
     var totalUserMoves: Int { session.totalUserMoves }
+
 
     /// Revealing a hint counts as giving up on this puzzle: it is scored
     /// immediately as a loss (rating decreases) and marked attempted, so a
@@ -279,7 +297,7 @@ final class TacticsViewModel {
             ratingAppliedForPuzzle = false
             lastRatingDelta = nil
             orientBoardToPlayer()
-            Task { await playOpponentMove() }
+            if mode == .play { Task { await playOpponentMove() } }
         } catch {
             errorMessage = "The puzzle could not be loaded."
         }
