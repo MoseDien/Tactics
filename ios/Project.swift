@@ -15,6 +15,15 @@ let project = Project(
     ),
     targets: [
         .target(
+            name: "PuzzleKit",
+            destinations: .iOS,
+            product: .staticFramework,
+            bundleId: "com.dienbell.tactics.puzzlekit",
+            infoPlist: .default,
+            sources: ["PuzzleKit/Sources/**"],
+            dependencies: [.target(name: "ChessCore")]
+        ),
+        .target(
             name: "ChessCore",
             destinations: .iOS,
             product: .staticFramework,
@@ -36,7 +45,7 @@ let project = Project(
             ]),
             sources: ["DailyTactics/Sources/**"],
             resources: ["DailyTactics/Resources/**"],
-            dependencies: [.target(name: "ChessCore")]
+            dependencies: [.target(name: "ChessCore"), .target(name: "PuzzleKit")]
         ),
         .target(
             name: "DailyTacticsTests",
@@ -45,7 +54,16 @@ let project = Project(
             bundleId: "com.dienbell.tactics.tests",
             infoPlist: .default,
             sources: ["DailyTactics/Tests/**"],
-            dependencies: [.target(name: "DailyTactics")]
+            dependencies: [.target(name: "DailyTactics"), .target(name: "PuzzleKit")]
+        ),
+        .target(
+            name: "PuzzleKitTests",
+            destinations: .iOS,
+            product: .unitTests,
+            bundleId: "com.dienbell.tactics.puzzlekit.tests",
+            infoPlist: .default,
+            sources: ["PuzzleKit/Tests/**"],
+            dependencies: [.target(name: "PuzzleKit")]
         ),
         .target(
             name: "ChessCoreTests",
@@ -62,7 +80,7 @@ let project = Project(
             name: "DailyTactics",
             shared: true,
             buildAction: .buildAction(targets: ["DailyTactics"]),
-            testAction: .targets(["DailyTacticsTests", "ChessCoreTests"]),
+            testAction: .targets(["DailyTacticsTests", "ChessCoreTests", "PuzzleKitTests"]),
             runAction: .runAction(configuration: .debug)
         )
     ]

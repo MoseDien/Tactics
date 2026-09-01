@@ -1,23 +1,5 @@
 import Foundation
-
-struct PuzzleRatingCalculator: Sendable {
-    let kFactor: Double
-
-    init(kFactor: Double = 32) {
-        self.kFactor = kFactor
-    }
-
-    func expectedScore(userRating: Int, puzzleRating: Int) -> Double {
-        1 / (1 + pow(10, Double(puzzleRating - userRating) / 400))
-    }
-
-    func change(userRating: Int, puzzleRating: Int, solved: Bool) -> Int {
-        let expected = expectedScore(userRating: userRating, puzzleRating: puzzleRating)
-        let actual = solved ? 1.0 : 0.0
-        let delta = Int((kFactor * (actual - expected)).rounded())
-        return delta == 0 ? (solved ? 1 : -1) : delta
-    }
-}
+import PuzzleKit
 
 @MainActor
 final class UserRatingStore {

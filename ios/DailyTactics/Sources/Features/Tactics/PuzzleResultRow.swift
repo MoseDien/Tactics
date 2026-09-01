@@ -1,11 +1,5 @@
 import SwiftUI
-
-/// Per-puzzle outcome for a round, used to drive the
-/// shared result row shown below the board.
-enum PuzzleOutcome: Sendable, Hashable {
-    case correct
-    case wrong
-}
+import PuzzleKit
 
 /// A horizontal row of per-puzzle markers shown below the board. Shared by the
 /// daily round so all result screens read identically:

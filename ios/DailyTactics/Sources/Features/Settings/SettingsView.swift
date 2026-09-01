@@ -1,4 +1,5 @@
 import SwiftUI
+import PuzzleKit
 import SwiftData
 import Charts
 

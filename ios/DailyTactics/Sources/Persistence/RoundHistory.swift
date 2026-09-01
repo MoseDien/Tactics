@@ -1,4 +1,5 @@
 import Foundation
+import PuzzleKit
 import SwiftData
 
 @Model

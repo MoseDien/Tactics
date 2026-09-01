@@ -1,4 +1,5 @@
 import Foundation
+import PuzzleKit
 import SwiftData
 
 /// Persisted completion state for a single puzzle, keyed by its Lichess id.

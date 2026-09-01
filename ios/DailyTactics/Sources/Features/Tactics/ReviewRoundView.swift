@@ -1,4 +1,5 @@
 import SwiftUI
+import PuzzleKit
 import ChessCore
 
 /// Review for one completed puzzle. Batch review remains handled by

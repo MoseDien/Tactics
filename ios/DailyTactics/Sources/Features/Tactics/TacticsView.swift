@@ -1,4 +1,5 @@
 import SwiftUI
+import PuzzleKit
 import ChessCore
 import SwiftData
 
@@ -34,11 +35,11 @@ struct TacticsView: View {
             if mode == .reviewBatch {
                 round = BatchStore.currentPuzzles(from: store.allPuzzles())
             } else {
-                round = store.fetchUnattemptedRound(count: BatchConfiguration.puzzleCount, difficulty: DifficultyModeStore.current, userRating: UserRatingStore().rating)
+                round = store.fetchUnattemptedRound(count: BatchPolicy.puzzleCount, difficulty: DifficultyModeStore.current, userRating: UserRatingStore().rating)
             }
             if round.isEmpty { round = Puzzle.samples }
             if mode == .play { BatchStore.begin(with: round) }
-            let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: BatchConfiguration.puzzleCount, mode: mode)
+            let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: BatchPolicy.puzzleCount, mode: mode)
             vm.start()
             viewModel = vm
         }
@@ -48,7 +49,7 @@ struct TacticsView: View {
             // expiry rather than on an arbitrary 30-second tick.
             while !Task.isCancelled {
                 if let start = BatchStore.startTime() {
-                    let remaining = BatchConfiguration.batchDuration - Date.now.timeIntervalSince(start)
+                    let remaining = BatchPolicy.batchDuration - Date.now.timeIntervalSince(start)
                     if remaining <= 0 { break }
                     try? await Task.sleep(for: .seconds(min(remaining + 0.5, 60)))
                 } else {

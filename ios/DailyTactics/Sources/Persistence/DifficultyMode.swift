@@ -1,13 +1,5 @@
 import Foundation
-
-enum DifficultyMode: String, CaseIterable, Identifiable, Sendable {
-    case easy
-    case medium
-    case hard
-
-    var id: String { rawValue }
-    var localizedKey: String { "settings.difficulty_\(rawValue)" }
-}
+import PuzzleKit
 
 enum DifficultyModeStore {
     private static let key = "dailytactics.difficultyMode"
