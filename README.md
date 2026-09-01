@@ -57,38 +57,37 @@ the Rating at all (the puzzle is only marked attempted); using a **Hint**
 settles the puzzle immediately as a loss and deducts points. A round that
 would round to 0 is forced to +1 (solve) or −1 (loss), so every settled puzzle
 moves the score. Scores are clamped to `400...3000`. The value is deliberately
-isolated in `Persistence/Rating.swift` so the policy can be replaced later.
+isolated in `PuzzleKit/RatingPolicy.swift` so the policy can be replaced later.
 
 ## Project layout
 
 ```text
 ios/
-  Project.swift
-  Tuist.swift
+  Project.swift            one manifest: 4 product targets + 4 test targets
+  ChessCore/               pure chess value types and full legality
+  PuzzleKit/               domain: puzzles, session, policies, repository ports
+  TacticsData/             SwiftData models, repositories, bundled tiers, defaults stores
   DailyTactics/
     Sources/
-      ChessCore/              board, FEN, UCI, full move legality
-      PuzzleKit/              puzzle model and line/session state machine
-      Persistence/            SwiftData models, library import, batch/rating stores
-      Features/Tactics/       training view, board, view model, round history UI
-      Features/Settings/      difficulty setting, how-to-play, history entry
-      Features/Onboarding/    first-launch library import screen
-      DailyTacticsApp.swift   app entry point and model container
-    Resources/
-      Assets.xcassets         chess pieces, app icon
-      Localization/           en / zh-Hans string tables
-      Legal/                  Apache-2.0.txt
-      puzzles/                rating tiers (1000–1900.json)
-    Tests/                    domain and feature behavior tests
+      AppDependencies.swift    composition root (injected via environment)
+      BatchTracker.swift       observable batch window, injectable clock
+      TacticsPacing.swift      injectable interaction timing
+      Features/Tactics/        training view, board, view model, round history UI
+      Features/Settings/       difficulty, rating trend chart, history entry
+      Features/Onboarding/     first-launch library import screen
+      DailyTacticsApp.swift    app entry point
+    Resources/                 assets, localization, legal
+    Tests/                     view-model + batch-tracker tests, fakes
 android/                    Android client (frozen)
 data/source/                local SQLite source data (ignored by Git)
 tools/                      puzzle import/export scripts
 third_party/                Lichess reference images (not bundled)
 ```
 
-The dependency direction is `Features → PuzzleKit → ChessCore`; persistence is
-injected at the feature boundary. Domain code does not import SwiftUI or
-SwiftData.
+Dependency direction is enforced by the target graph:
+`DailyTactics → {PuzzleKit, TacticsData}`, `TacticsData → PuzzleKit`,
+`PuzzleKit → ChessCore`. Only TacticsData imports SwiftData; the app target
+imports none of it. Domain code does not import SwiftUI.
 
 ## Requirements and commands
 
@@ -110,7 +109,7 @@ CI-style build:
 
 ```sh
 xcodebuild \
-  -workspace DailyTactics.xcworkspace \
+  -project DailyTactics.xcodeproj \
   -scheme DailyTactics \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
@@ -120,13 +119,14 @@ xcodebuild \
 
 ## Puzzle data
 
-`ios/DailyTactics/Resources/puzzles/` contains the bundled puzzle data: ten
-rating-tier files (`1000.json`–`1900.json`, 1000 puzzles each). Puzzle tier
+`ios/TacticsData/Resources/Puzzles/` contains the bundled puzzle data: ten
+rating-tier files (`1000.json`–`1900.json`, 1000 puzzles each), read through
+`BundledPuzzleSource` (`Bundle.module`). Puzzle tier
 JSON files are generated from the raw Lichess SQLite database by
 `tools/export_tier_puzzles.py`:
 
 ```sh
-python tools/export_tier_puzzles.py data/source/lichess_puzzles.sqlite ios/DailyTactics/Resources/puzzles
+python tools/export_tier_puzzles.py data/source/lichess_puzzles.sqlite ios/TacticsData/Resources/Puzzles
 ```
 
 The raw database lives under `data/source/` (ignored by Git); only the generated

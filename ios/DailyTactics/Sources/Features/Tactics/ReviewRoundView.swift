@@ -54,6 +54,7 @@ struct ReviewPuzzleView: View {
 
 struct HistoryView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppDependencies.self) private var dependencies
     @State private var rounds: [RoundSummary] = []
     @State private var puzzleLookup: [String: Puzzle] = [:]
 
@@ -77,14 +78,9 @@ struct HistoryView: View {
             .navigationTitle(String(localized: "settings.history"))
             .toolbar { Button(String(localized: "common.done")) { dismiss() } }
             .task {
-                let store = SwiftDataRepositories(inMemory: false)
-                rounds = store.history()
-                // First occurrence wins so a duplicated library id can't trap.
-                var lookup: [String: Puzzle] = [:]
-                for puzzle in store.allPuzzles() where lookup[puzzle.id] == nil {
-                    lookup[puzzle.id] = puzzle
-                }
-                puzzleLookup = lookup
+                rounds = dependencies.data.history()
+                puzzleLookup = BatchLookup.puzzles(withIDs: dependencies.data.allPuzzles().map(\.id), in: dependencies.data.allPuzzles())
+                    .reduce(into: [:]) { lookup, puzzle in lookup[puzzle.id] = puzzle }
             }
         }
     }

@@ -5,13 +5,10 @@ import TacticsData
 
 struct TacticsView: View {
     let mode: TacticsMode
+    @Environment(AppDependencies.self) private var dependencies
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
     @State private var showingPuzzleDetails = false
-    /// Re-evaluated on a short cadence so `canStartNewBatch` (which reads the
-    /// untracked `BatchStore.isWithinDuration`) refreshes when the batch
-    /// expires while the screen is open.
-    @State private var batchExpiryTick = 0
 
     init(mode: TacticsMode = .play) { self.mode = mode }
 
@@ -24,45 +21,17 @@ struct TacticsView: View {
             }
         }
         .task {
-            // Round 1 is fetched from the store exactly once, here. Subsequent
-            // rounds come from `viewModel.restartBatch()`, which queries the
-            // store again only at that round boundary. An empty result (e.g. an
-            // empty preview container) falls back to the bundled samples so the
-            // board is never blank.
-            let store = SwiftDataRepositories(inMemory: false)
-            var round: [Puzzle]
-            if mode == .reviewBatch {
-                round = BatchLookup.puzzles(withIDs: BatchStore.activePuzzleIDs, in: store.allPuzzles())
-            } else {
-                var selector = RoundSelector()
-                round = selector.select(
-                    library: store.allPuzzles(),
-                    attempted: store.attemptedIDs(),
-                    difficulty: DifficultyModeStore.current,
-                    userRating: UserRatingStore().rating,
-                    count: BatchPolicy.puzzleCount
-                )
-            }
-            if round.isEmpty { round = Puzzle.samples }
-            if mode == .play { BatchStore.begin(with: round) }
-            let vm = TacticsViewModel(dataset: round, progress: store, dailyPuzzleCount: BatchPolicy.puzzleCount, mode: mode)
+            // Round 1 is fetched from the repositories exactly once, here.
+            // Subsequent rounds come from `viewModel.restartBatch()`, which
+            // queries again only at that round boundary. An empty result falls
+            // back to the bundled samples so the board is never blank.
+            let vm = TacticsViewModel(
+                dependencies: dependencies,
+                dailyPuzzleCount: BatchPolicy.puzzleCount,
+                mode: mode
+            )
             vm.start()
             viewModel = vm
-        }
-        .task {
-            // Wait until the active batch's window ends (at most 4 hours), then
-            // nudge the view once so the Next-batch button unlocks exactly on
-            // expiry rather than on an arbitrary 30-second tick.
-            while !Task.isCancelled {
-                if let start = BatchStore.startTime() {
-                    let remaining = BatchPolicy.batchDuration - Date.now.timeIntervalSince(start)
-                    if remaining <= 0 { break }
-                    try? await Task.sleep(for: .seconds(min(remaining + 0.5, 60)))
-                } else {
-                    try? await Task.sleep(for: .seconds(60))
-                }
-            }
-            batchExpiryTick += 1
         }
     }
 
@@ -345,4 +314,5 @@ struct TacticsView: View {
 
 #Preview {
     TacticsView()
+        .environment(AppDependencies.preview())
 }

@@ -37,6 +37,9 @@ final class TacticsViewModel {
     /// once the player picks a piece (or the move is cancelled by re-selection).
     private(set) var pendingPromotion: (from: Square, to: Square)?
     var progress: (any PuzzleDataRepositories)?
+    private weak var batchTracker: BatchTracker?
+    private var difficultyStore: DifficultyModeStore?
+    var pacing: TacticsPacing = TacticsPacing()
     private let ratingStore: UserRatingStore
     private let ratingCalculator = PuzzleRatingCalculator()
     private var hadMistake = false
@@ -59,6 +62,32 @@ final class TacticsViewModel {
 
     /// Per-puzzle outcome for the current round. `nil` = not yet attempted.
     private(set) var results: [PuzzleOutcome?] = []
+
+    /// Production initializer: selects the opening round through the
+    /// repositories (falling back to the bundled samples on an empty library)
+    /// and takes over the injected batch tracker.
+    convenience init(dependencies: AppDependencies, dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
+        let data = dependencies.data
+        var round: [Puzzle]
+        if mode == .reviewBatch {
+            round = dependencies.batch.currentPuzzles(from: data.allPuzzles())
+        } else {
+            var selector = RoundSelector()
+            round = selector.select(
+                library: data.allPuzzles(),
+                attempted: data.attemptedIDs(),
+                difficulty: dependencies.difficulty.current,
+                userRating: dependencies.userRating.rating,
+                count: dailyPuzzleCount
+            )
+        }
+        if round.isEmpty { round = Puzzle.samples }
+        if mode == .play { dependencies.batch.begin(round) }
+        self.init(dataset: round, progress: data, ratingStore: dependencies.userRating, dailyPuzzleCount: dailyPuzzleCount, mode: mode)
+        self.batchTracker = dependencies.batch
+        self.difficultyStore = dependencies.difficulty
+        self.pacing = dependencies.pacing
+    }
 
     init(dataset: [Puzzle], progress: (any PuzzleDataRepositories)? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
@@ -166,10 +195,10 @@ final class TacticsViewModel {
     var canAdvanceToNextPuzzle: Bool {
         currentPuzzleFinished && (!isLastPuzzle || isBatchComplete)
     }
-    var canStartNewBatch: Bool { mode == .reviewBatch && !BatchStore.isWithinDuration }
+    var canStartNewBatch: Bool { mode == .reviewBatch && isNewBatchAvailable }
     /// Whether the batch window has expired — a new batch can start right now.
     /// Purely time-based; `canStartNewBatch` additionally requires review mode.
-    var isNewBatchAvailable: Bool { !BatchStore.isWithinDuration }
+    var isNewBatchAvailable: Bool { batchTracker?.isWithinWindow == false }
     var canUpdateRating: Bool { mode == .play }
     var canInteractWithPuzzle: Bool { !inReview && (state == .waitingForMove || state == .incorrectMove) }
 
@@ -198,7 +227,7 @@ final class TacticsViewModel {
         // as deliberate rather than an instant snap. Re-entry is blocked until
         // the load completes so repeated taps can't skip puzzles.
         Task {
-            try? await Task.sleep(for: .milliseconds(300))
+            try? await Task.sleep(for: pacing.nextPuzzleDelay)
             currentIndex = target
             loadPuzzle(at: target)
             isAdvancing = false
@@ -208,7 +237,7 @@ final class TacticsViewModel {
     /// Starts a fresh batch only after the user explicitly taps Next batch.
     /// Expiry alone never changes Review mode.
     func startNextBatch() {
-        if BatchStore.isWithinDuration {
+        if batchTracker?.isWithinWindow == true {
             // The current batch is still inside its time window: surface why
             // nothing new is coming and stay on the batch being reviewed.
             batchCooldownMessage = String(localized: "tactics.batch_cooldown")
@@ -229,17 +258,18 @@ final class TacticsViewModel {
     private func loadNextRound() {
         guard let progress else { return }
         var selector = RoundSelector()
+        let previousBatchIDs = Set(batchTracker?.activePuzzleIDs() ?? [])
         let picked = selector.select(
             library: progress.allPuzzles(),
             attempted: progress.attemptedIDs(),
-            difficulty: DifficultyModeStore.current,
+            difficulty: difficultyStore?.current ?? .medium,
             userRating: userRating,
             count: dailyPuzzleCount,
-            excluding: Set(BatchStore.activePuzzleIDs)
+            excluding: previousBatchIDs
         )
         guard !picked.isEmpty else { return }
         puzzles = picked
-        BatchStore.begin(with: picked)
+        batchTracker?.begin(picked)
         results = Array(repeating: nil, count: picked.count)
         roundRecorded = false
         currentIndex = 0
@@ -388,7 +418,7 @@ final class TacticsViewModel {
             attemptedMove = move
             let attempted = move
             Task {
-                try? await Task.sleep(for: .milliseconds(550))
+                try? await Task.sleep(for: pacing.wrongMoveDisplay)
                 guard !Task.isCancelled, attemptedMove == attempted else { return }
                 attemptedMove = nil
             }
@@ -402,7 +432,7 @@ final class TacticsViewModel {
     }
 
     private func playOpponentMove() async {
-        try? await Task.sleep(for: .milliseconds(450))
+        try? await Task.sleep(for: pacing.opponentReplyDelay)
         guard !Task.isCancelled else { return }
         do {
             try session.applyOpponentMove()

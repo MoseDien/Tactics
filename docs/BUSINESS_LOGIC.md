@@ -10,7 +10,7 @@
 
 App 第一次启动（或题库未导入时），先进行一次性批量导入：
 
-- 从 `ios/DailyTactics/Resources/puzzles/` 下的 **全部 10 个等级 JSON**
+- 从 `ios/TacticsData/Resources/Puzzles/` 下的 **全部 10 个等级 JSON**
   （`1000.json`–`1900.json`，每个 1000 题）读取并写入 SwiftData。
 - JSON 读取与解码在后台线程执行，只有 SwiftData 写入留在主线程。
 - 整个过程显示一个 Loading 页面和进度，导入完成后翻起

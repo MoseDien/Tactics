@@ -6,7 +6,8 @@ import TacticsData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var difficulty = DifficultyModeStore.current
+    @Environment(AppDependencies.self) private var dependencies
+    @State private var difficulty = DifficultyMode.medium
     @State private var showingHowToPlay = false
     @State private var snapshots: [RatingSample] = []
 
@@ -22,7 +23,7 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: difficulty) { _, value in
-                        DifficultyModeStore.set(value)
+                        dependencies.difficulty.set(value)
                     }
                     NavigationLink {
                         HistoryView()
@@ -54,7 +55,8 @@ struct SettingsView: View {
                 Text(String(localized: "settings.how_to_play_body"))
             }
             .task {
-                snapshots = SwiftDataRepositories(inMemory: false).ratingHistory()
+                snapshots = dependencies.data.ratingHistory()
+                difficulty = dependencies.difficulty.current
             }
         }
     }
@@ -121,7 +123,7 @@ struct SettingsView: View {
     }
 
     private var currentRating: Int {
-        snapshots.last?.rating ?? UserRatingStore().rating
+        snapshots.last?.rating ?? dependencies.userRating.rating
     }
 
     /// Rating floor/ceiling with padding so the line never touches the frame.

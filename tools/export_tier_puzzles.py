@@ -20,7 +20,7 @@ assessment path.
 Usage:
     python export_tier_puzzles.py \\
         ../data/source/lichess_puzzles.sqlite \\
-        ../../DailyTactics/Resources
+        ../../TacticsData/Resources/Puzzles
 """
 
 from __future__ import annotations

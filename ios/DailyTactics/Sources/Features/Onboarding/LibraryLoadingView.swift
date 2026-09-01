@@ -9,6 +9,7 @@ import TacticsData
 /// retry instead of silently degrading to the bundled samples.
 /// visual treatment is an intentional placeholder pending a final design pass.
 struct LibraryLoadingView: View {
+    @Environment(AppDependencies.self) private var dependencies
     @AppStorage(LibraryStateStore.importedKey) private var libraryImported = false
     @State private var progress: Double = 0
     @State private var failedTiers: Int?
@@ -50,8 +51,7 @@ struct LibraryLoadingView: View {
         .background(Color(.systemBackground))
         .task(id: failedTiers) {
             guard failedTiers == nil else { return }
-            let repositories = SwiftDataRepositories(inMemory: false)
-            let failures = await PuzzleLibraryImporter(context: repositories.context).importAllBundled { value in
+            let failures = await dependencies.importer.importAllBundled { value in
                 progress = value
             }
             if failures == 0 {
