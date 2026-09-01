@@ -50,8 +50,12 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 ```sh
 cd ios
 mise x tuist@4.197.3 -- tuist generate
-mise x tuist@4.197.3 -- tuist test
+xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 ```
+
+`tuist test` resolves only workspace-level schemes, which this project no
+longer generates — run xcodebuild against the generated project instead.
 
 Avoid committing generated Xcode state, local databases, raw Lichess archives,
 or machine-specific settings.

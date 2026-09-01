@@ -66,9 +66,25 @@
 
 ## 仍开放(有意保留或待产品决定)
 
+- **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。
 - **全局 UserDefaults 静态命名空间**(`BatchStore`/`UserRatingStore`/`DifficultyModeStore`):CLAUDE.md 的"Avoid global mutable state"措辞与实现有张力。UserDefaults 线程安全、数据量小,当前无并发缺陷;若未来要注入测试替身,可重构为 protocol。改动收益低、影响面大,暂不动。
 - **ViewModel 内三处 `Task.sleep`**(300/550/450ms):它们是交互节奏(下一题过渡/错误着法展示/对手回复停顿),不参与 domain 状态推导;`PuzzleSession` 保持纯函数。若要严格遵守"timing outside view layer",需要引入 UI 层驱动的事件队列,复杂度不成比例,暂保留。
 - **iPad 设备族**:`Project.swift` 的 `.iOS` destination 包含 iPad,但布局按 iPhone 设计。待产品决定是否收窄为 `TARGETED_DEVICE_FAMILY = 1` 或做 iPad 布局。
 - **SwiftData schema 迁移**:无 `VersionedSchema`/`SchemaMigrationPlan`。当前 schema 尚未发布(1.0 未上架),首次发布前若改 model 需补迁移计划。
 - **`PuzzleProgress.puzzleId` 无 `.unique` 约束**:加约束需要迁移;在发布前补上最合适(当前 fetch-then-insert 模式实际防止了重复)。
 - **`rating_puzzles.json`(100 题)仍捆绑但无代码引用**:疑似历史遗留的"Rating 评估"功能数据。删除需确认无回滚计划。
+
+---
+
+## 功能计划(进行中)
+
+### Rating 历史曲线(2026-08-31 登记,同日完成 — 38 测试全绿)
+
+目标:记录 rating 随时间的变化,在 Settings 中用曲线展示;每个 batch 完成时记录一次。
+
+- [ ] **独立 `RatingSnapshot` SwiftData 模型**(`Persistence/RatingHistory.swift`):`id`/`recordedAt`/`rating`,不与 `RoundHistory` 关联——为将来每题一记或 batch 之外的 rating 事件(如重新评估)留出演进空间。
+- [ ] **记录时机**:`TacticsViewModel.markCurrentSolved()` 在 batch 最后一题结算完成、rating 更新之后写入快照(快照值包含最后一题的 delta);复用 `roundRecorded` 防重逻辑保证每个 batch 恰好一条,Review 重解不重复。Hint 早退路径同样记录。
+- [ ] **Settings 曲线**:新 Section 用 Swift Charts(`LineMark` + monotone 插值)展示 `recordedAt` → `rating`;空数据占位文案;en/zh-Hans 同步补 key。
+- [ ] **容器注册**:`DailyTacticsApp` 与 `TacticsView` preview 的 `modelContainer(for:)` 补 `RatingSnapshot.self`。
+- [ ] **回归测试**:单题 batch 干净解出 → `ratingHistory()` 恰 1 条且等于结算后的 rating;Review 重解后仍 1 条。
+- [ ] 当前 Rating 的存储不变:仍是 `UserDefaults` 标量(`dailytactics.userRating`),快照只追加时间序列。

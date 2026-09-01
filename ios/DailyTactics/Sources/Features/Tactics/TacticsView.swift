@@ -337,5 +337,5 @@ struct TacticsView: View {
 
 #Preview {
     TacticsView()
-        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self], inMemory: true)
+        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, RatingSnapshot.self], inMemory: true)
 }

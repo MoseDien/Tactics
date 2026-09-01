@@ -14,6 +14,9 @@
 "settings.how_to_play" = "How to play";
 "settings.how_to_play_body" = "- Don't guess through a move: hold the whole position in your head and find the solution there before touching a piece.\n- Each batch has 5 puzzles. A new batch unlocks every 8 hours; until then you can review the current batch.";
 "settings.difficulty" = "Difficulty";
+"settings.rating_trend" = "Rating trend";
+"settings.rating_trend_empty" = "Complete a batch to see your rating trend here.";
+"settings.rating_trend_delta" = "%+ld since the first batch";
 "settings.difficulty_easy" = "Easy";
 "settings.difficulty_medium" = "Medium";
 "settings.difficulty_hard" = "Hard";

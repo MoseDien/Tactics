@@ -10,6 +10,9 @@
 "settings.how_to_play" = "玩法说明";
 "settings.how_to_play_body" = "- 不要试棋：先在脑中记住整个局面，想出解法后再落子。\n- 每组共 5 道题。每 8 小时解锁新的一组；期间可以复盘当前题目组。";
 "settings.difficulty" = "难度";
+"settings.rating_trend" = "Rating 走势";
+"settings.rating_trend_empty" = "完成一组题目后,这里会展示你的 Rating 走势。";
+"settings.rating_trend_delta" = "较第一组 %+ld";
 "settings.difficulty_easy" = "简单";
 "settings.difficulty_medium" = "中等";
 "settings.difficulty_hard" = "困难";

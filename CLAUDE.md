@@ -55,7 +55,9 @@ depend on animation timing.
 
 SwiftData models: `PuzzleRecord` (imported library), `PuzzleProgress`
 (per-puzzle attempt/completion/failure), `RoundHistory` (one row per completed
-batch). Supporting stores: `PuzzleLibrary` (`PuzzleLibraryImporter`,
+batch), `RatingSnapshot` (one row per completed batch, the settled rating —
+shown as a trend chart in Settings). Supporting stores: `PuzzleLibrary`
+(`PuzzleLibraryImporter`,
 `LibraryStateStore`) for the first-launch import gate, `BatchStore` /
 `BatchConfiguration` for the 8-hour batch window (5 minutes in Debug builds),
 `DifficultyMode` for the
@@ -110,8 +112,12 @@ After changes:
 ```sh
 cd ios
 mise x tuist@4.197.3 -- tuist generate
-mise x tuist@4.197.3 -- tuist test
+xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 ```
+
+(`tuist test` resolves only workspace-level schemes, which this project no
+longer generates — run xcodebuild against the generated project instead.)
 
 For UI/layout changes, also compile an iPhone SE simulator destination. Do not
 hand-edit generated `.xcodeproj` files.

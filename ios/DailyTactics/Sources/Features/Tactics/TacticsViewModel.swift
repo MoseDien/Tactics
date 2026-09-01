@@ -424,13 +424,22 @@ final class TacticsViewModel {
         // The round history is independent of the rating flow: a hint on the
         // final puzzle must not lose the whole batch's history, and re-solving
         // the batch in review must not insert it a second time.
-        if isLastPuzzle, !roundRecorded {
+        let isBatchEnding = isLastPuzzle && !roundRecorded
+        if isBatchEnding {
             roundRecorded = true
             progress?.recordRound(puzzles: puzzles, outcomes: results)
         }
-        guard canUpdateRating, firstAttemptWasCorrect else { return }
+        guard canUpdateRating, firstAttemptWasCorrect else {
+            // The rating was already settled (hint) or never applied; either
+            // way a finishing batch still gets its snapshot.
+            if isBatchEnding { progress?.recordRatingSnapshot(value: userRating) }
+            return
+        }
         let cleanSolve = !hadMistake && hintMove == nil
         applySolveRating(solved: cleanSolve)
+        // Snapshot only after this puzzle's delta landed, so the sample is the
+        // batch's final rating.
+        if isBatchEnding { progress?.recordRatingSnapshot(value: userRating) }
     }
 
     /// Applies an Elo-style rating change for the current puzzle and persists it.

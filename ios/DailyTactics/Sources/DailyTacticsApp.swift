@@ -7,7 +7,7 @@ struct DailyTacticsApp: App {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self])
+        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, RatingSnapshot.self])
     }
 }
 

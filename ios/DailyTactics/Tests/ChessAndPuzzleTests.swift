@@ -475,7 +475,7 @@ final class ChessAndPuzzleTests: XCTestCase {
     @MainActor
     func testRoundHistoryRecordsOnceDespiteHintOnLastPuzzleAndReviewReplay() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, configurations: config)
+        let container = try ModelContainer(for: PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, RatingSnapshot.self, configurations: config)
         let store = PuzzleProgressStore(context: ModelContext(container))
 
         // One puzzle in the dataset so it is also the last puzzle of the batch.
@@ -502,10 +502,54 @@ final class ChessAndPuzzleTests: XCTestCase {
         vm.startNextBatch()  // inside the cooldown: stays on the same batch
         try await solveActivePuzzle(on: vm)
         XCTAssertEqual(store.history().count, 1, "review replay must not duplicate the round record")
+        // Same idempotency for the rating snapshot.
+        XCTAssertEqual(store.ratingHistory().count, 1, "review replay must not duplicate the rating snapshot")
+    }
+
+    @MainActor
+    func testRatingSnapshotRecordedPerBatchWithFinalDelta() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, RatingSnapshot.self, configurations: config)
+        let store = PuzzleProgressStore(context: ModelContext(container))
+        let defaults = UserDefaults(suiteName: "rating-snapshot-\(UUID().uuidString)")!
+        let ratingStore = UserRatingStore(defaults: defaults)
+
+        // Single-puzzle batch solved cleanly: the snapshot must capture the
+        // rating AFTER the last puzzle's delta landed, not before.
+        let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)), progress: store, ratingStore: ratingStore, dailyPuzzleCount: 1)
+        let ratingBefore = vm.userRating
+
+        vm.start()
+        try await waitForWaitingForMove(on: vm)
+        try await solveActivePuzzle(on: vm)
+
+        XCTAssertEqual(store.ratingHistory().count, 1, "one snapshot per completed batch")
+        let snapshot = try XCTUnwrap(store.ratingHistory().first)
+        XCTAssertEqual(snapshot.rating, vm.userRating,
+                       "snapshot must equal the settled rating (hint-free solve moves it)")
+        XCTAssertNotEqual(snapshot.rating, ratingBefore,
+                          "a clean first-attempt solve must have moved the rating into the snapshot")
+
+        // Sorting contract for the chart: oldest first.
+        store.recordRatingSnapshot(value: snapshot.rating + 10)
+        let series = store.ratingHistory()
+        XCTAssertEqual(series.count, 2)
+        XCTAssertEqual(series.first?.rating, snapshot.rating, "ratingHistory is oldest-first")
     }
 
     /// Drives the view model through the expected line of the active puzzle
     /// until solved, waiting out the opponent-reply delays.
+    /// Waits (bounded) for the machine's opening move so user input is accepted.
+    @MainActor
+    private func waitForWaitingForMove(on vm: TacticsViewModel) async throws {
+        var waited = 0
+        while vm.state != .waitingForMove && waited < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            waited += 1
+        }
+        XCTAssertEqual(vm.state, .waitingForMove)
+    }
+
     @MainActor
     private func solveActivePuzzle(on vm: TacticsViewModel) async throws {
         var guardCount = 0

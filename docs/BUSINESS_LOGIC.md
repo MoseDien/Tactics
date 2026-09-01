@@ -27,6 +27,8 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 
 Rating 由 `UserRatingStore` 保存在本地，并在首次有效尝试完成题目后按 Elo 风格规则更新。
 
+每个 batch 完成时（最后一题结算之后）追加一条 `RatingSnapshot`（SwiftData）：记录该 batch 结算后的 Rating 值，形成随时间变化的趋势序列，供 Settings 中的曲线展示。当前 Rating 仍以 `UserDefaults` 标量为准，快照只追加、不回写。
+
 ## 2. 题库组织
 
 题库文件按 100 分 Rating 区间组织（`1000.json`–`1900.json`），但这只是**导入时的数据分片**。10 个文件在首次启动时全部写入 SwiftData，总量约 10000 题。
@@ -122,7 +124,8 @@ Settings 提供难度模式选择、玩法说明和历史记录入口。历史�
 
 ```text
 ios/DailyTactics/Resources/puzzles/*.json → 首次启动一次性全部导入
-SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、历史 batch（RoundHistory）
+SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、历史 batch（RoundHistory）、
+             每 batch 的 rating 快照（RatingSnapshot）
 UserDefaults
   ├ dailytactics.libraryImported → 题库是否已一次性导入（首次启动 gate）
   └ dailytactics.userRating      → 当前 Rating

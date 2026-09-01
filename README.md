@@ -33,7 +33,8 @@ line at a time, and stores progress locally.
   it never changes the user's Rating
 - Board orientation follows the player's color and can be flipped manually
 - A local Elo-like puzzle Rating starts at 1500 and is persisted with
-  `UserDefaults`
+  `UserDefaults`; one snapshot per completed batch feeds a Rating trend
+  chart in Settings
 - SwiftData stores completion/failure history plus per-batch round history
   (browsable in Settings → History with per-puzzle review)
 - Localized in English and Simplified Chinese
@@ -93,14 +94,16 @@ SwiftData.
 
 ```sh
 cd ios
-# Generate the Xcode workspace
+# Generate the Xcode project
 mise x tuist@4.197.3 -- tuist generate
 
-# Open the generated workspace
-open DailyTactics.xcworkspace
+# Open the generated project
+open DailyTactics.xcodeproj
 
-# Run all tests
-mise x tuist@4.197.3 -- tuist test
+# Run all tests (tuist test resolves only workspace schemes, which this
+# project no longer generates)
+xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 ```
 
 CI-style build:
