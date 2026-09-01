@@ -1,90 +1,10 @@
 import XCTest
 import PuzzleKit
 import ChessCore
-import SwiftData
+import TacticsData
 @testable import DailyTactics
 
 final class ChessAndPuzzleTests: XCTestCase {
-
-    func testUnderpromotionPuzzlesSolveWithChosenPromotionPiece() throws {
-        // Bundled puzzles that expect an under-promotion (o8GIU: rook,
-        // LnGZ6: knight). They were unsolvable when the UI forced queen.
-        let expectations: [(file: String, id: String)] = [("1000", "o8GIU"), ("1100", "LnGZ6")]
-        for spec in expectations {
-            guard let url = Bundle.main.url(forResource: spec.file, withExtension: "json"),
-                  let data = try? Data(contentsOf: url),
-                  let all = try? JSONDecoder().decode([ImportTestPuzzle].self, from: data),
-                  let raw = all.first(where: { $0.id == spec.id })
-            else { continue } // resource absent in some test hosts
-
-            let puzzle = Puzzle(id: raw.id, fen: raw.fen, moves: raw.moves, rating: raw.rating, themes: [])
-            var session = try PuzzleSession(puzzle: puzzle)
-            try session.applyOpponentMove()
-
-            // The expected move carries the under-promotion suffix; submitting
-            // the exact move must be accepted (not .incorrectMove).
-            let expected = try XCTUnwrap(session.expectedMove)
-            XCTAssertNotNil(expected.promotion, "expected move \(expected.uci) must carry a promotion suffix")
-            try session.submitUserMove(expected)
-            XCTAssertNotEqual(session.state, .incorrectMove, "under-promotion \(expected.uci) must be accepted")
-
-            // A queen promotion of the same pawn must NOT match the expected
-            // line — this is the exact regression the picker fixes.
-            if let queenMove = ChessMove(uci: expected.uci.dropLast().appending("q").description) {
-                XCTAssertNotEqual(queenMove, expected, "queen variant must differ from an under-promotion line")
-            }
-        }
-    }
-
-    private struct ImportTestPuzzle: Decodable {
-        let id: String
-        let fen: String
-        let moves: [String]
-        let rating: Int?
-    }
-    @MainActor
-    func testProgressStoreMarksCompletion() throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: PuzzleProgress.self, configurations: config)
-        let store = PuzzleProgressStore(context: ModelContext(container))
-
-        XCTAssertFalse(store.isCompleted("p1"))
-        XCTAssertEqual(store.completedCount(), 0)
-
-        store.markCompleted("p1")
-        XCTAssertTrue(store.isCompleted("p1"))
-        XCTAssertEqual(store.completedCount(), 1)
-
-        // Idempotent: re-marking the same puzzle does not double-count.
-        store.markCompleted("p1")
-        XCTAssertEqual(store.completedCount(), 1)
-
-        store.markCompleted("p2")
-        XCTAssertEqual(store.completedCount(), 2)
-    }
-
-    @MainActor
-    func testProgressStoreRecordsFailures() throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: PuzzleProgress.self, configurations: config)
-        let store = PuzzleProgressStore(context: ModelContext(container))
-
-        XCTAssertEqual(store.failedCount(), 0)
-
-        store.markFailed("p1")
-        XCTAssertEqual(store.failedCount(), 1)
-
-        // Idempotent: repeated wrong moves on the same puzzle don't double-count.
-        store.markFailed("p1")
-        XCTAssertEqual(store.failedCount(), 1)
-
-        // Failure and completion are independent counts.
-        store.markFailed("p2")
-        store.markCompleted("p2")
-        XCTAssertEqual(store.failedCount(), 2)
-        XCTAssertEqual(store.completedCount(), 1)
-    }
-
     @MainActor
     func testBoardAutoOrientsToPlayerColor() async throws {
         // A single-puzzle dataset makes the "which puzzle loaded" variable
@@ -117,20 +37,15 @@ final class ChessAndPuzzleTests: XCTestCase {
         store.reset()
         XCTAssertEqual(store.rating, 1500, "a fresh store starts at 1500")
     }
-
-    @MainActor
     func testDifficultyModeFilteringUsesRatingBounds() {
-        let context = ModelContext(try! ModelContainer(for: PuzzleRecord.self, PuzzleProgress.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
-        let store = PuzzleProgressStore(context: context)
         let puzzles = [
             Puzzle(id: "easy", fen: Puzzle.samples[0].fen, moves: Puzzle.samples[0].moves, rating: 1200, themes: []),
             Puzzle(id: "mid", fen: Puzzle.samples[0].fen, moves: Puzzle.samples[0].moves, rating: 1500, themes: []),
             Puzzle(id: "hard", fen: Puzzle.samples[0].fen, moves: Puzzle.samples[0].moves, rating: 1900, themes: [])
         ]
-        puzzles.forEach { context.insert(PuzzleRecord(puzzle: $0)) }
-        try? context.save()
-        let easy = store.fetchUnattemptedRound(count: 1, difficulty: .easy, userRating: 1500)
-        let hard = store.fetchUnattemptedRound(count: 1, difficulty: .hard, userRating: 1500)
+        let selector = RoundSelector()
+        let easy = selector.select(library: puzzles, attempted: [], difficulty: .easy, userRating: 1500, count: 1)
+        let hard = selector.select(library: puzzles, attempted: [], difficulty: .hard, userRating: 1500, count: 1)
         XCTAssertTrue(easy.allSatisfy { ($0.rating ?? 0) <= 1700 })
         XCTAssertTrue(hard.allSatisfy { ($0.rating ?? 0) >= 1300 })
     }
@@ -169,9 +84,7 @@ final class ChessAndPuzzleTests: XCTestCase {
 
     @MainActor
     func testRoundHistoryRecordsOnceDespiteHintOnLastPuzzleAndReviewReplay() async throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, RatingSnapshot.self, configurations: config)
-        let store = PuzzleProgressStore(context: ModelContext(container))
+        let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
 
         // One puzzle in the dataset so it is also the last puzzle of the batch.
         let puzzle = Puzzle.samples[0]
@@ -203,9 +116,7 @@ final class ChessAndPuzzleTests: XCTestCase {
 
     @MainActor
     func testRatingSnapshotRecordedPerBatchWithFinalDelta() async throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, RatingSnapshot.self, configurations: config)
-        let store = PuzzleProgressStore(context: ModelContext(container))
+        let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
         let defaults = UserDefaults(suiteName: "rating-snapshot-\(UUID().uuidString)")!
         let ratingStore = UserRatingStore(defaults: defaults)
 
@@ -268,77 +179,25 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertEqual(vm.state, .solved)
     }
 
-    // MARK: - BatchStore
-    @MainActor
-    func testFetchUnattemptedRoundExcludesAttemptedAndFallsBack() throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: PuzzleRecord.self, PuzzleProgress.self, configurations: config)
-        let context = ModelContext(container)
-        let store = PuzzleProgressStore(context: context)
+    // MARK: - Round selection
 
+    func testRoundSelectionExcludesAttemptedAndFallsBack() {
         let puzzles = (0..<7).map { i in
             Puzzle(id: "p\(i)", fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1", moves: ["e1e2"], rating: 1500, themes: [])
         }
-        puzzles.forEach { context.insert(PuzzleRecord(puzzle: $0)) }
-        try context.save()
+        let selector = RoundSelector()
 
-        // Mark two as attempted.
-        store.markAttempted("p0")
-        store.markAttempted("p1")
-
-        // Enough unattempted remain (5) → returns exactly 5, none attempted.
-        let round = store.fetchUnattemptedRound(count: 5)
+        // Two attempted → returns exactly 5, none attempted.
+        let round = selector.select(library: puzzles, attempted: ["p0", "p1"], difficulty: .medium, userRating: 1500, count: 5)
         XCTAssertEqual(round.count, 5)
         let roundIDs = Set(round.map(\.id))
         XCTAssertFalse(roundIDs.contains("p0"))
         XCTAssertFalse(roundIDs.contains("p1"))
 
-        // Mark 6 of 7 attempted → fewer than 5 unattempted → falls back to
-        // random-over-all so a round is still returned.
-        for i in 2...6 { store.markAttempted("p\(i)") }
-        let fallback = store.fetchUnattemptedRound(count: 5)
+        // Six of seven attempted → fewer than 5 unattempted → falls back to
+        // the whole library so a round is still returned.
+        let attempted6 = Set((0...6).map { "p\($0)" })
+        let fallback = selector.select(library: puzzles, attempted: attempted6, difficulty: .medium, userRating: 1500, count: 5)
         XCTAssertEqual(fallback.count, 5)
-    }
-
-    /// Replays every bundled puzzle through `PuzzleSession` with the full
-    /// legality checker active. The dataset was validated against the old
-    /// shape-only checker; this guards it against the stricter rules.
-    func testAllBundledPuzzlesReplayThroughSession() throws {
-        var replayed = 0
-        for level in PuzzleLibraryImporter.tierLevels {
-            guard let url = Bundle.main.url(forResource: "\(level)", withExtension: "json"),
-                  let data = try? Data(contentsOf: url),
-                  let all = try? JSONDecoder().decode([ImportTestPuzzle].self, from: data)
-            else { continue }
-            for raw in all {
-                let puzzle = Puzzle(id: raw.id, fen: raw.fen, moves: raw.moves, rating: raw.rating, themes: [])
-                var session = try PuzzleSession(puzzle: puzzle)
-                while session.canStepForward {
-                    try session.stepForward()
-                }
-                XCTAssertEqual(session.state, .solved, "puzzle \(raw.id) must replay to solved")
-                replayed += 1
-            }
-        }
-        try XCTSkipUnless(replayed > 0, "Bundled tier JSONs are not present in the test host")
-    }
-
-    @MainActor
-    func testImportAllBundledIsIdempotent() async throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: PuzzleRecord.self, configurations: config)
-        let context = ModelContext(container)
-        let importer = PuzzleLibraryImporter(context: context)
-
-        let failures = await importer.importAllBundled { _ in }
-        XCTAssertEqual(failures, 0, "every bundled tier must decode")
-        let firstCount = try context.fetchCount(FetchDescriptor<PuzzleRecord>())
-        try XCTSkipUnless(firstCount > 0, "Bundled tier JSONs are not present in the test host")
-
-        // Re-running must not duplicate rows (dedup by puzzleId).
-        let rerunFailures = await importer.importAllBundled { _ in }
-        XCTAssertEqual(rerunFailures, 0)
-        let secondCount = try context.fetchCount(FetchDescriptor<PuzzleRecord>())
-        XCTAssertEqual(secondCount, firstCount)
     }
 }

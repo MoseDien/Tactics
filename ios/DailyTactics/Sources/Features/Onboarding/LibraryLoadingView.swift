@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftData
+import TacticsData
 
 /// First-launch screen that bulk-imports the entire bundled puzzle library
 /// (all 10 rating tiers) into SwiftData. On success it flips the
@@ -9,7 +9,6 @@ import SwiftData
 /// retry instead of silently degrading to the bundled samples.
 /// visual treatment is an intentional placeholder pending a final design pass.
 struct LibraryLoadingView: View {
-    @Environment(\.modelContext) private var modelContext
     @AppStorage(LibraryStateStore.importedKey) private var libraryImported = false
     @State private var progress: Double = 0
     @State private var failedTiers: Int?
@@ -51,7 +50,8 @@ struct LibraryLoadingView: View {
         .background(Color(.systemBackground))
         .task(id: failedTiers) {
             guard failedTiers == nil else { return }
-            let failures = await PuzzleLibraryImporter(context: modelContext).importAllBundled { value in
+            let repositories = SwiftDataRepositories(inMemory: false)
+            let failures = await PuzzleLibraryImporter(context: repositories.context).importAllBundled { value in
                 progress = value
             }
             if failures == 0 {

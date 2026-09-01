@@ -15,6 +15,16 @@ let project = Project(
     ),
     targets: [
         .target(
+            name: "TacticsData",
+            destinations: .iOS,
+            product: .staticFramework,
+            bundleId: "com.dienbell.tactics.tacticsdata",
+            infoPlist: .default,
+            sources: ["TacticsData/Sources/**"],
+            resources: ["TacticsData/Resources/**"],
+            dependencies: [.target(name: "PuzzleKit")]
+        ),
+        .target(
             name: "PuzzleKit",
             destinations: .iOS,
             product: .staticFramework,
@@ -45,7 +55,7 @@ let project = Project(
             ]),
             sources: ["DailyTactics/Sources/**"],
             resources: ["DailyTactics/Resources/**"],
-            dependencies: [.target(name: "ChessCore"), .target(name: "PuzzleKit")]
+            dependencies: [.target(name: "ChessCore"), .target(name: "PuzzleKit"), .target(name: "TacticsData")]
         ),
         .target(
             name: "DailyTacticsTests",
@@ -54,7 +64,16 @@ let project = Project(
             bundleId: "com.dienbell.tactics.tests",
             infoPlist: .default,
             sources: ["DailyTactics/Tests/**"],
-            dependencies: [.target(name: "DailyTactics"), .target(name: "PuzzleKit")]
+            dependencies: [.target(name: "DailyTactics"), .target(name: "PuzzleKit"), .target(name: "TacticsData")]
+        ),
+        .target(
+            name: "TacticsDataTests",
+            destinations: .iOS,
+            product: .unitTests,
+            bundleId: "com.dienbell.tactics.tacticsdata.tests",
+            infoPlist: .default,
+            sources: ["TacticsData/Tests/**"],
+            dependencies: [.target(name: "TacticsData")]
         ),
         .target(
             name: "PuzzleKitTests",
@@ -80,7 +99,7 @@ let project = Project(
             name: "DailyTactics",
             shared: true,
             buildAction: .buildAction(targets: ["DailyTactics"]),
-            testAction: .targets(["DailyTacticsTests", "ChessCoreTests", "PuzzleKitTests"]),
+            testAction: .targets(["DailyTacticsTests", "ChessCoreTests", "PuzzleKitTests", "TacticsDataTests"]),
             runAction: .runAction(configuration: .debug)
         )
     ]

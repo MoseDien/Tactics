@@ -1,6 +1,7 @@
 import SwiftUI
 import PuzzleKit
 import ChessCore
+import TacticsData
 
 /// Review for one completed puzzle. Batch review remains handled by
 /// `TacticsView(mode: .reviewBatch)`.
@@ -53,8 +54,7 @@ struct ReviewPuzzleView: View {
 
 struct HistoryView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @State private var rounds: [RoundHistory] = []
+    @State private var rounds: [RoundSummary] = []
     @State private var puzzleLookup: [String: Puzzle] = [:]
 
     var body: some View {
@@ -77,7 +77,7 @@ struct HistoryView: View {
             .navigationTitle(String(localized: "settings.history"))
             .toolbar { Button(String(localized: "common.done")) { dismiss() } }
             .task {
-                let store = PuzzleProgressStore(context: modelContext)
+                let store = SwiftDataRepositories(inMemory: false)
                 rounds = store.history()
                 // First occurrence wins so a duplicated library id can't trap.
                 var lookup: [String: Puzzle] = [:]
@@ -91,7 +91,7 @@ struct HistoryView: View {
 }
 
 private struct RoundHistoryDetail: View {
-    let round: RoundHistory
+    let round: RoundSummary
     let puzzleLookup: [String: Puzzle]
 
     var body: some View {
@@ -106,8 +106,8 @@ private struct RoundHistoryDetail: View {
                             "\(index + 1)"
                         ))
                         Spacer()
-                        Text(round.outcomes.indices.contains(index) && round.outcomes[index] == "correct" ? "✓" : "×")
-                            .foregroundStyle(round.outcomes.indices.contains(index) && round.outcomes[index] == "correct" ? .green : .secondary)
+                        Text(round.outcomes.indices.contains(index) && round.outcomes[index] == .correct ? "✓" : "×")
+                            .foregroundStyle(round.outcomes.indices.contains(index) && round.outcomes[index] == .correct ? .green : .secondary)
                     }
                 }
             }

@@ -2,6 +2,8 @@ import Foundation
 import PuzzleKit
 import ChessCore
 import Observation
+import PuzzleKit
+import TacticsData
 
 enum TacticsFeedbackState: Equatable {
     case idle
@@ -34,7 +36,7 @@ final class TacticsViewModel {
     /// Pending promotion: set when a pawn move reaches the last rank, cleared
     /// once the player picks a piece (or the move is cancelled by re-selection).
     private(set) var pendingPromotion: (from: Square, to: Square)?
-    private var progress: PuzzleProgressStore?
+    var progress: (any PuzzleDataRepositories)?
     private let ratingStore: UserRatingStore
     private let ratingCalculator = PuzzleRatingCalculator()
     private var hadMistake = false
@@ -58,7 +60,7 @@ final class TacticsViewModel {
     /// Per-puzzle outcome for the current round. `nil` = not yet attempted.
     private(set) var results: [PuzzleOutcome?] = []
 
-    init(dataset: [Puzzle], progress: PuzzleProgressStore? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
+    init(dataset: [Puzzle], progress: (any PuzzleDataRepositories)? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
         let source = dataset.isEmpty ? Puzzle.samples : dataset
         let batch = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
         self.dataset = source
@@ -225,17 +227,16 @@ final class TacticsViewModel {
     }
 
     private func loadNextRound() {
-        let picked: [Puzzle]
         guard let progress else { return }
-        let previousBatchIDs = Set(BatchStore.activePuzzleIDs)
-        let candidatePool = progress.fetchUnattemptedRound(count: dailyPuzzleCount, difficulty: DifficultyModeStore.current, userRating: userRating)
-            .filter { !previousBatchIDs.contains($0.id) }
-        if candidatePool.count >= dailyPuzzleCount {
-            picked = Array(candidatePool.prefix(dailyPuzzleCount))
-        } else {
-            let fallback = progress.allPuzzles().filter { !previousBatchIDs.contains($0.id) }
-            picked = Array(fallback.shuffled().prefix(min(dailyPuzzleCount, fallback.count)))
-        }
+        var selector = RoundSelector()
+        let picked = selector.select(
+            library: progress.allPuzzles(),
+            attempted: progress.attemptedIDs(),
+            difficulty: DifficultyModeStore.current,
+            userRating: userRating,
+            count: dailyPuzzleCount,
+            excluding: Set(BatchStore.activePuzzleIDs)
+        )
         guard !picked.isEmpty else { return }
         puzzles = picked
         BatchStore.begin(with: picked)

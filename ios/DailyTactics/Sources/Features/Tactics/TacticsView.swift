@@ -1,11 +1,10 @@
 import SwiftUI
 import PuzzleKit
 import ChessCore
-import SwiftData
+import TacticsData
 
 struct TacticsView: View {
     let mode: TacticsMode
-    @Environment(\.modelContext) private var modelContext
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
     @State private var showingPuzzleDetails = false
@@ -30,12 +29,19 @@ struct TacticsView: View {
             // store again only at that round boundary. An empty result (e.g. an
             // empty preview container) falls back to the bundled samples so the
             // board is never blank.
-            let store = PuzzleProgressStore(context: modelContext)
+            let store = SwiftDataRepositories(inMemory: false)
             var round: [Puzzle]
             if mode == .reviewBatch {
-                round = BatchStore.currentPuzzles(from: store.allPuzzles())
+                round = BatchLookup.puzzles(withIDs: BatchStore.activePuzzleIDs, in: store.allPuzzles())
             } else {
-                round = store.fetchUnattemptedRound(count: BatchPolicy.puzzleCount, difficulty: DifficultyModeStore.current, userRating: UserRatingStore().rating)
+                var selector = RoundSelector()
+                round = selector.select(
+                    library: store.allPuzzles(),
+                    attempted: store.attemptedIDs(),
+                    difficulty: DifficultyModeStore.current,
+                    userRating: UserRatingStore().rating,
+                    count: BatchPolicy.puzzleCount
+                )
             }
             if round.isEmpty { round = Puzzle.samples }
             if mode == .play { BatchStore.begin(with: round) }
@@ -339,5 +345,4 @@ struct TacticsView: View {
 
 #Preview {
     TacticsView()
-        .modelContainer(for: [PuzzleProgress.self, PuzzleRecord.self, RoundHistory.self, RatingSnapshot.self], inMemory: true)
 }

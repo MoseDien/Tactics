@@ -2,13 +2,13 @@ import SwiftUI
 import PuzzleKit
 import SwiftData
 import Charts
+import TacticsData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @State private var difficulty = DifficultyModeStore.current
     @State private var showingHowToPlay = false
-    @State private var snapshots: [RatingSnapshot] = []
+    @State private var snapshots: [RatingSample] = []
 
     var body: some View {
         NavigationStack {
@@ -54,7 +54,7 @@ struct SettingsView: View {
                 Text(String(localized: "settings.how_to_play_body"))
             }
             .task {
-                snapshots = PuzzleProgressStore(context: modelContext).ratingHistory()
+                snapshots = SwiftDataRepositories(inMemory: false).ratingHistory()
             }
         }
     }
