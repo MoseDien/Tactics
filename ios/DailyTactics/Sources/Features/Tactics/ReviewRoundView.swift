@@ -1,4 +1,5 @@
 import SwiftUI
+import ChessCore
 
 /// Review for one completed puzzle. Batch review remains handled by
 /// `TacticsView(mode: .reviewBatch)`.

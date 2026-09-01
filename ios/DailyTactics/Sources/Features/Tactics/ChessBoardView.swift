@@ -1,4 +1,5 @@
 import SwiftUI
+import ChessCore
 
 struct ChessBoardView: View {
     let position: [Square: Piece]

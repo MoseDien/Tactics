@@ -1,4 +1,5 @@
 import SwiftUI
+import ChessCore
 import SwiftData
 
 struct TacticsView: View {

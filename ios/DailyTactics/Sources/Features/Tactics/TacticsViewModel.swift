@@ -1,4 +1,5 @@
 import Foundation
+import ChessCore
 import Observation
 
 enum TacticsFeedbackState: Equatable {

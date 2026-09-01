@@ -1,21 +1,26 @@
 import Foundation
 
-enum PieceColor: String, Codable, Sendable {
+public enum PieceColor: String, Codable, Sendable {
     case white
     case black
 
-    var opponent: Self { self == .white ? .black : .white }
+    public var opponent: Self { self == .white ? .black : .white }
 }
 
-enum PieceKind: String, Codable, Sendable {
+public enum PieceKind: String, Codable, Sendable {
     case king, queen, rook, bishop, knight, pawn
 }
 
-struct Piece: Equatable, Sendable {
-    let color: PieceColor
-    let kind: PieceKind
+public struct Piece: Equatable, Sendable {
+    public let color: PieceColor
+    public let kind: PieceKind
 
-    var assetName: String {
+    public init(color: PieceColor, kind: PieceKind) {
+        self.color = color
+        self.kind = kind
+    }
+
+    public var assetName: String {
         switch (color, kind) {
         case (.white, .king): "wK"
         case (.white, .queen): "wQ"
@@ -33,17 +38,17 @@ struct Piece: Equatable, Sendable {
     }
 }
 
-struct Square: Hashable, Sendable {
-    let file: Int
-    let rank: Int
+public struct Square: Hashable, Sendable {
+    public let file: Int
+    public let rank: Int
 
-    init?(file: Int, rank: Int) {
+    public init?(file: Int, rank: Int) {
         guard (0..<8).contains(file), (0..<8).contains(rank) else { return nil }
         self.file = file
         self.rank = rank
     }
 
-    init?(notation: String) {
+    public init?(notation: String) {
         let characters = Array(notation.lowercased())
         guard characters.count == 2,
               let fileValue = characters[0].asciiValue,
@@ -55,23 +60,23 @@ struct Square: Hashable, Sendable {
         self.init(file: Int(fileValue - 97), rank: rank - 1)!
     }
 
-    var notation: String {
+    public var notation: String {
         "\(Character(UnicodeScalar(UInt8(file + 97))))\(rank + 1)"
     }
 }
 
-struct ChessMove: Equatable, Sendable {
-    let from: Square
-    let to: Square
-    let promotion: PieceKind?
+public struct ChessMove: Equatable, Sendable {
+    public let from: Square
+    public let to: Square
+    public let promotion: PieceKind?
 
-    init(from: Square, to: Square, promotion: PieceKind? = nil) {
+    public init(from: Square, to: Square, promotion: PieceKind? = nil) {
         self.from = from
         self.to = to
         self.promotion = promotion
     }
 
-    init?(uci: String) {
+    public init?(uci: String) {
         guard uci.count == 4 || uci.count == 5 else { return nil }
         let characters = Array(uci.lowercased())
         guard let from = Square(notation: String(characters[0...1])),
@@ -94,7 +99,7 @@ struct ChessMove: Equatable, Sendable {
         self.init(from: from, to: to, promotion: promotion)
     }
 
-    var uci: String {
+    public var uci: String {
         let suffix: String
         switch promotion {
         case .queen: suffix = "q"
@@ -107,8 +112,8 @@ struct ChessMove: Equatable, Sendable {
     }
 }
 
-struct Board: Equatable, Sendable {
-    enum FENError: Error, Equatable {
+public struct Board: Equatable, Sendable {
+    public enum FENError: Error, Equatable {
         case missingFields
         case invalidRankCount
         case invalidRank(String)
@@ -118,28 +123,29 @@ struct Board: Equatable, Sendable {
 
     /// Castling availability parsed from the FEN's third field ("KQkq" style).
     /// Empty when the FEN omits or blanks the field.
-    struct CastlingRights: OptionSet, Equatable, Sendable {
-        let rawValue: Int
-        static let whiteKingSide = CastlingRights(rawValue: 1 << 0)
-        static let whiteQueenSide = CastlingRights(rawValue: 1 << 1)
-        static let blackKingSide = CastlingRights(rawValue: 1 << 2)
-        static let blackQueenSide = CastlingRights(rawValue: 1 << 3)
+    public struct CastlingRights: OptionSet, Equatable, Sendable {
+        public let rawValue: Int
+        public init(rawValue: Int) { self.rawValue = rawValue }
+        public static let whiteKingSide = CastlingRights(rawValue: 1 << 0)
+        public static let whiteQueenSide = CastlingRights(rawValue: 1 << 1)
+        public static let blackKingSide = CastlingRights(rawValue: 1 << 2)
+        public static let blackQueenSide = CastlingRights(rawValue: 1 << 3)
     }
 
-    private(set) var pieces: [Square: Piece]
-    private(set) var sideToMove: PieceColor
+    public private(set) var pieces: [Square: Piece]
+    public private(set) var sideToMove: PieceColor
     /// FEN fields 3–4. Kept for validation and special-move handling; the
     /// halfmove clock and fullmove number (fields 5–6) are not needed for
     /// tactics lines and are not stored.
-    private(set) var castlingRights: CastlingRights
+    public private(set) var castlingRights: CastlingRights
     /// The square where en passant capture is possible, if any.
-    private(set) var enPassantTarget: Square?
+    public private(set) var enPassantTarget: Square?
     /// Set by `apply` when a move leaves the mover's king attacked. The board
     /// is a passive record of the position; check detection lives here so
     /// `isLegal` can reject self-checks and `apply` stays unchecked.
-    private(set) var sideToMoveInCheck: Bool = false
+    public private(set) var sideToMoveInCheck: Bool = false
 
-    init(fen: String) throws {
+    public init(fen: String) throws {
         let fields = fen.split(separator: " ")
         guard fields.count >= 2 else { throw FENError.missingFields }
 
@@ -197,7 +203,7 @@ struct Board: Equatable, Sendable {
         return rights
     }
 
-    mutating func apply(_ move: ChessMove) -> Bool {
+    public mutating func apply(_ move: ChessMove) -> Bool {
         guard let movingPiece = pieces.removeValue(forKey: move.from) else { return false }
         let targetWasEmpty = pieces[move.to] == nil
         let resultingKind = move.promotion ?? movingPiece.kind
@@ -314,7 +320,7 @@ extension Board {
     /// blocking, self-capture, check and pin legality, castling, en passant,
     /// and promotion requirements. Trusted puzzle-line moves that involve
     /// unusual data still flow through `apply`, which remains unchecked.
-    func isLegal(_ move: ChessMove, for mover: PieceColor) -> Bool {
+    public func isLegal(_ move: ChessMove, for mover: PieceColor) -> Bool {
         guard let piece = pieces[move.from], piece.color == mover else { return false }
         if let occupant = pieces[move.to], occupant.color == mover { return false }
 
@@ -479,7 +485,7 @@ extension Board {
 
     /// Whether `move` sends a pawn of `mover` to its promotion rank. The UI
     /// uses this to ask which piece to promote to.
-    func isPromotion(_ move: ChessMove, for mover: PieceColor) -> Bool {
+    public func isPromotion(_ move: ChessMove, for mover: PieceColor) -> Bool {
         guard let piece = pieces[move.from], piece.color == mover, piece.kind == .pawn else { return false }
         return move.to.rank == 0 || move.to.rank == 7
     }

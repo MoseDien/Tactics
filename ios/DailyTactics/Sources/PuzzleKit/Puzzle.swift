@@ -1,4 +1,5 @@
 import Foundation
+import ChessCore
 
 enum PuzzleTheme: String, Codable, CaseIterable, Sendable {
     case fork

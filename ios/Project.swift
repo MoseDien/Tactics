@@ -15,6 +15,14 @@ let project = Project(
     ),
     targets: [
         .target(
+            name: "ChessCore",
+            destinations: .iOS,
+            product: .staticFramework,
+            bundleId: "com.dienbell.tactics.chesscore",
+            infoPlist: .default,
+            sources: ["ChessCore/Sources/**"]
+        ),
+        .target(
             name: "DailyTactics",
             destinations: .iOS,
             product: .app,
@@ -27,7 +35,8 @@ let project = Project(
                 ]
             ]),
             sources: ["DailyTactics/Sources/**"],
-            resources: ["DailyTactics/Resources/**"]
+            resources: ["DailyTactics/Resources/**"],
+            dependencies: [.target(name: "ChessCore")]
         ),
         .target(
             name: "DailyTacticsTests",
@@ -37,6 +46,15 @@ let project = Project(
             infoPlist: .default,
             sources: ["DailyTactics/Tests/**"],
             dependencies: [.target(name: "DailyTactics")]
+        ),
+        .target(
+            name: "ChessCoreTests",
+            destinations: .iOS,
+            product: .unitTests,
+            bundleId: "com.dienbell.tactics.chesscore.tests",
+            infoPlist: .default,
+            sources: ["ChessCore/Tests/**"],
+            dependencies: [.target(name: "ChessCore")]
         )
     ],
     schemes: [
@@ -44,7 +62,7 @@ let project = Project(
             name: "DailyTactics",
             shared: true,
             buildAction: .buildAction(targets: ["DailyTactics"]),
-            testAction: .targets(["DailyTacticsTests"]),
+            testAction: .targets(["DailyTacticsTests", "ChessCoreTests"]),
             runAction: .runAction(configuration: .debug)
         )
     ]
