@@ -100,6 +100,13 @@ def main() -> None:
     parser.add_argument("--count", type=int, default=1000, help="Puzzles per chunk (default 1000)")
     parser.add_argument("--rating-min", type=int, default=1000, help="Inclusive rating lower bound")
     parser.add_argument("--rating-max", type=int, default=2000, help="Exclusive rating upper bound")
+    parser.add_argument(
+        "--sequence",
+        type=int,
+        default=None,
+        help="Force the chunk sequence (e.g. 0 for the app-bundled chunk) "
+        "instead of auto-advancing past the highest recorded chunk",
+    )
     args = parser.parse_args()
 
     if not args.input.is_file():
@@ -113,8 +120,11 @@ def main() -> None:
     try:
         conn.execute(_CREATE_EXPORTED)
         conn.commit()
-        sequence = next_chunk_sequence(conn, args.output_dir)
+        sequence = args.sequence if args.sequence is not None else next_chunk_sequence(conn, args.output_dir)
         path = args.output_dir / f"puzzle-{sequence:04d}.json"
+        if path.exists():
+            print(f"Refusing to overwrite existing {path.name}", file=sys.stderr)
+            raise SystemExit(1)
 
         rows = conn.execute(
             _SELECT_UNEXPORTED, (args.rating_min, args.rating_max, args.count)
