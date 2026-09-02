@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="iTactics — focused chess tactics training for iPhone.">
+  <title>iTactics — Daily Chess Tactics</title>
+  <style>
+    :root { color-scheme: light; --green:#16a05d; --ink:#17231d; --muted:#65736b; --paper:#f7faf8; }
+    * { box-sizing:border-box; } body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:var(--paper); line-height:1.6; }
+    .wrap { max-width:1050px; margin:auto; padding:0 24px; } header { padding:24px 0; background:#fff; border-bottom:1px solid #e4ebe6; }
+    nav { display:flex; justify-content:space-between; align-items:center; } .brand { font-size:1.35rem; font-weight:800; letter-spacing:-.03em; } .brand span { color:var(--green); }
+    nav a { color:var(--muted); text-decoration:none; margin-left:22px; font-size:.95rem; } nav a:hover { color:var(--green); }
+    .hero { padding:92px 0 78px; background:linear-gradient(135deg,#fff 0%,#eef8f1 100%); } .hero-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:55px; align-items:center; }
+    h1 { margin:0 0 20px; font-size:clamp(2.5rem,6vw,4.6rem); line-height:1.02; letter-spacing:-.06em; } h1 em { color:var(--green); font-style:normal; }
+    .lead { color:var(--muted); font-size:1.2rem; max-width:590px; } .button { display:inline-block; margin-top:18px; padding:12px 20px; border-radius:10px; background:var(--green); color:white; text-decoration:none; font-weight:700; }
+    .board { aspect-ratio:1; max-width:390px; margin:auto; display:grid; grid-template-columns:repeat(8,1fr); border-radius:14px; overflow:hidden; box-shadow:0 18px 45px #173d2940; transform:rotate(-2deg); } .board i { background:#f0d9b5; } .board i:nth-child(16n+2),.board i:nth-child(16n+4),.board i:nth-child(16n+6),.board i:nth-child(16n+8),.board i:nth-child(16n+9),.board i:nth-child(16n+11),.board i:nth-child(16n+13),.board i:nth-child(16n+15) { background:#b58863; }
+    section { padding:72px 0; } h2 { font-size:2rem; letter-spacing:-.04em; margin:0 0 12px; } .intro { color:var(--muted); max-width:650px; }
+    .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:30px; } .card { background:#fff; border:1px solid #e4ebe6; border-radius:16px; padding:25px; } .icon { color:var(--green); font-size:1.6rem; } .card h3 { margin:10px 0 6px; } .card p { color:var(--muted); margin:0; }
+    .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:28px; } .step strong { display:block; color:var(--green); font-size:1.8rem; } .step p { color:var(--muted); }
+    footer { padding:30px 0; border-top:1px solid #e4ebe6; color:var(--muted); font-size:.9rem; } footer a { color:var(--green); }
+    @media (max-width:760px) { .hero { padding:60px 0; } .hero-grid,.cards,.steps { grid-template-columns:1fr; } .board { max-width:300px; } nav a { margin-left:12px; } }
+  </style>
+</head>
+<body>
+  <header><div class="wrap"><nav><div class="brand">i<span>Tactics</span></div><div><a href="#how">How it works</a><a href="#principles">Principles</a></div></nav></div></header>
+  <main>
+    <section class="hero"><div class="wrap hero-grid"><div><h1>Think. Find.<br><em>Win.</em></h1><p class="lead">iTactics is a focused chess tactics trainer for iPhone. Solve one position at a time, calculate the line, and build stronger decision-making habits.</p><a class="button" href="#how">Learn how to play</a></div><div class="board" id="board" aria-label="Chess board illustration"></div></div></section>
+    <section id="principles"><div class="wrap"><h2>Train with purpose</h2><p class="intro">Do not guess until a move works. Use your brain to calculate the best move, one step at a time, until the line is complete.</p><div class="cards"><article class="card"><div class="icon">♞</div><h3>Daily practice</h3><p>Work through a focused batch of tactical positions selected from your local puzzle library.</p></article><article class="card"><div class="icon">◎</div><h3>Instant feedback</h3><p>Try a move, receive clear feedback, and use hints only when you are ready to learn.</p></article><article class="card"><div class="icon">↗</div><h3>Track progress</h3><p>Your local rating changes with your results, helping you follow improvement over time.</p></article></div></div></section>
+    <section id="how" style="background:#fff"><div class="wrap"><h2>How to use iTactics</h2><p class="intro">A simple routine keeps every session intentional.</p><div class="steps"><div class="step"><strong>01</strong><h3>Read the position</h3><p>Look for checks, captures, threats, and the opponent's weaknesses.</p></div><div class="step"><strong>02</strong><h3>Calculate</h3><p>Think through the complete line before touching the board.</p></div><div class="step"><strong>03</strong><h3>Play your move</h3><p>Tap the origin and destination squares to submit your idea.</p></div><div class="step"><strong>04</strong><h3>Review</h3><p>When a batch is complete, review its puzzles and learn from every result.</p></div></div></div></section>
+  </main>
+  <footer><div class="wrap">© 2026 iTactics. Built for focused chess improvement. · <a href="privacy.html">Privacy Policy</a></div></footer>
+</body>
+<script>document.getElementById('board').innerHTML = '<i></i>'.repeat(64);</script>
+</html>

@@ -1,5 +1,9 @@
 # DailyTactics
 
+The repository root contains [`index.html`](index.html), a static English
+landing page for iTactics. It can be published directly with GitHub Pages for
+App Store review and product information.
+
 DailyTactics is an offline iOS SwiftUI app for short chess-tactics sessions.
 It bundles a compact Lichess-derived puzzle set, lets the player solve one
 line at a time, and stores progress locally.
