@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var difficulty = DifficultyMode.medium
     @State private var showingHowToPlay = false
     @State private var snapshots: [RatingSample] = []
+    @State private var libraryChunk = 0
+    @State private var libraryCount = 0
 
     var body: some View {
         NavigationStack {
@@ -30,8 +32,13 @@ struct SettingsView: View {
                     } label: {
                         Label(String(localized: "settings.history"), systemImage: "clock.arrow.circlepath")
                     }
+                } header: {
+                    Text(String(localized: "settings.library_section"))
                 } footer: {
-                    Text(String(localized: "settings.history_footer"))
+                    Text(String(
+                        format: NSLocalizedString("settings.library_status", comment: "Library chunk and puzzle count"),
+                        libraryChunk, libraryCount
+                    ))
                 }
             }
             .navigationTitle(String(localized: "settings.title"))
@@ -57,6 +64,8 @@ struct SettingsView: View {
             .task {
                 snapshots = dependencies.data.ratingHistory()
                 difficulty = dependencies.difficulty.current
+                libraryChunk = dependencies.sequenceStore.current
+                libraryCount = dependencies.data.allPuzzles().count
             }
         }
     }

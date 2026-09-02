@@ -123,20 +123,25 @@ xcodebuild \
 
 ## Puzzle data
 
-`ios/TacticsData/Resources/Puzzles/` contains the bundled puzzle data: ten
-rating-tier files (`1000.json`–`1900.json`, 1000 puzzles each), read through
-`BundledPuzzleSource` (`Bundle.module`). Puzzle tier
-JSON files are generated from the raw Lichess SQLite database by
-`tools/export_tier_puzzles.py`:
+`ios/TacticsData/Resources/Puzzles/puzzle-0000.json` is the app-bundled chunk
+(1000 puzzles, read through `BundledPuzzleSource`). Further chunks arrive over
+the network: when the untried pool can't fill a batch, the app fetches the
+next `puzzle-NNNN.json` from the deployed catalog and imports it (offline
+failures fall back to replaying attempted puzzles). Chunks are generated from
+the raw Lichess SQLite database by `tools/export_puzzle_chunk.py`, which also
+marks exported ids in the DB so no puzzle ships twice:
 
 ```sh
-python tools/export_tier_puzzles.py data/source/lichess_puzzles.sqlite ios/TacticsData/Resources/Puzzles
+# next chunk (auto-advances past the highest recorded sequence)
+python tools/export_puzzle_chunk.py data/source/lichess_puzzles.sqlite puzzles
+# the app-bundled chunk
+python tools/export_puzzle_chunk.py data/source/lichess_puzzles.sqlite puzzles --sequence 0
 ```
 
 The raw database lives under `data/source/` (ignored by Git); only the generated
 JSONs are part of the mobile bundle. Third-party artwork and licensing details
 are in `THIRD_PARTY_NOTICES.md`.
 
-The other scripts under `tools/` (`export_puzzles.py`, `import_lichess_puzzles.py`)
-are older one-off import helpers kept for reference; `export_tier_puzzles.py`
-supersedes them for the shipped dataset.
+The older scripts under `tools/` (`export_tier_puzzles.py`,
+`export_puzzles.py`, `import_lichess_puzzles.py`) produced the retired
+tier-file layout and are kept for reference.

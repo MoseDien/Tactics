@@ -1,10 +1,9 @@
 import Foundation
 import PuzzleKit
 
-/// Access to the 10 rating-tier JSONs bundled with this framework. Wrapping
-/// `Bundle.module` behind a type keeps the app from referencing it directly
-/// (the app target synthesizes its own `Bundle.module`) and lets tests point
-/// at any bundle.
+/// Access to the app-bundled puzzle chunk. Wrapping `Bundle.module` behind a
+/// type keeps the app from referencing it directly (the app target synthesizes
+/// its own `Bundle.module`) and lets tests point at any bundle.
 public struct BundledPuzzleSource: Sendable {
     public let bundle: Bundle
 
@@ -12,18 +11,29 @@ public struct BundledPuzzleSource: Sendable {
         self.bundle = bundle
     }
 
-    /// The TacticsData framework bundle containing the tier JSONs.
+    /// The TacticsData framework bundle containing the bundled chunk.
     public static var bundled: BundledPuzzleSource { .init(bundle: .module) }
 
-    /// The 10 bundled rating tiers (`1000.json` … `1900.json`), each holding a
-    /// 100-point band of puzzles.
-    public static let tierLevels = Array(stride(from: 1000, through: 1900, by: 100))
+    /// The chunk shipped inside the app (`puzzle-0000.json`); further chunks
+    /// arrive over the network.
+    public static let bundledChunkName = "puzzle-0000"
 
-    /// Decodes one tier, or nil when the file is missing or malformed.
-    public func decodeTier(_ level: Int) -> [Puzzle]? {
-        guard let url = bundle.url(forResource: "\(level)", withExtension: "json"),
+    /// Decodes the bundled chunk, or nil when the file is missing or malformed.
+    public func decodeBundledChunk() -> [Puzzle]? {
+        decodeChunk(BundledPuzzleSource.bundledChunkName)
+    }
+
+    /// Decodes any chunk file (`puzzle-NNNN`) from this bundle.
+    public func decodeChunk(_ name: String) -> [Puzzle]? {
+        guard let url = bundle.url(forResource: name, withExtension: "json"),
               let data = try? Data(contentsOf: url)
         else { return nil }
+        return Self.decode(data)
+    }
+
+    /// Shared decoder used by the bundled source and the remote fetcher so
+    /// both produce identical `Puzzle` values.
+    public static func decode(_ data: Data) -> [Puzzle]? {
         struct RawPuzzle: Decodable {
             let id: String
             let fen: String

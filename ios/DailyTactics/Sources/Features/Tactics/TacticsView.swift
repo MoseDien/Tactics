@@ -21,10 +21,9 @@ struct TacticsView: View {
             }
         }
         .task {
-            // Round 1 is fetched from the repositories exactly once, here.
-            // Subsequent rounds come from `viewModel.restartBatch()`, which
-            // queries again only at that round boundary. An empty result falls
-            // back to the bundled samples so the board is never blank.
+            // Top up the library first: if the unattempted pool can't fill a
+            // batch, fetch the next remote chunk (silently skipped offline).
+            _ = await dependencies.provisioner.ensureBatchAvailable(minimum: BatchPolicy.puzzleCount)
             let vm = TacticsViewModel(
                 dependencies: dependencies,
                 dailyPuzzleCount: BatchPolicy.puzzleCount,

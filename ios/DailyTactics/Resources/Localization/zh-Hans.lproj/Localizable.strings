@@ -6,10 +6,11 @@
 "loading.library_failed" = "题库加载失败，请重试。";
 "settings.title" = "设置";
 "settings.history" = "历史记录";
-"settings.history_footer" = "按每组五道题复盘已完成的题目。";
 "settings.how_to_play" = "玩法说明";
 "settings.how_to_play_body" = "- 不要试棋：先在脑中记住整个局面，想出解法后再落子。\n- 每组共 5 道题。每 8 小时解锁新的一组；期间可以复盘当前题目组。";
 "settings.difficulty" = "难度";
+"settings.library_section" = "题库";
+"settings.library_status" = "数据块 %ld · 已载入 %ld 道题。未做题目不足时会自动下载新数据块。";
 "settings.rating_trend" = "Rating 走势";
 "settings.rating_trend_empty" = "完成一组题目后,这里会展示你的 Rating 走势。";
 "settings.rating_trend_delta" = "较第一组 %+ld";

@@ -76,6 +76,17 @@
 
 最终测试规模:55 个(10 app + 15 ChessCore + 21 PuzzleKit + 9 TacticsData)。
 
+## 题库分块下载(2026-09-03 完成)
+
+按 2026-09-01 计划落地:数据源 https://mosedien.github.io/Tactics/puzzles/
+
+- [x] `tools/export_puzzle_chunk.py`:1000 题/块导出 + `exported_puzzles` 标记(DB 驱动序号,`--sequence 0` 导内置块);已导出 0000–0010。
+- [x] 内置资源替换:`puzzle-0000.json` 进 TacticsData bundle,10 个 tier 文件删除;`BundledPuzzleSource.decodeBundledChunk()`。
+- [x] PuzzleKit 端口:`PuzzleChunkFetching` / `PuzzleProvisioning`。
+- [x] TacticsData 实现:`RemotePuzzleCatalog`(部署地址)/`RemotePuzzleFetcher`(URLSession 注入,404=未发布)/`ChunkSequenceStore`(UserDefaults 序号 + 会话级 404 闩锁)/`LibraryProvisioner`(池不足→拉取→去重插入→缓存失效);`SwiftDataRepositories.invalidateLibraryCache()`。
+- [x] 触发点:启动选题前(`TacticsView.task`)与新 batch(`startNextBatch`)各一次;Settings 展示块序号/题目数。
+- [x] 测试 +6(FakeChunkFetcher:拉取/缓存失效/跳过/404 闩锁/错误吞掉/去重、序号单调);61 全绿;真实网络冒烟通过。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。

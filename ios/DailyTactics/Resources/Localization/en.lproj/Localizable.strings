@@ -10,10 +10,11 @@
 /* settings */
 "settings.title" = "Settings";
 "settings.history" = "History";
-"settings.history_footer" = "Review completed puzzles grouped into rounds of five.";
 "settings.how_to_play" = "How to play";
 "settings.how_to_play_body" = "- Don't guess through a move: hold the whole position in your head and find the solution there before touching a piece.\n- Each batch has 5 puzzles. A new batch unlocks every 8 hours; until then you can review the current batch.";
 "settings.difficulty" = "Difficulty";
+"settings.library_section" = "Puzzle library";
+"settings.library_status" = "Chunk %ld · %ld puzzles loaded. New chunks download automatically when the untried pool runs low.";
 "settings.rating_trend" = "Rating trend";
 "settings.rating_trend_empty" = "Complete a batch to see your rating trend here.";
 "settings.rating_trend_delta" = "%+ld since the first batch";

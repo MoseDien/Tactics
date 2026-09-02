@@ -91,6 +91,12 @@ public final class SwiftDataRepositories: PuzzleDataRepositories {
         return Set(((try? context.fetch(descriptor)) ?? []).map(\.puzzleId))
     }
 
+    /// Drops the cached library so newly inserted rows become visible. Called
+    /// by the provisioner after a chunk import.
+    public func invalidateLibraryCache() {
+        cachedLibrary = nil
+    }
+
     // MARK: - PuzzleProgressRepository
 
     public func markCompleted(_ puzzleId: String) {

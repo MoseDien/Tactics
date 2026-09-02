@@ -10,6 +10,9 @@ move to the next puzzle.
 
 Do not add backend services, accounts, social features, AI, multiplayer,
 subscriptions, analytics, or cloud sync unless explicitly requested.
+(The one sanctioned network behavior is chunked puzzle downloads: when the
+untried pool can't fill a batch, the next `puzzle-NNNN.json` is fetched from
+the deployed catalog and imported; failures fall back silently.)
 
 ## Technology
 
@@ -57,7 +60,8 @@ passant, promotion). It must not import SwiftUI, SwiftData, or feature code.
 Domain: `Puzzle`/`PuzzleSession` (Lichess move arrays start with the machine
 setup move; review replay is deterministic), policies (`RatingPolicy`,
 `BatchPolicy`/`BatchWindow`/`BatchLookup`, `RoundSelector` with injectable
-shuffle), and the repository ports (`PuzzleLibraryRepository`,
+shuffle), and the repository ports (`PuzzleLibraryRepository`, the chunked
+delivery ports (`PuzzleChunkFetching`, `PuzzleProvisioning`),
 `PuzzleProgressRepository`, `RoundHistoryRepository`, `RatingHistoryRepository`,
 `BatchStateRepository`, `LibraryImporting`) — the seam a future remote API
 plugs into behind the same signatures.
@@ -68,7 +72,8 @@ All persistence: the four SwiftData models (`PuzzleRecord`, `PuzzleProgress`,
 `RoundHistory`, `RatingSnapshot`), the single `SwiftDataRepositories` adapter
 implementing the data ports, `ModelContainerFactory`, `BundledPuzzleSource`
 (the 10 tier JSONs live in this framework's bundle), `PuzzleLibraryImporter`,
-and the UserDefaults-backed stores as injectable instances (`UserRatingStore`
+`RemotePuzzleFetcher`/`ChunkSequenceStore`/`LibraryProvisioner` for chunked
+delivery, and the UserDefaults-backed stores as injectable instances (`UserRatingStore`
 — the Rating starts at 1500, `DifficultyModeStore`, `UserDefaultsBatchStateStore`,
 `LibraryStateStore`). Nothing above this module imports SwiftData; SwiftData
 models never leak out of it.

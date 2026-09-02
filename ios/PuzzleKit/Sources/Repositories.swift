@@ -89,3 +89,23 @@ public protocol LibraryImporting: AnyObject {
     /// Returns the number of tiers that failed to decode (0 = success).
     func importAllBundled(progress: @escaping @Sendable (Double) -> Void) async -> Int
 }
+
+// MARK: - Chunked delivery
+
+/// Fetches one remote puzzle chunk. `nil` means the chunk does not exist yet
+/// (HTTP 404) — the caller stops asking for higher sequences this session.
+@MainActor
+public protocol PuzzleChunkFetching: AnyObject {
+    func fetchChunk(_ sequence: Int) async throws -> [Puzzle]?
+}
+
+/// Keeps the local library stocked: when fewer than `minimum` unattempted
+/// puzzles remain, the next chunk is fetched and imported. Failures are
+/// swallowed (offline, timeout, bad data) — the existing selection fallbacks
+/// still guarantee a playable batch.
+@MainActor
+public protocol PuzzleProvisioning: AnyObject {
+    /// Returns how many new puzzles were imported (0 when none were needed
+    /// or the fetch failed).
+    func ensureBatchAvailable(minimum: Int) async -> Int
+}

@@ -20,8 +20,17 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 - 导入是幂等的：按 `puzzleId` 去重，重复运行不会插入重复题目。
 - 这个 gate 独立于 Daily Tactics，之后每次启动都跳过导入，直接进入后续流程。
 
-题目 JSON 由 `tools/export_tier_puzzles.py` 从 `data/source/lichess_puzzles.sqlite`
-按 100 分 Rating 区间抽样生成（可复现）。
+## 题库分块与按需下载
+
+- 题库以块为单位交付：每块 1000 题，一个 `puzzle-NNNN.json`；App 内置第 0 块，其余部署在远端目录。
+- App 在本地记录「当前数据序号」（UserDefaults `dailytactics.puzzleSequence`，内置块 = 0）。
+- 当未尝试题目不足以组成一个 batch（< `BatchPolicy.puzzleCount`）时，自动下载下一块并导入：启动选题前与每次开始新 batch 时各检查一次。
+- 下载失败（断网/超时/坏数据/404）静默跳过，选题回退到既有链条（未尝试不足 → 全库随机）；404 表示块未发布，本次会话不再重试。
+- 导入按 puzzleId 去重，重复下载同一块无副作用。
+- Settings 中展示当前块序号与已载入题目数。
+
+题目 JSON 由 `tools/export_puzzle_chunk.py` 从 `data/source/lichess_puzzles.sqlite`
+随机抽样生成（可复现，按 `exported_puzzles` 表标记避免重复导出）。
 
 ## 1. Rating
 
@@ -129,6 +138,7 @@ SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、历
 UserDefaults
   ├ dailytactics.libraryImported → 题库是否已一次性导入（首次启动 gate）
   └ dailytactics.userRating      → 当前 Rating
+  └ dailytactics.puzzleSequence → 当前已载入的题库块序号
   └ dailytactics.difficultyMode  → 新 batch 的难度模式
   └ batchStartTime                → 当前 batch 开始时间
   └ activeBatchPuzzleIDs          → 当前 batch 的固定题目顺序

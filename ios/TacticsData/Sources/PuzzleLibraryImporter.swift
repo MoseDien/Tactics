@@ -13,7 +13,7 @@ public final class PuzzleLibraryImporter: LibraryImporting {
         self.source = source
     }
 
-    /// Bulk-import every bundled tier into SwiftData, reporting combined
+    /// Bulk-import the bundled chunk into SwiftData, reporting
     /// progress in `0...1`. Existing puzzle ids are skipped, so the call is
     /// idempotent and safe to re-run.
     ///
@@ -25,19 +25,19 @@ public final class PuzzleLibraryImporter: LibraryImporting {
     @discardableResult
     public func importAllBundled(progress: @escaping @Sendable (Double) -> Void) async -> Int {
         let source = self.source
-        let tiers: [[Puzzle]] = await Task.detached(priority: .userInitiated) {
-            BundledPuzzleSource.tierLevels.compactMap { source.decodeTier($0) }
+        let chunks: [[Puzzle]] = await Task.detached(priority: .userInitiated) {
+            [source.decodeBundledChunk()].compactMap { $0 }
         }.value
 
-        let failedTiers = BundledPuzzleSource.tierLevels.count - tiers.count
-        let total = tiers.reduce(0) { $0 + $1.count }
-        guard total > 0 else { return max(failedTiers, 1) }
+        let failedChunks = 1 - chunks.count
+        let total = chunks.reduce(0) { $0 + $1.count }
+        guard total > 0 else { return max(failedChunks, 1) }
 
         let existingIDs = Set((try? context.fetch(FetchDescriptor<PuzzleRecord>()).map(\.puzzleId)) ?? [])
         var done = 0
-        for puzzles in tiers {
+        for puzzles in chunks {
             for puzzle in puzzles {
-                if Task.isCancelled { return failedTiers }
+                if Task.isCancelled { return failedChunks }
                 if !existingIDs.contains(puzzle.id) {
                     context.insert(PuzzleRecord(puzzle: puzzle))
                 }
@@ -49,7 +49,7 @@ public final class PuzzleLibraryImporter: LibraryImporting {
                 }
             }
         }
-        return failedTiers
+        return failedChunks
     }
 }
 

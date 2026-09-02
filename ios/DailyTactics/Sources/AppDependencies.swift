@@ -15,6 +15,8 @@ final class AppDependencies {
     let difficulty: DifficultyModeStore
     let userRating: UserRatingStore
     let libraryState: LibraryStateStore
+    let provisioner: any PuzzleProvisioning
+    let sequenceStore: ChunkSequenceStore
     let pacing: TacticsPacing
 
     init(
@@ -24,6 +26,8 @@ final class AppDependencies {
         difficulty: DifficultyModeStore,
         userRating: UserRatingStore,
         libraryState: LibraryStateStore,
+        provisioner: any PuzzleProvisioning,
+        sequenceStore: ChunkSequenceStore,
         pacing: TacticsPacing
     ) {
         self.data = data
@@ -32,12 +36,15 @@ final class AppDependencies {
         self.difficulty = difficulty
         self.userRating = userRating
         self.libraryState = libraryState
+        self.provisioner = provisioner
+        self.sequenceStore = sequenceStore
         self.pacing = pacing
     }
 
     /// The real app: on-disk store, standard defaults, wall clock.
     static func live() -> AppDependencies {
         let repositories = SwiftDataRepositories(inMemory: false)
+        let sequenceStore = ChunkSequenceStore()
         return AppDependencies(
             data: repositories,
             importer: PuzzleLibraryImporter(context: repositories.context),
@@ -45,6 +52,12 @@ final class AppDependencies {
             difficulty: DifficultyModeStore(),
             userRating: UserRatingStore(),
             libraryState: LibraryStateStore(),
+            provisioner: LibraryProvisioner(
+                repositories: repositories,
+                sequenceStore: sequenceStore,
+                fetcher: RemotePuzzleFetcher()
+            ),
+            sequenceStore: sequenceStore,
             pacing: TacticsPacing()
         )
     }
@@ -53,6 +66,7 @@ final class AppDependencies {
     static func preview() -> AppDependencies {
         let defaults = UserDefaults(suiteName: "preview.\(UUID().uuidString)")!
         let repositories = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        let sequenceStore = ChunkSequenceStore(defaults: defaults)
         return AppDependencies(
             data: repositories,
             importer: PuzzleLibraryImporter(context: repositories.context),
@@ -60,6 +74,12 @@ final class AppDependencies {
             difficulty: DifficultyModeStore(defaults: defaults),
             userRating: UserRatingStore(defaults: defaults),
             libraryState: LibraryStateStore(defaults: defaults),
+            provisioner: LibraryProvisioner(
+                repositories: repositories,
+                sequenceStore: sequenceStore,
+                fetcher: NoopChunkFetcher()
+            ),
+            sequenceStore: sequenceStore,
             pacing: TacticsPacing()
         )
     }

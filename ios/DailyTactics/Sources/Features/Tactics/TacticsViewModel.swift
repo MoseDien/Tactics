@@ -39,6 +39,7 @@ final class TacticsViewModel {
     var progress: (any PuzzleDataRepositories)?
     private weak var batchTracker: BatchTracker?
     private var difficultyStore: DifficultyModeStore?
+    private var provisioner: (any PuzzleProvisioning)?
     var pacing: TacticsPacing = TacticsPacing()
     private let ratingStore: UserRatingStore
     private let ratingCalculator = PuzzleRatingCalculator()
@@ -86,6 +87,7 @@ final class TacticsViewModel {
         self.init(dataset: round, progress: data, ratingStore: dependencies.userRating, dailyPuzzleCount: dailyPuzzleCount, mode: mode)
         self.batchTracker = dependencies.batch
         self.difficultyStore = dependencies.difficulty
+        self.provisioner = dependencies.provisioner
         self.pacing = dependencies.pacing
     }
 
@@ -245,7 +247,12 @@ final class TacticsViewModel {
         }
         batchCooldownMessage = nil
         mode = .play
-        loadNextRound()
+        // Top up the library before selecting, in case the unattempted pool
+        // can't fill a batch; then reload on the main actor as before.
+        Task { [provisioner] in
+            _ = await provisioner?.ensureBatchAvailable(minimum: dailyPuzzleCount)
+            loadNextRound()
+        }
     }
 
     /// Start the next round. This is the only round boundary: in database-backed
