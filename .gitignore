@@ -16,7 +16,7 @@ xcuserdata/
 # Local datasets and generated exports.
 data/source/
 data/exports/
-exported_puzzles/
+# exported_puzzles/
 *.sqlite-shm
 *.sqlite-wal
 
