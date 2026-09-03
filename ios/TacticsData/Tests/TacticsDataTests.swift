@@ -5,42 +5,29 @@ import TacticsData
 @testable import TacticsData
 
 final class TacticsDataTests: XCTestCase {
-    func testUnderpromotionPuzzlesSolveWithChosenPromotionPiece() throws {
-        // Bundled puzzles that expect an under-promotion (o8GIU: rook,
-        // LnGZ6: knight). They were unsolvable when the UI forced queen.
-        let expectations: [(file: String, id: String)] = [("1000", "o8GIU"), ("1100", "LnGZ6")]
-        for spec in expectations {
-            guard let url = Bundle.main.url(forResource: spec.file, withExtension: "json"),
-                  let data = try? Data(contentsOf: url),
-                  let all = try? JSONDecoder().decode([ImportTestPuzzle].self, from: data),
-                  let raw = all.first(where: { $0.id == spec.id })
-            else { continue } // resource absent in some test hosts
+    /// A promotion puzzle from the bundled chunk: the expected user move
+    /// carries a promotion suffix, and a different promotion piece of the same
+    /// pawn must not match the line (the regression the picker fixed).
+    func testPromotionPuzzleRequiresExactPromotionPiece() throws {
+        let chunk = try XCTUnwrap(BundledPuzzleSource.bundled.decodeBundledChunk())
+        // fEIaZ expects d7d8q (queen promotion) as the final user move.
+        let puzzle = try XCTUnwrap(chunk.first { $0.id == "fEIaZ" && $0.moves.contains("d7d8q") },
+                                   "bundled chunk must contain the fEIaZ promotion puzzle")
+        var session = try PuzzleSession(puzzle: puzzle)
+        try session.applyOpponentMove()
+        try session.submitUserMove(ChessMove(uci: "d6d7")!)
+        try session.applyOpponentMove()
 
-            let puzzle = Puzzle(id: raw.id, fen: raw.fen, moves: raw.moves, rating: raw.rating, themes: [])
-            var session = try PuzzleSession(puzzle: puzzle)
-            try session.applyOpponentMove()
-
-            // The expected move carries the under-promotion suffix; submitting
-            // the exact move must be accepted (not .incorrectMove).
-            let expected = try XCTUnwrap(session.expectedMove)
-            XCTAssertNotNil(expected.promotion, "expected move \(expected.uci) must carry a promotion suffix")
-            try session.submitUserMove(expected)
-            XCTAssertNotEqual(session.state, .incorrectMove, "under-promotion \(expected.uci) must be accepted")
-
-            // A queen promotion of the same pawn must NOT match the expected
-            // line — this is the exact regression the picker fixes.
-            if let queenMove = ChessMove(uci: expected.uci.dropLast().appending("q").description) {
-                XCTAssertNotEqual(queenMove, expected, "queen variant must differ from an under-promotion line")
-            }
-        }
+        let expected = try XCTUnwrap(session.expectedMove)
+        XCTAssertEqual(expected.uci, "d7d8q")
+        XCTAssertNotNil(expected.promotion)
+        // The rook promotion of the same pawn must NOT equal the expected line.
+        XCTAssertNotEqual(ChessMove(uci: "d7d8r")!, expected)
+        // Submitting the exact expected promotion solves the line.
+        try session.submitUserMove(expected)
+        XCTAssertEqual(session.state, .solved)
     }
 
-    private struct ImportTestPuzzle: Decodable {
-        let id: String
-        let fen: String
-        let moves: [String]
-        let rating: Int?
-    }
     func testAllBundledPuzzlesReplayThroughSession() throws {
         let chunk = try XCTUnwrap(BundledPuzzleSource.bundled.decodeBundledChunk(),
                                   "the bundled chunk must decode from the framework bundle")
@@ -131,7 +118,7 @@ final class TacticsDataTests: XCTestCase {
         let importer = PuzzleLibraryImporter(context: store.context)
 
         let failures = await importer.importAllBundled { _ in }
-        XCTAssertEqual(failures, 0, "every bundled tier must decode from the framework bundle")
+        XCTAssertEqual(failures, 0, "the bundled chunk must decode from the framework bundle")
         let firstCount = store.allPuzzles().count
         XCTAssertEqual(firstCount, 1_000)
 

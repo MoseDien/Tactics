@@ -48,6 +48,9 @@ public protocol PuzzleLibraryRepository: AnyObject {
 public protocol PuzzleProgressRepository: AnyObject {
     func markCompleted(_ puzzleId: String)
     func markAttempted(_ puzzleId: String)
+    /// Bulk sibling: inserts progress rows for every id not already attempted,
+    /// in one fetch and one save.
+    func markAttempted(_ puzzleIds: [String])
     func markFailed(_ puzzleId: String)
     func hasAttempted(_ puzzleId: String) -> Bool
     func isCompleted(_ puzzleId: String) -> Bool
@@ -86,7 +89,7 @@ public protocol BatchStateRepository: AnyObject {
 /// First-launch bulk import of the bundled library.
 @MainActor
 public protocol LibraryImporting: AnyObject {
-    /// Returns the number of tiers that failed to decode (0 = success).
+    /// Returns the number of chunks that failed to decode (0 = success).
     func importAllBundled(progress: @escaping @Sendable (Double) -> Void) async -> Int
 }
 

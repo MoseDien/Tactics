@@ -69,6 +69,14 @@ public final class ChunkSequenceStore {
     public func markNoMoreChunks() {
         noMoreChunks = true
     }
+
+    /// Forget the current sequence so the next provision fetches from chunk 1
+    /// again (ids dedupe, so this is harmless). Exposed for the Settings
+    /// debug section and tests.
+    public func reset() {
+        defaults.removeObject(forKey: key)
+        noMoreChunks = false
+    }
 }
 
 /// Offline stand-in used by previews: reports "no more chunks" without any

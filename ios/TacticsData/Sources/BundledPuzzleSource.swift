@@ -5,9 +5,9 @@ import PuzzleKit
 /// type keeps the app from referencing it directly (the app target synthesizes
 /// its own `Bundle.module`) and lets tests point at any bundle.
 public struct BundledPuzzleSource: Sendable {
-    public let bundle: Bundle
+    let bundle: Bundle
 
-    public init(bundle: Bundle) {
+    init(bundle: Bundle) {
         self.bundle = bundle
     }
 
@@ -16,16 +16,11 @@ public struct BundledPuzzleSource: Sendable {
 
     /// The chunk shipped inside the app (`puzzle-0000.json`); further chunks
     /// arrive over the network.
-    public static let bundledChunkName = "puzzle-0000"
+    static let bundledChunkName = "puzzle-0000"
 
     /// Decodes the bundled chunk, or nil when the file is missing or malformed.
     public func decodeBundledChunk() -> [Puzzle]? {
-        decodeChunk(BundledPuzzleSource.bundledChunkName)
-    }
-
-    /// Decodes any chunk file (`puzzle-NNNN`) from this bundle.
-    public func decodeChunk(_ name: String) -> [Puzzle]? {
-        guard let url = bundle.url(forResource: name, withExtension: "json"),
+        guard let url = bundle.url(forResource: BundledPuzzleSource.bundledChunkName, withExtension: "json"),
               let data = try? Data(contentsOf: url)
         else { return nil }
         return Self.decode(data)

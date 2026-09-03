@@ -91,8 +91,7 @@ public final class SwiftDataRepositories: PuzzleDataRepositories {
         return Set(((try? context.fetch(descriptor)) ?? []).map(\.puzzleId))
     }
 
-    /// Drops the cached library so newly inserted rows become visible. Called
-    /// by the provisioner after a chunk import.
+    /// Drops the cached library so newly inserted rows become visible.
     public func invalidateLibraryCache() {
         cachedLibrary = nil
     }
@@ -118,11 +117,14 @@ public final class SwiftDataRepositories: PuzzleDataRepositories {
     }
 
     public func markAttempted(_ puzzleId: String) {
-        let descriptor = FetchDescriptor<PuzzleProgress>(predicate: #Predicate { $0.puzzleId == puzzleId })
-        if let existing = try? context.fetch(descriptor).first {
-            existing.isAttempted = true
-        } else {
-            let progress = PuzzleProgress(puzzleId: puzzleId)
+        markAttempted([puzzleId])
+    }
+
+    public func markAttempted(_ puzzleIds: [String]) {
+        guard !puzzleIds.isEmpty else { return }
+        let existing = Set(((try? context.fetch(FetchDescriptor<PuzzleProgress>())) ?? []).map(\.puzzleId))
+        for id in puzzleIds where !existing.contains(id) {
+            let progress = PuzzleProgress(puzzleId: id)
             progress.isAttempted = true
             context.insert(progress)
         }

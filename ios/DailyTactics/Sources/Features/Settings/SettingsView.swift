@@ -12,6 +12,9 @@ struct SettingsView: View {
     @State private var snapshots: [RatingSample] = []
     @State private var libraryChunk = 0
     @State private var libraryCount = 0
+    #if DEBUG
+    @State private var debugNotice: String?
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -40,6 +43,22 @@ struct SettingsView: View {
                         libraryChunk, libraryCount
                     ))
                 }
+
+                #if DEBUG
+                Section {
+                    Button(String(localized: "debug.drain_pool")) {
+                        drainUntriedPool()
+                    }
+                    Button(String(localized: "debug.reset_sequence")) {
+                        dependencies.sequenceStore.reset()
+                        libraryChunk = dependencies.sequenceStore.current
+                    }
+                } header: {
+                    Text(String(localized: "debug.section"))
+                } footer: {
+                    Text(String(localized: "debug.footer"))
+                }
+                #endif
             }
             .navigationTitle(String(localized: "settings.title"))
             .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +75,16 @@ struct SettingsView: View {
                     Button(String(localized: "common.done")) { dismiss() }
                 }
             }
+            #if DEBUG
+            .alert(
+                String(localized: "debug.notice_title"),
+                isPresented: Binding(get: { debugNotice != nil }, set: { if !$0 { debugNotice = nil } })
+            ) {
+                Button(String(localized: "common.done"), role: .cancel) { }
+            } message: {
+                Text(debugNotice ?? "")
+            }
+            #endif
             .alert(String(localized: "settings.how_to_play"), isPresented: $showingHowToPlay) {
                 Button(String(localized: "common.got_it"), role: .cancel) { }
             } message: {
@@ -69,6 +98,19 @@ struct SettingsView: View {
             }
         }
     }
+
+    #if DEBUG
+    /// Marks every library puzzle as attempted so the untried pool drops to
+    /// zero; the next batch boundary then exercises the real download path.
+    /// Note: this freezes rating updates for the drained library (no puzzle
+    /// can be a first attempt anymore) — play still works via selection
+    /// fallbacks. Reset by reinstalling or waiting for new chunks.
+    private func drainUntriedPool() {
+        let ids = dependencies.data.allPuzzles().map(\.id)
+        dependencies.data.markAttempted(ids)
+        debugNotice = String(format: NSLocalizedString("debug.drained", comment: "Pool drained notice"), ids.count)
+    }
+    #endif
 
     // MARK: - Rating trend
 

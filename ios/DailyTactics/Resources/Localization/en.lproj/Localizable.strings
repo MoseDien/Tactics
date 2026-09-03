@@ -74,3 +74,11 @@
 "piece.pawn.name" = "pawn";
 /* results */
 "results.summary" = "Results: %ld correct, %ld wrong";
+
+/* debug (DEBUG builds only) */
+"debug.section" = "Debug tools";
+"debug.drain_pool" = "Drain untried pool";
+"debug.reset_sequence" = "Reset chunk sequence";
+"debug.footer" = "Drain marks every puzzle attempted so the next batch triggers a real chunk download. Reset forgets the chunk sequence.";
+"debug.drained" = "Marked %ld puzzles attempted. Start a new batch to trigger the download.\nNote: rating updates stay frozen for these puzzles until new chunks arrive.";
+"debug.notice_title" = "Pool drained";

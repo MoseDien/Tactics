@@ -2,7 +2,6 @@ import Foundation
 import PuzzleKit
 import ChessCore
 import Observation
-import PuzzleKit
 import TacticsData
 
 enum TacticsFeedbackState: Equatable {
@@ -22,7 +21,6 @@ enum TacticsMode { case play, reviewBatch }
 @MainActor
 @Observable
 final class TacticsViewModel {
-    private var dataset: [Puzzle]
     /// Queries SwiftData at each batch boundary.
     private let dailyPuzzleCount: Int
     private(set) var mode: TacticsMode
@@ -92,9 +90,7 @@ final class TacticsViewModel {
     }
 
     init(dataset: [Puzzle], progress: (any PuzzleDataRepositories)? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
-        let source = dataset.isEmpty ? Puzzle.samples : dataset
-        let batch = Self.pickRandomBatch(from: source, count: dailyPuzzleCount)
-        self.dataset = source
+        let batch = dataset.isEmpty ? Puzzle.samples : dataset
         self.dailyPuzzleCount = dailyPuzzleCount
         self.mode = mode
         self.progress = progress
@@ -204,7 +200,7 @@ final class TacticsViewModel {
     var canUpdateRating: Bool { mode == .play }
     var canInteractWithPuzzle: Bool { !inReview && (state == .waitingForMove || state == .incorrectMove) }
 
-    /// The current puzzle's Lichess difficulty rating, if the dataset provides it.
+    /// The current puzzle's Lichess difficulty rating, if the data provides it.
     var currentPuzzleRating: Int? {
         puzzles.indices.contains(currentIndex) ? puzzles[currentIndex].rating : nil
     }
@@ -253,13 +249,6 @@ final class TacticsViewModel {
             _ = await provisioner?.ensureBatchAvailable(minimum: dailyPuzzleCount)
             loadNextRound()
         }
-    }
-
-    /// Start the next round. This is the only round boundary: in database-backed
-    /// (training) mode it queries the store for 5 random unattempted puzzles;
-    /// The round cursor always resets to 0.
-    func restartBatch() {
-        startNextBatch()
     }
 
     private func loadNextRound() {
@@ -353,10 +342,6 @@ final class TacticsViewModel {
         pendingPromotion = nil
         selectedSquare = nil
         attemptMove(from: pending.from, to: pending.to, promotion: kind)
-    }
-
-    private static func pickRandomBatch(from dataset: [Puzzle], count: Int = 5) -> [Puzzle] {
-        Array(dataset.shuffled().prefix(min(count, dataset.count)))
     }
 
     private func loadPuzzle(at index: Int) {

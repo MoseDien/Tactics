@@ -62,7 +62,7 @@
 - [x] `ios/` 下 Tuist 生成的 `.xcodeproj`/`.xcworkspace` 已从 git 删除;`.gitignore` 补 `*.xcodeproj`/`*.xcworkspace`/`xcuserdata`/`*.tuist-generated` 规则。
 - [x] Project.swift 补 `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION`;App 图标压平 alpha 通道(App Store 校验要求);`.DS_Store` 清理且被 ignore;`Resources/.gitkeep` 删除。
 - [x] 死代码清理:`reviewPuzzle` sheet、`restart()`、`attachProgress()`、注释掉的 `.font`/`.animation` 残留;`Dictionary(uniqueKeysWithValues:)` 两处改为首现获胜的防崩写法。
-- [ ] `PuzzleLibraryImporter.reset/resetProgress`、`LibraryStateStore.isImported/markImported` 无调用方 — 保留(见「仍开放」)。
+- [x] `PuzzleLibraryImporter.reset/resetProgress`、`LibraryStateStore.isImported/markImported` 无调用方 — 已删除(2026-09-03 清理);`LibraryStateStore` 收敛为仅含 `importedKey` 的枚举。
 
 ## 架构整改(2026-09-01 登记,2026-09-02 完成)
 
@@ -87,6 +87,28 @@
 - [x] 触发点:启动选题前(`TacticsView.task`)与新 batch(`startNextBatch`)各一次;Settings 展示块序号/题目数。
 - [x] 测试 +6(FakeChunkFetcher:拉取/缓存失效/跳过/404 闩锁/错误吞掉/去重、序号单调);61 全绿;真实网络冒烟通过。
 
+## 下载功能测试方法与代码清理(2026-09-03)
+
+**手动测试下载的路径**(Debug 构建生效,Settings → 调试工具):
+1. 「清空未尝试题池」:把当前库所有题标记为已尝试(一次批量写入)→ 未尝试池归零
+2. 回主界面等 batch 冷却结束(Debug 5 分钟),点「下一组题目」→ provisioner 发现池不足 → 真实请求 `puzzle-0001.json` → 导入 → 选题包含新题
+3. Settings 的「题库」行确认序号 +1、题目数 +1000
+4. 「重置数据块序号」可将序号归零重测(id 去重使重复下载无害)
+注意事项(已写入 debug 文案):排干后这些题不再是"首次尝试",Rating 在新数据块到来前不会变化。
+
+**清理与 simplify 审查**(4 个并行 agent:复用/简化/效率/层次):
+- [x] 批量 `markAttempted(_ ids:)` 下沉到 repository:排干从 ~1000 次 fetch+save(O(n²) 扫描)降为 1 fetch + 1 save;`drainUntriedPool` 收为一行调用
+- [x] 删除排干里的无效缓存失效与全库重取(计数用 `ids.count`)
+- [x] `invalidateLibraryCache()` 从协议撤回具体类(只为 debug 视图提升到端口是错误层次)
+- [x] 删除死的升变回归测试(tier JSON 已不存在,静默 vacuous)→ 用内置块真实升变题 `fEIaZ` 重建为 `testPromotionPuzzleRequiresExactPromotionPiece`;删 `ImportTestPuzzle` DTO
+- [x] importer 单块化:去掉单元素数组嵌套循环,失败返回语义改为 0/1
+- [x] VM 删 `pickRandomBatch`(二次 shuffle)与 `dataset` 死存储;importer/VM/协议注释里 "tiers" 措辞全部更正;`LibraryLoadingView` 文档注释同步
+- [x] `BundledPuzzleSource` public 面收窄到实际消费;`ChunkSequenceStore.reset()` 注释与编译现实对齐
+- [x] alert 改用专用 `debug.notice_title`(不再复用 Section 标题)
+- 跳过:`#if DEBUG` 四处分散(Swift 结构所迫,合并反而加间接层)、`Binding(get:set:)` 驱动 alert(已是 optional→bool 的标准写法)
+
+61 测试全绿。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。
@@ -95,7 +117,7 @@
 - **iPad 设备族**:`Project.swift` 的 `.iOS` destination 包含 iPad,但布局按 iPhone 设计。待产品决定是否收窄为 `TARGETED_DEVICE_FAMILY = 1` 或做 iPad 布局。
 - **SwiftData schema 迁移**:无 `VersionedSchema`/`SchemaMigrationPlan`。当前 schema 尚未发布(1.0 未上架),首次发布前若改 model 需补迁移计划。
 - **`PuzzleProgress.puzzleId` 无 `.unique` 约束**:加约束需要迁移;在发布前补上最合适(当前 fetch-then-insert 模式实际防止了重复)。
-- **`rating_puzzles.json`(100 题)仍捆绑但无代码引用**:疑似历史遗留的"Rating 评估"功能数据。删除需确认无回滚计划。
+- ~~`rating_puzzles.json`~~ 已删除(2026-09-03 清理,确认无代码引用)。
 
 ---
 
