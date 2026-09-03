@@ -82,3 +82,12 @@
 "debug.footer" = "Drain marks every puzzle attempted so the next batch triggers a real chunk download. Reset forgets the chunk sequence.";
 "debug.drained" = "Marked %ld puzzles attempted. Start a new batch to trigger the download.\nNote: rating updates stay frozen for these puzzles until new chunks arrive.";
 "debug.notice_title" = "Pool drained";
+"debug.download_now" = "Download next chunk now";
+"debug.download_added" = "Imported %ld puzzles from the next chunk.";
+"debug.download_not_published" = "The next chunk isn't published yet (404).";
+"debug.download_failed" = "Download failed (offline or bad data). Nothing changed.";
+"debug.download_skipped" = "Skipped — the pool already has enough puzzles.";
+"debug.reset_all" = "Reset to initial state";
+"debug.reset_all_confirm_title" = "Reset everything?";
+"debug.reset_all_confirm" = "Deletes all puzzles, progress, history, rating, and settings. The app returns to first launch and re-imports the bundled chunk.";
+"common.cancel" = "Cancel";

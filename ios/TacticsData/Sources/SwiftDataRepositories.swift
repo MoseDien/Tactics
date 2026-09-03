@@ -22,7 +22,7 @@ public enum ModelContainerFactory {
             // The app is unreleased, so the correct recovery is a clean rebuild
             // of the store plus a re-import (the first-launch gate reset).
             destroyStore()
-            UserDefaults.standard.set(false, forKey: LibraryStateStore.importedKey)
+            UserDefaults.standard.set(false, forKey: AppPreferences.libraryImported)
             if let retry = try? ModelContainer(for: schema, configurations: [config]) {
                 return retry
             }
@@ -94,6 +94,19 @@ public final class SwiftDataRepositories: PuzzleDataRepositories {
     /// Drops the cached library so newly inserted rows become visible.
     public func invalidateLibraryCache() {
         cachedLibrary = nil
+    }
+
+    /// Deletes every row — downloaded chunks, progress, round history, and
+    /// rating snapshots. Safe while the container is live (unlike destroying
+    /// the store file); the bundled chunk is re-imported by the first-launch
+    /// gate afterwards.
+    public func deleteAllData() {
+        try? context.delete(model: PuzzleRecord.self)
+        try? context.delete(model: PuzzleProgress.self)
+        try? context.delete(model: RoundHistory.self)
+        try? context.delete(model: RatingSnapshot.self)
+        try? context.save()
+        invalidateLibraryCache()
     }
 
     // MARK: - PuzzleProgressRepository

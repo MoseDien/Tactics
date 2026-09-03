@@ -52,5 +52,5 @@ public final class PuzzleLibraryImporter: LibraryImporting {
 /// The first-launch import gate's UserDefaults key. Observed via
 /// `@AppStorage` so completing the import re-routes the root view.
 public enum LibraryStateStore {
-    public static let importedKey = "dailytactics.libraryImported"
+    public static let importedKey = AppPreferences.libraryImported
 }

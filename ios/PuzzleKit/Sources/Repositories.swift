@@ -74,9 +74,14 @@ public protocol RatingHistoryRepository: AnyObject {
 }
 
 /// Umbrella over the four data ports: one adapter object, one test fake.
+/// `deleteAllData` is the debug "back to first launch" primitive.
 @MainActor
 public protocol PuzzleDataRepositories: PuzzleLibraryRepository,
-    PuzzleProgressRepository, RoundHistoryRepository, RatingHistoryRepository {}
+    PuzzleProgressRepository, RoundHistoryRepository, RatingHistoryRepository {
+    /// Deletes every row across all four stores (library, progress, history,
+    /// rating snapshots).
+    func deleteAllData()
+}
 
 /// Persisted batch state (active batch identity + start time).
 @MainActor
@@ -102,13 +107,25 @@ public protocol PuzzleChunkFetching: AnyObject {
     func fetchChunk(_ sequence: Int) async throws -> [Puzzle]?
 }
 
+/// The outcome of one provisioning check, for UI feedback.
+public enum ProvisionOutcome: Sendable, Equatable {
+    /// The pool already had enough unattempted puzzles; nothing was fetched.
+    case skipped
+    /// `count` new puzzles were imported from the next chunk.
+    case added(count: Int)
+    /// The remote answered 404 — the next chunk isn't published. Latched for
+    /// the session.
+    case notPublished
+    /// The fetch failed (offline, timeout, malformed data). Selection
+    /// fallbacks keep the app playable.
+    case failed
+}
+
 /// Keeps the local library stocked: when fewer than `minimum` unattempted
 /// puzzles remain, the next chunk is fetched and imported. Failures are
-/// swallowed (offline, timeout, bad data) — the existing selection fallbacks
-/// still guarantee a playable batch.
+/// reported, not thrown — the existing selection fallbacks still guarantee a
+/// playable batch.
 @MainActor
 public protocol PuzzleProvisioning: AnyObject {
-    /// Returns how many new puzzles were imported (0 when none were needed
-    /// or the fetch failed).
-    func ensureBatchAvailable(minimum: Int) async -> Int
+    func ensureBatchAvailable(minimum: Int) async -> ProvisionOutcome
 }

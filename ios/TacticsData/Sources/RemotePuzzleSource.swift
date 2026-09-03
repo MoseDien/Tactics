@@ -46,7 +46,7 @@ public final class RemotePuzzleFetcher: PuzzleChunkFetching {
 /// latch so a 404 is not retried until the next launch.
 @MainActor
 public final class ChunkSequenceStore {
-    private let key = "dailytactics.puzzleSequence"
+    private let key = AppPreferences.puzzleSequence
     private let defaults: UserDefaults
     /// Session-only: set when the remote answers 404 for the next chunk.
     public private(set) var noMoreChunks = false

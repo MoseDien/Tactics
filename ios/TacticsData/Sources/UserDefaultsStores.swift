@@ -1,12 +1,37 @@
 import Foundation
 import PuzzleKit
 
+/// Every UserDefaults key the app writes, in one place so the debug reset
+/// can wipe them all and so the stores can't drift from the list.
+public enum AppPreferences {
+    public static let userRating = "dailytactics.userRating"
+    public static let difficultyMode = "dailytactics.difficultyMode"
+    public static let batchStartTime = "dailytactics.batchStartTime"
+    public static let activeBatchPuzzleIDs = "dailytactics.activeBatchPuzzleIDs"
+    public static let puzzleSequence = "dailytactics.puzzleSequence"
+    public static let libraryImported = "dailytactics.libraryImported"
+
+    /// All of the above.
+    public static let allKeys: [String] = [
+        userRating, difficultyMode, batchStartTime, activeBatchPuzzleIDs,
+        puzzleSequence, libraryImported,
+    ]
+
+    /// Debug reset: removes every stored preference (rating, batch window,
+    /// difficulty, chunk sequence, import gate included).
+    public static func wipeAll(defaults: UserDefaults = .standard) {
+        for key in allKeys {
+            defaults.removeObject(forKey: key)
+        }
+    }
+}
+
 /// The user's current rating: a single scalar persisted in UserDefaults.
 /// Snapshots for the trend chart live in SwiftData (`RatingSnapshot`).
 @MainActor
 public final class UserRatingStore {
     private let defaults: UserDefaults
-    private let key = "dailytactics.userRating"
+    private let key = AppPreferences.userRating
     private let initialRating = 1500
 
     public init(defaults: UserDefaults = .standard) {
@@ -38,7 +63,7 @@ public final class UserRatingStore {
 /// (injectable defaults) — no global statics.
 @MainActor
 public final class DifficultyModeStore {
-    private let key = "dailytactics.difficultyMode"
+    private let key = AppPreferences.difficultyMode
     private let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {
@@ -59,8 +84,8 @@ public final class DifficultyModeStore {
 /// Persisted batch state: the active batch's start time and fixed puzzle ids.
 @MainActor
 public final class UserDefaultsBatchStateStore: BatchStateRepository {
-    private let startKey = "dailytactics.batchStartTime"
-    private let puzzleIDsKey = "dailytactics.activeBatchPuzzleIDs"
+    private let startKey = AppPreferences.batchStartTime
+    private let puzzleIDsKey = AppPreferences.activeBatchPuzzleIDs
     private let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {

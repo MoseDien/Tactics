@@ -21,13 +21,13 @@ public final class LibraryProvisioner: PuzzleProvisioning {
         self.fetcher = fetcher
     }
 
-    public func ensureBatchAvailable(minimum: Int) async -> Int {
+    public func ensureBatchAvailable(minimum: Int) async -> ProvisionOutcome {
         let library = repositories.allPuzzles()
         let attempted = repositories.attemptedIDs()
         let unattempted = library.count - attempted.count
-        if unattempted >= minimum { return 0 }
+        if unattempted >= minimum { return .skipped }
 
-        if sequenceStore.noMoreChunks { return 0 }
+        if sequenceStore.noMoreChunks { return .notPublished }
 
         let next = sequenceStore.current + 1
         let chunk: [Puzzle]
@@ -35,12 +35,12 @@ public final class LibraryProvisioner: PuzzleProvisioning {
             guard let fetched = try await fetcher.fetchChunk(next) else {
                 // Not published yet; don't ask again this session.
                 sequenceStore.markNoMoreChunks()
-                return 0
+                return .notPublished
             }
             chunk = fetched
         } catch {
             // Offline / timeout / malformed: selection falls back as before.
-            return 0
+            return .failed
         }
 
         let existingIDs = Set(library.map(\.id))
@@ -52,6 +52,6 @@ public final class LibraryProvisioner: PuzzleProvisioning {
         try? repositories.context.save()
         sequenceStore.advance(to: next)
         repositories.invalidateLibraryCache()
-        return inserted
+        return .added(count: inserted)
     }
 }

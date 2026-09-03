@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var libraryCount = 0
     #if DEBUG
     @State private var debugNotice: String?
+    @State private var showingResetAllConfirm = false
     #endif
 
     var body: some View {
@@ -53,6 +54,12 @@ struct SettingsView: View {
                         dependencies.sequenceStore.reset()
                         libraryChunk = dependencies.sequenceStore.current
                     }
+                    Button(String(localized: "debug.download_now")) {
+                        Task { await downloadNextChunkNow() }
+                    }
+                    Button(String(localized: "debug.reset_all"), role: .destructive) {
+                        showingResetAllConfirm = true
+                    }
                 } header: {
                     Text(String(localized: "debug.section"))
                 } footer: {
@@ -77,6 +84,17 @@ struct SettingsView: View {
             }
             #if DEBUG
             .alert(
+                String(localized: "debug.reset_all_confirm_title"),
+                isPresented: $showingResetAllConfirm
+            ) {
+                Button(String(localized: "debug.reset_all"), role: .destructive) {
+                    resetToInitialState()
+                }
+                Button(String(localized: "common.cancel"), role: .cancel) { }
+            } message: {
+                Text(String(localized: "debug.reset_all_confirm"))
+            }
+            .alert(
                 String(localized: "debug.notice_title"),
                 isPresented: Binding(get: { debugNotice != nil }, set: { if !$0 { debugNotice = nil } })
             ) {
@@ -100,6 +118,33 @@ struct SettingsView: View {
     }
 
     #if DEBUG
+    /// Forces the next chunk download regardless of pool size, then reports
+    /// the outcome. `minimum: .max` bypasses the "pool is sufficient" check.
+    private func downloadNextChunkNow() async {
+        // Wipe the 404 latch so a later "not published" can be re-tested.
+        let outcome = await dependencies.provisioner.ensureBatchAvailable(minimum: .max)
+        libraryChunk = dependencies.sequenceStore.current
+        libraryCount = dependencies.data.allPuzzles().count
+        switch outcome {
+        case .added(let count):
+            debugNotice = String(format: NSLocalizedString("debug.download_added", comment: "Chunk imported notice"), count)
+        case .notPublished:
+            debugNotice = String(localized: "debug.download_not_published")
+        case .failed:
+            debugNotice = String(localized: "debug.download_failed")
+        case .skipped:
+            debugNotice = String(localized: "debug.download_skipped")
+        }
+    }
+
+    /// Back to first-launch state: every SwiftData row and every stored
+    /// preference gone. Clearing the import gate re-routes RootView to the
+    /// loading screen, which re-imports the bundled chunk.
+    private func resetToInitialState() {
+        dependencies.data.deleteAllData()
+        AppPreferences.wipeAll()
+    }
+
     /// Marks every library puzzle as attempted so the untried pool drops to
     /// zero; the next batch boundary then exercises the real download path.
     /// Note: this freezes rating updates for the drained library (no puzzle
