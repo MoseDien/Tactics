@@ -50,13 +50,6 @@ struct SettingsView: View {
                     Button(String(localized: "debug.drain_pool")) {
                         drainUntriedPool()
                     }
-                    Button(String(localized: "debug.reset_sequence")) {
-                        dependencies.sequenceStore.reset()
-                        libraryChunk = dependencies.sequenceStore.current
-                    }
-                    Button(String(localized: "debug.download_now")) {
-                        Task { await downloadNextChunkNow() }
-                    }
                     Button(String(localized: "debug.reset_all"), role: .destructive) {
                         showingResetAllConfirm = true
                     }
@@ -118,25 +111,6 @@ struct SettingsView: View {
     }
 
     #if DEBUG
-    /// Forces the next chunk download regardless of pool size, then reports
-    /// the outcome. `minimum: .max` bypasses the "pool is sufficient" check.
-    private func downloadNextChunkNow() async {
-        // Wipe the 404 latch so a later "not published" can be re-tested.
-        let outcome = await dependencies.provisioner.ensureBatchAvailable(minimum: .max)
-        libraryChunk = dependencies.sequenceStore.current
-        libraryCount = dependencies.data.allPuzzles().count
-        switch outcome {
-        case .added(let count):
-            debugNotice = String(format: NSLocalizedString("debug.download_added", comment: "Chunk imported notice"), count)
-        case .notPublished:
-            debugNotice = String(localized: "debug.download_not_published")
-        case .failed:
-            debugNotice = String(localized: "debug.download_failed")
-        case .skipped:
-            debugNotice = String(localized: "debug.download_skipped")
-        }
-    }
-
     /// Back to first-launch state: every SwiftData row and every stored
     /// preference gone. Clearing the import gate re-routes RootView to the
     /// loading screen, which re-imports the bundled chunk.
