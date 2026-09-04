@@ -50,6 +50,7 @@ struct TacticsView: View {
                         hintMove: viewModel.hintMove,
                         lastMove: viewModel.lastMove,
                         isFlipped: viewModel.isBoardFlipped,
+                        previewMove: viewModel.attemptedMove,
                         onSelect: viewModel.select
                     )
                     .frame(width: min(viewport.size.width, max(280, viewport.size.height - 238)))
