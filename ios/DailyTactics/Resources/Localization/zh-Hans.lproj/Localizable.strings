@@ -68,6 +68,7 @@
 
 "debug.section" = "调试工具";
 "debug.piece_animation" = "棋子移动动画";
+"debug.setup_animation" = "棋盘载入动画";
 "debug.drain_pool" = "清空未尝试题池";
 "debug.footer" = "清空会把所有题目标记为已尝试,下一个 batch 会触发真实下载。";
 "debug.drained" = "已将 %ld 道题标记为已尝试。开新的一组即可触发下载。\n注意:这些题在新数据块到来前不再影响 Rating。";

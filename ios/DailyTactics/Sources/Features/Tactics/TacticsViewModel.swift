@@ -112,6 +112,7 @@ final class TacticsViewModel {
             session = (try? PuzzleSession(puzzle: Puzzle.samples[0])) ?? PuzzleSession.empty()
             errorMessage = String(localized: "tactics.error_load")
         }
+        boardGenerationValue += 1
         orientBoardToPlayer()
     }
 
@@ -169,6 +170,13 @@ final class TacticsViewModel {
         }
         return arrivals
     }
+
+    /// Increments on every puzzle load. The board bakes it into every piece id
+    /// so a load presents brand-new views (fade-in transition; no carried-over
+    /// views that could interpolate offsets across the load). Monotonic and
+    /// never cleared, so unlike a one-render signal it has no lifecycle.
+    internal var boardGenerationValue = 0
+    var boardGeneration: Int { boardGenerationValue }
 
     var state: PuzzleSessionState { session.state }
     var playerColor: PieceColor { session.userColor }

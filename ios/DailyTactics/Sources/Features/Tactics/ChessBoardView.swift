@@ -16,6 +16,13 @@ struct ChessBoardView: View {
     /// Whether pieces slide between squares. Off (debug toggle or Reduce
     /// Motion) renders every position change instantly.
     var movesAnimated: Bool = true
+    /// Whether a freshly presented board fades its pieces in (debug toggle).
+    var setupAnimated: Bool = true
+    /// Changes on every puzzle load. Baked into every piece id so a load
+    /// presents an entirely new set of views — insertion transitions apply,
+    /// and no carried-over piece can interpolate its offset across the load
+    /// (the "pieces fly across the board" defect).
+    var boardGeneration: Int = 0
     let onSelect: (Square) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -122,17 +129,18 @@ struct ChessBoardView: View {
         }
         .frame(width: side, height: side, alignment: .topLeading)
         .allowsHitTesting(false)
-        // The single animation declaration: a `position` change plays each
-        // arrival's slide through the transaction this modifier animates. An
-        // empty arrival map means no move is attached to this change — a
-        // puzzle load — and the transaction itself must not animate either:
-        // pieces carried over from the previous puzzle (same id, same square)
-        // are persistent views whose offsets would otherwise interpolate,
-        // flying across the board when the perspective flips. Board flips
-        // alone don't change `position`; Reduce Motion renders instantly.
+        // The single animation declaration. A move (non-empty arrival map)
+        // plays each arrival's slide. A puzzle load (empty arrival map, new
+        // generation) fades the fresh pieces in — the generation is baked
+        // into every id, so a load presents brand-new views whose insertion
+        // transition is the fade, and no carried-over piece exists to
+        // interpolate its offset across the load. Board flips don't change
+        // `position`; Reduce Motion renders everything instantly.
         .animation(
-            (slidesEnabled && !animatedArrival.isEmpty) ? moveAnimation : nil,
-            value: position
+            slidesEnabled && (!animatedArrival.isEmpty || setupFadeEnabled)
+                ? moveAnimation
+                : nil,
+            value: pieceIdentity
         )
     }
 
@@ -140,29 +148,46 @@ struct ChessBoardView: View {
         !reduceMotion && movesAnimated
     }
 
+    /// A load render that fades in: no move attached, and the debug toggle
+    /// allows the setup animation.
+    private var setupFadeEnabled: Bool {
+        setupAnimated && animatedArrival.isEmpty
+    }
+
+    /// What the animation modifier observes: the position together with the
+    /// generation, so both a move and a board load trigger exactly once.
+    private var pieceIdentity: String {
+        "\(position.count)#\(boardGeneration)#\(animatedArrival.isEmpty)"
+    }
+
     /// Pieces sorted by square notation for a stable z-order (dictionary
     /// iteration order would reshuffle the layering every move).
     private var piecePlacements: [(id: String, piece: Piece, square: Square)] {
         position
             .sorted { $0.key.notation < $1.key.notation }
-            .map { ($0.value.assetName + $0.key.notation, $0.value, $0.key) }
+            .map { ("\($0.value.assetName + $0.key.notation)#\(boardGeneration)", $0.value, $0.key) }
     }
 
-    /// An arriving piece slides in from its origin square; everything else
-    /// (loads, captures, selections) appears in place.
+    /// An arriving piece slides in from its origin square. A fresh board's
+    /// pieces (no arrival entry, load render) fade in. Everything else
+    /// (captures, selections) appears in place.
     private func arrivalTransition(
         for placement: (id: String, piece: Piece, square: Square),
         squareSide: CGFloat
     ) -> AnyTransition {
-        guard slidesEnabled, let origin = animatedArrival[placement.square] else {
-            return .identity
+        guard slidesEnabled else { return .identity }
+        if let origin = animatedArrival[placement.square] {
+            let from = offset(for: origin, squareSide: squareSide)
+            let to = offset(for: placement.square, squareSide: squareSide)
+            return .asymmetric(
+                insertion: .offset(CGSize(width: from.width - to.width, height: from.height - to.height)),
+                removal: .identity
+            )
         }
-        let from = offset(for: origin, squareSide: squareSide)
-        let to = offset(for: placement.square, squareSide: squareSide)
-        return .asymmetric(
-            insertion: .offset(CGSize(width: from.width - to.width, height: from.height - to.height)),
-            removal: .identity
-        )
+        if setupFadeEnabled {
+            return .opacity
+        }
+        return .identity
     }
 
     /// Top-left-origin offset for a square under the current perspective.

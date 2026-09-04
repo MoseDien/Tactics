@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var debugNotice: String?
     @State private var showingResetAllConfirm = false
     @State private var pieceAnimation = true
+    @State private var setupAnimation = true
     #endif
 
     var body: some View {
@@ -50,7 +51,11 @@ struct SettingsView: View {
                 Section {
                     Toggle(String(localized: "debug.piece_animation"), isOn: $pieceAnimation)
                         .onChange(of: pieceAnimation) { _, value in
-                            dependencies.pieceAnimation.set(value)
+                            dependencies.pieceAnimation.setMovesEnabled(value)
+                        }
+                    Toggle(String(localized: "debug.setup_animation"), isOn: $setupAnimation)
+                        .onChange(of: setupAnimation) { _, value in
+                            dependencies.pieceAnimation.setSetupEnabled(value)
                         }
                     Button(String(localized: "debug.drain_pool")) {
                         drainUntriedPool()
@@ -112,6 +117,7 @@ struct SettingsView: View {
                 libraryChunk = dependencies.sequenceStore.current
                 libraryCount = dependencies.data.allPuzzles().count
                 pieceAnimation = dependencies.pieceAnimation.isEnabled
+                setupAnimation = dependencies.pieceAnimation.isSetupEnabled
             }
         }
     }

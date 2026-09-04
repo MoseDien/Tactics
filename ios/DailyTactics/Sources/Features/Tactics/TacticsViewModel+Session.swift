@@ -9,6 +9,7 @@ extension TacticsViewModel {
     func loadPuzzle(at index: Int) {
         do {
             session = try PuzzleSession(puzzle: puzzles[index])
+            boardGenerationValue += 1
             currentPuzzleFinished = false
             selectedSquare = nil
             hintMove = nil
