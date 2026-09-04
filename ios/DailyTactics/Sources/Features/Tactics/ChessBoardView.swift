@@ -21,8 +21,9 @@ struct ChessBoardView: View {
     private let moveHighlight = Color(red: 0.76, green: 0.80, blue: 0.25)
     private let selectedHighlight = Color(red: 0.65, green: 0.69, blue: 0.10)
 
-    /// Piece-travel animation: ease-in-out (non-linear, no overshoot).
-    private let moveAnimation: Animation = .easeInOut(duration: 0.22)
+    /// Piece-travel animation: ease-out (non-linear, no overshoot, starts
+    /// moving immediately — an ease-in start reads as a stall at the origin).
+    private let moveAnimation: Animation = .easeOut(duration: 0.18)
 
     /// Ranks rendered top-to-bottom and files rendered left-to-right for the
     /// current perspective. The logical `Square` for each cell is unchanged, so
