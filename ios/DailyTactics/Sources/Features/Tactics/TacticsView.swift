@@ -53,7 +53,7 @@ struct TacticsView: View {
                         previewMove: viewModel.attemptedMove,
                         snapbackMove: viewModel.snapbackMove,
                         movesAnimated: dependencies.pieceAnimation.isEnabled,
-                        suppressSetupAnimation: viewModel.suppressSetupAnimation,
+                        suppressSetupAnimation: viewModel.isPresentingSetup,
                         onSelect: viewModel.select
                     )
                     .frame(width: min(viewport.size.width, max(280, viewport.size.height - 238)))

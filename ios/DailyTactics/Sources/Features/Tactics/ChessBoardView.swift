@@ -18,8 +18,10 @@ struct ChessBoardView: View {
     /// Whether pieces slide between squares. Off (debug toggle or Reduce
     /// Motion) renders every position change instantly.
     var movesAnimated: Bool = true
-    /// True while a just-loaded puzzle's opening move is landing: the setup
-    /// move renders in place so the board presents a ready position.
+    /// True in the render where a puzzle's opening move lands: the setup move
+    /// renders in place so the board presents a ready position. Derived from
+    /// the session by both call sites — never a stored flag (a flag cleared in
+    /// the same turn as the move would flip before the render sees it).
     var suppressSetupAnimation: Bool = false
     let onSelect: (Square) -> Void
 
