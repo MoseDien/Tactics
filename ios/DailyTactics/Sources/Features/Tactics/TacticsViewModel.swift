@@ -133,7 +133,7 @@ final class TacticsViewModel {
 
     /// Position shown on the board. While a wrong move is being demonstrated, the
     /// moved piece is shown on its target square; clearing `attemptedMove` slides
-    /// it back (see `snapbackMove`).
+    /// it back (see `animatedArrival`).
     var displayedPosition: [Square: Piece] {
         guard let attempt = attemptedMove, let piece = position[attempt.from] else {
             return position
@@ -144,13 +144,33 @@ final class TacticsViewModel {
         return preview
     }
 
+    /// The single source of truth for piece travel: for each square that just
+    /// gained a piece this render, the square it visually arrived from.
+    /// Covers committed moves, the wrong-move preview, its snap-back and the
+    /// castling rook. Empty when nothing should slide: puzzle loads (no move
+    /// attached — the board presents a ready position) and the opening move's
+    /// landing (part of the puzzle's initialization).
+    var animatedArrival: [Square: Square] {
+        if let attempt = attemptedMove {
+            // Wrong move being demonstrated: its piece slides to the target.
+            return [attempt.to: attempt.from]
+        }
+        if let snap = snapbackMove {
+            // The preview is reverting: the piece slides back to its origin.
+            return [snap.from: snap.to]
+        }
+        // The opening move landing is the puzzle presenting itself, not a
+        // move in play.
+        guard let move = session.lastMove, session.currentMoveIndex > 1 else { return [:] }
+        var arrivals: [Square: Square] = [move.to: move.from]
+        if let rook = session.castlingRookMove() {
+            arrivals[rook.to] = rook.from
+        }
+        return arrivals
+    }
+
     var state: PuzzleSessionState { session.state }
     var playerColor: PieceColor { session.userColor }
-
-    /// True exactly in the render where the puzzle's opening move lands
-    /// (index 0 → 1): the board shows the ready position with the setup move
-    /// already in place. Every later move animates normally.
-    var isPresentingSetup: Bool { session.currentMoveIndex == 1 }
 
     /// Test hook: the live session value.
     func sessionForTest() -> PuzzleSession { session }
@@ -380,13 +400,9 @@ final class TacticsViewModel {
 
     private func attemptMove(from origin: Square, to target: Square, promotion: PieceKind? = nil) {
         hintMove = nil
-        // `select` has already reverted any previous preview (setting the
-        // snapback); only set one here for the drag-drop path, which skips
-        // `select`. Cleared after the render so it can't hijack the next
-        // arrival's fly-in direction.
-        if snapbackMove == nil {
-            snapbackMove = attemptedMove
-        }
+        // A revert only animates the render it happens in; anything else that
+        // changes the board below retires the snapback first.
+        snapbackMove = nil
         var move = ChessMove(from: origin, to: target)
         if session.moveNeedsPromotion(move) {
             guard let promotion else {
@@ -427,11 +443,13 @@ final class TacticsViewModel {
             recordOutcome(.wrong, for: currentIndex)
             recordFailure()
             hadMistake = true
+            snapbackMove = nil
             attemptedMove = move
             let attempted = move
             Task {
                 try? await Task.sleep(for: pacing.wrongMoveDisplay)
                 guard !Task.isCancelled, attemptedMove == attempted else { return }
+                // Same render as the preview clears: the piece slides back.
                 snapbackMove = attempted
                 attemptedMove = nil
             }
@@ -447,6 +465,7 @@ final class TacticsViewModel {
     private func playOpponentMove() async {
         try? await Task.sleep(for: pacing.opponentReplyDelay)
         guard !Task.isCancelled else { return }
+        snapbackMove = nil
         do {
             try session.applyOpponentMove()
         } catch {

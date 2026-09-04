@@ -8,21 +8,14 @@ struct ChessBoardView: View {
     let hintMove: ChessMove?
     let lastMove: ChessMove?
     let isFlipped: Bool
-    /// A move being demonstrated but not committed (the wrong-move preview).
-    /// Its arriving piece slides in like a real move; when the preview clears,
-    /// the piece slides back to its origin.
-    var previewMove: ChessMove? = nil
-    /// The just-cleared preview move, supplied in the same render that reverts
-    /// the position, so the returning piece slides back instead of teleporting.
-    var snapbackMove: ChessMove? = nil
+    /// For each square that gained a piece in this render, the square that
+    /// piece visually arrived from (the view model derives it — committed
+    /// moves, wrong-move preview, snap-back, castling rook). Empty for puzzle
+    /// loads: the board presents a ready position.
+    var animatedArrival: [Square: Square] = [:]
     /// Whether pieces slide between squares. Off (debug toggle or Reduce
     /// Motion) renders every position change instantly.
     var movesAnimated: Bool = true
-    /// True in the render where a puzzle's opening move lands: the setup move
-    /// renders in place so the board presents a ready position. Derived from
-    /// the session by both call sites — never a stored flag (a flag cleared in
-    /// the same turn as the move would flip before the render sees it).
-    var suppressSetupAnimation: Bool = false
     let onSelect: (Square) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -110,8 +103,9 @@ struct ChessBoardView: View {
 
     /// One view per piece, offset-positioned. A move changes a piece's id
     /// (piece + square), so SwiftUI treats it as remove-at-origin +
-    /// insert-at-destination; the insertion transition makes the arriving
-    /// piece slide in from its origin square instead of popping in.
+    /// insert-at-destination; the insertion transition slides the arriving
+    /// piece in from the square `animatedArrival` names. Removals are identity
+    /// (captured pieces vanish; a stale slide-away would look wrong).
     private func pieceLayer(squareSide: CGFloat, side: CGFloat) -> some View {
         ZStack {
             ForEach(piecePlacements, id: \.id) { placement in
@@ -121,25 +115,22 @@ struct ChessBoardView: View {
                     .frame(width: squareSide * 0.88, height: squareSide * 0.88)
                     .frame(width: squareSide, height: squareSide)
                     .offset(offset(for: placement.square, squareSide: squareSide))
-                    .transition(transition(for: placement, squareSide: squareSide))
+                    .transition(arrivalTransition(for: placement, squareSide: squareSide))
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
         }
         .frame(width: side, height: side, alignment: .topLeading)
         .allowsHitTesting(false)
-        // The single animation declaration: a `position` change gives the
-        // structural insertions/removals an animated transaction, which plays
-        // each arrival's slide. A position change with no last move attached
-        // is a puzzle load: pieces that coincide with the previous puzzle's
-        // final position are persistent views whose offsets would otherwise
-        // interpolate — flying across the board when the perspective flips.
-        // Board flips alone don't change `position`, and Reduce Motion
-        // renders everything instantly.
-        .animation(
-            (reduceMotion || !movesAnimated || lastMove == nil) ? nil : moveAnimation,
-            value: position
-        )
+        // The single animation declaration: a `position` change plays each
+        // arrival's slide through the transaction this modifier animates.
+        // Board flips (`position` unchanged) and Reduce Motion render
+        // instantly; loads produce no arrivals and therefore no slides.
+        .animation(slidesEnabled ? moveAnimation : nil, value: position)
+    }
+
+    private var slidesEnabled: Bool {
+        !reduceMotion && movesAnimated
     }
 
     /// Pieces sorted by square notation for a stable z-order (dictionary
@@ -150,74 +141,21 @@ struct ChessBoardView: View {
             .map { ($0.value.assetName + $0.key.notation, $0.value, $0.key) }
     }
 
-    /// The move whose arriving piece `placement` renders, if any. The preview
-    /// outranks everything (it is what is being demonstrated right now). A
-    /// snapback render reverts a wrong-move preview, so only the returning
-    /// piece slides there — a captured piece re-appearing on that square must
-    /// not replay the opponent's stale lastMove as a fly-in. `lastMove` (and
-    /// the castling rook) only animate when no preview/snapback is in flight.
-    private func arrivalMove(for placement: (id: String, piece: Piece, square: Square)) -> ChessMove? {
-        if let preview = previewMove, preview.to == placement.square {
-            return preview
-        }
-        if let snap = snapbackMove {
-            return snap.from == placement.square
-                ? ChessMove(from: snap.to, to: snap.from)
-                : nil
-        }
-        if suppressSetupAnimation, lastMove?.to == placement.square {
-            // A freshly loaded puzzle presents a ready position: the setup
-            // move appears in place instead of sliding in.
-            return nil
-        }
-        return [lastMove, castlingRookMove()]
-            .compactMap { $0 }
-            .first { $0.to == placement.square }
-    }
-
-    /// Castling also relocates a rook; derive its move from the king's
-    /// two-file jump so the rook slides too. Only a king ever moves two files
-    /// sideways, so the guard has no false positives.
-    private func castlingRookMove() -> ChessMove? {
-        guard let move = lastMove,
-              position[move.to]?.kind == .king,
-              abs(move.to.file - move.from.file) == 2
-        else { return nil }
-        let rookFrom: Int
-        let rookTo: Int
-        if move.to.file > move.from.file {
-            rookFrom = 7; rookTo = 5
-        } else {
-            rookFrom = 0; rookTo = 3
-        }
-        // rookFrom/rookTo/rank are bounded 0..<8, so the failable inits succeed.
-        guard position[Square(file: rookTo, rank: move.to.rank)!]?.kind == .rook else { return nil }
-        return ChessMove(
-            from: Square(file: rookFrom, rank: move.to.rank)!,
-            to: Square(file: rookTo, rank: move.to.rank)!
-        )
-    }
-
-    /// Sliding arrivals in, identity removals out: a captured piece must not
-    /// slide away with the previous move's stale offset configuration.
-    private func transition(
+    /// An arriving piece slides in from its origin square; everything else
+    /// (loads, captures, selections) appears in place.
+    private func arrivalTransition(
         for placement: (id: String, piece: Piece, square: Square),
         squareSide: CGFloat
     ) -> AnyTransition {
-        guard !reduceMotion, movesAnimated, let arrival = arrivalMove(for: placement) else { return .identity }
+        guard slidesEnabled, let origin = animatedArrival[placement.square] else {
+            return .identity
+        }
+        let from = offset(for: origin, squareSide: squareSide)
+        let to = offset(for: placement.square, squareSide: squareSide)
         return .asymmetric(
-            insertion: .offset(travelDelta(from: arrival.from, to: arrival.to, squareSide: squareSide)),
+            insertion: .offset(CGSize(width: from.width - to.width, height: from.height - to.height)),
             removal: .identity
         )
-    }
-
-    /// Origin-offset minus destination-offset: inserting with this offset
-    /// renders the piece on its origin square, and the animation settles it
-    /// onto its natural destination offset.
-    private func travelDelta(from origin: Square, to destination: Square, squareSide: CGFloat) -> CGSize {
-        let start = offset(for: origin, squareSide: squareSide)
-        let end = offset(for: destination, squareSide: squareSide)
-        return CGSize(width: start.width - end.width, height: start.height - end.height)
     }
 
     /// Top-left-origin offset for a square under the current perspective.

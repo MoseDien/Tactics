@@ -155,4 +155,27 @@ public struct PuzzleSession: Sendable {
     public mutating func restart() throws {
         self = try PuzzleSession(puzzle: puzzle)
     }
+
+    /// When `lastMove` castled, the rook's relocation (derived from the king's
+    /// two-file jump). Only a king ever moves two files sideways, so the
+    /// detection cannot false-positive.
+    public func castlingRookMove() -> ChessMove? {
+        guard let move = lastMove,
+              board.pieces[move.to]?.kind == .king,
+              abs(move.to.file - move.from.file) == 2
+        else { return nil }
+        let rookFrom: Int
+        let rookTo: Int
+        if move.to.file > move.from.file {
+            rookFrom = 7; rookTo = 5
+        } else {
+            rookFrom = 0; rookTo = 3
+        }
+        // rookFrom/rookTo/rank are bounded 0..<8, so the failable init succeeds.
+        guard board.pieces[Square(file: rookTo, rank: move.to.rank)!]?.kind == .rook else { return nil }
+        return ChessMove(
+            from: Square(file: rookFrom, rank: move.to.rank)!,
+            to: Square(file: rookTo, rank: move.to.rank)!
+        )
+    }
 }
