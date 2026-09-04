@@ -159,9 +159,10 @@ final class TacticsViewModel {
             // The preview is reverting: the piece slides back to its origin.
             return [snap.from: snap.to]
         }
-        // The opening move landing is the puzzle presenting itself, not a
-        // move in play.
-        guard let move = session.lastMove, session.currentMoveIndex > 1 else { return [:] }
+        // Every committed move slides, the machine's opening move included —
+        // a load (lastMove == nil) presents the setup position in place, then
+        // the opening move slides in like any other.
+        guard let move = session.lastMove else { return [:] }
         var arrivals: [Square: Square] = [move.to: move.from]
         if let rook = session.castlingRookMove() {
             arrivals[rook.to] = rook.from
