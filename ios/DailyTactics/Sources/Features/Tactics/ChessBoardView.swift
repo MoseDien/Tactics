@@ -18,6 +18,9 @@ struct ChessBoardView: View {
     /// Whether pieces slide between squares. Off (debug toggle or Reduce
     /// Motion) renders every position change instantly.
     var movesAnimated: Bool = true
+    /// True while a just-loaded puzzle's opening move is landing: the setup
+    /// move renders in place so the board presents a ready position.
+    var suppressSetupAnimation: Bool = false
     let onSelect: (Square) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -152,6 +155,11 @@ struct ChessBoardView: View {
             return snap.from == placement.square
                 ? ChessMove(from: snap.to, to: snap.from)
                 : nil
+        }
+        if suppressSetupAnimation, lastMove?.to == placement.square {
+            // A freshly loaded puzzle presents a ready position: the setup
+            // move appears in place instead of sliding in.
+            return nil
         }
         return [lastMove, castlingRookMove()]
             .compactMap { $0 }

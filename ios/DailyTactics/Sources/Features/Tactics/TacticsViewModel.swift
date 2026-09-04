@@ -32,6 +32,10 @@ final class TacticsViewModel {
     /// The wrong move whose preview is being reverted in this render, so the
     /// board can slide the piece back to its origin instead of teleporting it.
     private(set) var snapbackMove: ChessMove?
+    /// True while a just-loaded puzzle's opening move is pending, so the board
+    /// presents the ready position instead of replaying the setup move as a
+    /// slide. Cleared once the opening lands.
+    private(set) var suppressSetupAnimation = false
     private(set) var hintMove: ChessMove?
     private(set) var errorMessage: String?
     /// Pending promotion: set when a pawn move reaches the last rank, cleared
@@ -112,6 +116,9 @@ final class TacticsViewModel {
             session = (try? PuzzleSession(puzzle: Puzzle.samples[0])) ?? PuzzleSession.empty()
             errorMessage = String(localized: "tactics.error_load")
         }
+        // The opening move is still pending here (start()/loadPuzzle plays
+        // it after a beat); its arrival renders in place.
+        suppressSetupAnimation = session.currentMoveIndex == 0
         orientBoardToPlayer()
     }
 
@@ -366,6 +373,7 @@ final class TacticsViewModel {
             firstAttemptWasCorrect = false
             ratingAppliedForPuzzle = false
             lastRatingDelta = nil
+            suppressSetupAnimation = session.currentMoveIndex == 0
             orientBoardToPlayer()
             Task { await playOpponentMove() }
         } catch {
@@ -447,6 +455,11 @@ final class TacticsViewModel {
         } catch {
             errorMessage = String(localized: "tactics.error_reply")
             return
+        }
+        // The opening move of a freshly loaded puzzle landed; from here on,
+        // every arrival animates normally.
+        if suppressSetupAnimation, session.currentMoveIndex > 0 {
+            suppressSetupAnimation = false
         }
         if session.state == .solved && mode == .play {
             markCurrentSolved()
