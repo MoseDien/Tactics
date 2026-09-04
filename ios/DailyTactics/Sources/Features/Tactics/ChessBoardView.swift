@@ -130,9 +130,16 @@ struct ChessBoardView: View {
         .allowsHitTesting(false)
         // The single animation declaration: a `position` change gives the
         // structural insertions/removals an animated transaction, which plays
-        // each arrival's slide. Board flips (`position` unchanged) and Reduce
-        // Motion render instantly.
-        .animation((reduceMotion || !movesAnimated) ? nil : moveAnimation, value: position)
+        // each arrival's slide. A position change with no last move attached
+        // is a puzzle load: pieces that coincide with the previous puzzle's
+        // final position are persistent views whose offsets would otherwise
+        // interpolate — flying across the board when the perspective flips.
+        // Board flips alone don't change `position`, and Reduce Motion
+        // renders everything instantly.
+        .animation(
+            (reduceMotion || !movesAnimated || lastMove == nil) ? nil : moveAnimation,
+            value: position
+        )
     }
 
     /// Pieces sorted by square notation for a stable z-order (dictionary
