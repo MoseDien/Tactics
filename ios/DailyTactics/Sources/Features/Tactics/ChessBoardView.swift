@@ -10,8 +10,11 @@ struct ChessBoardView: View {
     let isFlipped: Bool
     /// A move being demonstrated but not committed (the wrong-move preview).
     /// Its arriving piece slides in like a real move; when the preview clears,
-    /// the piece snaps back with no animation.
+    /// the piece slides back to its origin.
     var previewMove: ChessMove? = nil
+    /// The just-cleared preview move, supplied in the same render that reverts
+    /// the position, so the returning piece slides back instead of teleporting.
+    var snapbackMove: ChessMove? = nil
     let onSelect: (Square) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -132,11 +135,17 @@ struct ChessBoardView: View {
             .map { ($0.value.assetName + $0.key.notation, $0.value, $0.key) }
     }
 
-    /// The move whose arriving piece `placement` renders, if any: the real
-    /// last move, the wrong-move preview, or the rook's derived move when the
-    /// last move castled (the rook's square doesn't match the king move).
+    /// The move whose arriving piece `placement` renders, if any. Order
+    /// matters: the preview/snapback (what is being demonstrated right now)
+    /// outranks `lastMove`, otherwise a wrong move landing on the opponent's
+    /// just-vacated square would fly in from the *opponent's* origin.
+    /// A snapback is the preview move reversed: the piece re-lands on
+    /// `move.from`, flying back from `move.to`.
     private func arrivalMove(for placement: (id: String, piece: Piece, square: Square)) -> ChessMove? {
-        [lastMove, previewMove, castlingRookMove()]
+        if let snap = snapbackMove, snap.from == placement.square {
+            return ChessMove(from: snap.to, to: snap.from)
+        }
+        return [previewMove, lastMove, castlingRookMove()]
             .compactMap { $0 }
             .first { $0.to == placement.square }
     }

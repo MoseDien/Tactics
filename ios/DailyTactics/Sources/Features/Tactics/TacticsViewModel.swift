@@ -29,6 +29,9 @@ final class TacticsViewModel {
     private(set) var session: PuzzleSession
     private(set) var selectedSquare: Square?
     private(set) var attemptedMove: ChessMove?
+    /// The wrong move whose preview is being reverted in this render, so the
+    /// board can slide the piece back to its origin instead of teleporting it.
+    private(set) var snapbackMove: ChessMove?
     private(set) var hintMove: ChessMove?
     private(set) var errorMessage: String?
     /// Pending promotion: set when a pawn move reaches the last rank, cleared
@@ -129,7 +132,8 @@ final class TacticsViewModel {
     var lastMove: ChessMove? { session.lastMove }
 
     /// Position shown on the board. While a wrong move is being demonstrated, the
-    /// moved piece is shown on its target square; clearing `attemptedMove` snaps it back.
+    /// moved piece is shown on its target square; clearing `attemptedMove` slides
+    /// it back (see `snapbackMove`).
     var displayedPosition: [Square: Piece] {
         guard let attempt = attemptedMove, let piece = position[attempt.from] else {
             return position
@@ -314,6 +318,9 @@ final class TacticsViewModel {
 
     func select(_ square: Square) {
         guard canInteractWithPuzzle else { return }
+        if attemptedMove != nil {
+            snapbackMove = attemptedMove
+        }
         attemptedMove = nil
         hintMove = nil
 
@@ -351,6 +358,7 @@ final class TacticsViewModel {
             selectedSquare = nil
             hintMove = nil
             attemptedMove = nil
+            snapbackMove = nil
             errorMessage = nil
             batchCooldownMessage = nil
             pendingPromotion = nil
@@ -367,6 +375,10 @@ final class TacticsViewModel {
 
     private func attemptMove(from origin: Square, to target: Square, promotion: PieceKind? = nil) {
         hintMove = nil
+        // A previous wrong-move preview reverts in this same render; slide it
+        // back rather than teleporting. Cleared afterwards so it can't hijack
+        // the next arrival's fly-in direction.
+        snapbackMove = attemptedMove
         var move = ChessMove(from: origin, to: target)
         if session.moveNeedsPromotion(move) {
             guard let promotion else {
@@ -412,6 +424,7 @@ final class TacticsViewModel {
             Task {
                 try? await Task.sleep(for: pacing.wrongMoveDisplay)
                 guard !Task.isCancelled, attemptedMove == attempted else { return }
+                snapbackMove = attempted
                 attemptedMove = nil
             }
         case .solved:
