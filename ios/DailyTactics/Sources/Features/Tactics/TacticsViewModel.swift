@@ -375,10 +375,13 @@ final class TacticsViewModel {
 
     private func attemptMove(from origin: Square, to target: Square, promotion: PieceKind? = nil) {
         hintMove = nil
-        // A previous wrong-move preview reverts in this same render; slide it
-        // back rather than teleporting. Cleared afterwards so it can't hijack
-        // the next arrival's fly-in direction.
-        snapbackMove = attemptedMove
+        // `select` has already reverted any previous preview (setting the
+        // snapback); only set one here for the drag-drop path, which skips
+        // `select`. Cleared after the render so it can't hijack the next
+        // arrival's fly-in direction.
+        if snapbackMove == nil {
+            snapbackMove = attemptedMove
+        }
         var move = ChessMove(from: origin, to: target)
         if session.moveNeedsPromotion(move) {
             guard let promotion else {

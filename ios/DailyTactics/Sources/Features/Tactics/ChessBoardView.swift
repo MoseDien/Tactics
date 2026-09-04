@@ -138,17 +138,22 @@ struct ChessBoardView: View {
             .map { ($0.value.assetName + $0.key.notation, $0.value, $0.key) }
     }
 
-    /// The move whose arriving piece `placement` renders, if any. Order
-    /// matters: the preview/snapback (what is being demonstrated right now)
-    /// outranks `lastMove`, otherwise a wrong move landing on the opponent's
-    /// just-vacated square would fly in from the *opponent's* origin.
-    /// A snapback is the preview move reversed: the piece re-lands on
-    /// `move.from`, flying back from `move.to`.
+    /// The move whose arriving piece `placement` renders, if any. The preview
+    /// outranks everything (it is what is being demonstrated right now). A
+    /// snapback render reverts a wrong-move preview, so only the returning
+    /// piece slides there — a captured piece re-appearing on that square must
+    /// not replay the opponent's stale lastMove as a fly-in. `lastMove` (and
+    /// the castling rook) only animate when no preview/snapback is in flight.
     private func arrivalMove(for placement: (id: String, piece: Piece, square: Square)) -> ChessMove? {
-        if let snap = snapbackMove, snap.from == placement.square {
-            return ChessMove(from: snap.to, to: snap.from)
+        if let preview = previewMove, preview.to == placement.square {
+            return preview
         }
-        return [previewMove, lastMove, castlingRookMove()]
+        if let snap = snapbackMove {
+            return snap.from == placement.square
+                ? ChessMove(from: snap.to, to: snap.from)
+                : nil
+        }
+        return [lastMove, castlingRookMove()]
             .compactMap { $0 }
             .first { $0.to == placement.square }
     }
