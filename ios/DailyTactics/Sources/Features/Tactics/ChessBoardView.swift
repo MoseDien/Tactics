@@ -123,10 +123,17 @@ struct ChessBoardView: View {
         .frame(width: side, height: side, alignment: .topLeading)
         .allowsHitTesting(false)
         // The single animation declaration: a `position` change plays each
-        // arrival's slide through the transaction this modifier animates.
-        // Board flips (`position` unchanged) and Reduce Motion render
-        // instantly; loads produce no arrivals and therefore no slides.
-        .animation(slidesEnabled ? moveAnimation : nil, value: position)
+        // arrival's slide through the transaction this modifier animates. An
+        // empty arrival map means no move is attached to this change — a
+        // puzzle load — and the transaction itself must not animate either:
+        // pieces carried over from the previous puzzle (same id, same square)
+        // are persistent views whose offsets would otherwise interpolate,
+        // flying across the board when the perspective flips. Board flips
+        // alone don't change `position`; Reduce Motion renders instantly.
+        .animation(
+            (slidesEnabled && !animatedArrival.isEmpty) ? moveAnimation : nil,
+            value: position
+        )
     }
 
     private var slidesEnabled: Bool {
