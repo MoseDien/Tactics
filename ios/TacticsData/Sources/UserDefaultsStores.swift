@@ -10,11 +10,12 @@ public enum AppPreferences {
     public static let activeBatchPuzzleIDs = "dailytactics.activeBatchPuzzleIDs"
     public static let puzzleSequence = "dailytactics.puzzleSequence"
     public static let libraryImported = "dailytactics.libraryImported"
+    public static let pieceAnimation = "dailytactics.pieceAnimation"
 
     /// All of the above.
     public static let allKeys: [String] = [
         userRating, difficultyMode, batchStartTime, activeBatchPuzzleIDs,
-        puzzleSequence, libraryImported,
+        puzzleSequence, libraryImported, pieceAnimation,
     ]
 
     /// Debug reset: removes every stored preference (rating, batch window,
@@ -56,6 +57,26 @@ public final class UserRatingStore {
     public func set(rating: Int) {
         let normalized = min(3000, max(400, rating))
         defaults.set(normalized, forKey: key)
+    }
+}
+
+/// Whether pieces slide between squares (debug toggle). Absent = on, so a
+/// fresh install animates and the debug reset restores the default.
+@MainActor
+public final class PieceAnimationStore {
+    private let key = AppPreferences.pieceAnimation
+    private let defaults: UserDefaults
+
+    public init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    public var isEnabled: Bool {
+        defaults.object(forKey: key) == nil ? true : defaults.bool(forKey: key)
+    }
+
+    public func set(_ enabled: Bool) {
+        defaults.set(enabled, forKey: key)
     }
 }
 

@@ -15,6 +15,9 @@ struct ChessBoardView: View {
     /// The just-cleared preview move, supplied in the same render that reverts
     /// the position, so the returning piece slides back instead of teleporting.
     var snapbackMove: ChessMove? = nil
+    /// Whether pieces slide between squares. Off (debug toggle or Reduce
+    /// Motion) renders every position change instantly.
+    var movesAnimated: Bool = true
     let onSelect: (Square) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -124,7 +127,7 @@ struct ChessBoardView: View {
         // structural insertions/removals an animated transaction, which plays
         // each arrival's slide. Board flips (`position` unchanged) and Reduce
         // Motion render instantly.
-        .animation(reduceMotion ? nil : moveAnimation, value: position)
+        .animation((reduceMotion || !movesAnimated) ? nil : moveAnimation, value: position)
     }
 
     /// Pieces sorted by square notation for a stable z-order (dictionary
@@ -179,7 +182,7 @@ struct ChessBoardView: View {
         for placement: (id: String, piece: Piece, square: Square),
         squareSide: CGFloat
     ) -> AnyTransition {
-        guard !reduceMotion, let arrival = arrivalMove(for: placement) else { return .identity }
+        guard !reduceMotion, movesAnimated, let arrival = arrivalMove(for: placement) else { return .identity }
         return .asymmetric(
             insertion: .offset(travelDelta(from: arrival.from, to: arrival.to, squareSide: squareSide)),
             removal: .identity

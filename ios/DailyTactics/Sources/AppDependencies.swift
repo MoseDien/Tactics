@@ -14,6 +14,7 @@ final class AppDependencies {
     let batch: BatchTracker
     let difficulty: DifficultyModeStore
     let userRating: UserRatingStore
+    let pieceAnimation: PieceAnimationStore
     let provisioner: any PuzzleProvisioning
     let sequenceStore: ChunkSequenceStore
     let pacing: TacticsPacing
@@ -24,6 +25,7 @@ final class AppDependencies {
         batch: BatchTracker,
         difficulty: DifficultyModeStore,
         userRating: UserRatingStore,
+        pieceAnimation: PieceAnimationStore,
         provisioner: any PuzzleProvisioning,
         sequenceStore: ChunkSequenceStore,
         pacing: TacticsPacing
@@ -33,6 +35,7 @@ final class AppDependencies {
         self.batch = batch
         self.difficulty = difficulty
         self.userRating = userRating
+        self.pieceAnimation = pieceAnimation
         self.provisioner = provisioner
         self.sequenceStore = sequenceStore
         self.pacing = pacing
@@ -48,6 +51,7 @@ final class AppDependencies {
             batch: BatchTracker(state: UserDefaultsBatchStateStore()),
             difficulty: DifficultyModeStore(),
             userRating: UserRatingStore(),
+            pieceAnimation: PieceAnimationStore(),
             provisioner: LibraryProvisioner(
                 repositories: repositories,
                 sequenceStore: sequenceStore,
@@ -69,6 +73,7 @@ final class AppDependencies {
             batch: BatchTracker(state: UserDefaultsBatchStateStore(defaults: defaults)),
             difficulty: DifficultyModeStore(defaults: defaults),
             userRating: UserRatingStore(defaults: defaults),
+            pieceAnimation: PieceAnimationStore(defaults: defaults),
             provisioner: LibraryProvisioner(
                 repositories: repositories,
                 sequenceStore: sequenceStore,

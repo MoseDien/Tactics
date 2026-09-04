@@ -77,6 +77,7 @@
 
 /* debug (DEBUG builds only) */
 "debug.section" = "Debug tools";
+"debug.piece_animation" = "Piece move animation";
 "debug.drain_pool" = "Drain untried pool";
 "debug.footer" = "Drain marks every puzzle attempted so the next batch triggers a real chunk download.";
 "debug.drained" = "Marked %ld puzzles attempted. Start a new batch to trigger the download.\nNote: rating updates stay frozen for these puzzles until new chunks arrive.";

@@ -15,6 +15,7 @@ struct SettingsView: View {
     #if DEBUG
     @State private var debugNotice: String?
     @State private var showingResetAllConfirm = false
+    @State private var pieceAnimation = true
     #endif
 
     var body: some View {
@@ -47,6 +48,10 @@ struct SettingsView: View {
 
                 #if DEBUG
                 Section {
+                    Toggle(String(localized: "debug.piece_animation"), isOn: $pieceAnimation)
+                        .onChange(of: pieceAnimation) { _, value in
+                            dependencies.pieceAnimation.set(value)
+                        }
                     Button(String(localized: "debug.drain_pool")) {
                         drainUntriedPool()
                     }
@@ -106,6 +111,7 @@ struct SettingsView: View {
                 difficulty = dependencies.difficulty.current
                 libraryChunk = dependencies.sequenceStore.current
                 libraryCount = dependencies.data.allPuzzles().count
+                pieceAnimation = dependencies.pieceAnimation.isEnabled
             }
         }
     }
