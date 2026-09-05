@@ -177,6 +177,38 @@ public final class SwiftDataRepositories: PuzzleDataRepositories {
         return (try? context.fetchCount(descriptor)) ?? 0
     }
 
+    // MARK: - Favorites
+
+    public func setFavorite(_ puzzleId: String, _ favorite: Bool) {
+        let descriptor = FetchDescriptor<PuzzleProgress>(
+            predicate: #Predicate { $0.puzzleId == puzzleId }
+        )
+        if let existing = try? context.fetch(descriptor).first {
+            existing.isFavorite = favorite
+            existing.favoritedAt = favorite ? .now : nil
+        } else {
+            let progress = PuzzleProgress(puzzleId: puzzleId)
+            progress.isFavorite = favorite
+            progress.favoritedAt = favorite ? .now : nil
+            context.insert(progress)
+        }
+        try? context.save()
+    }
+
+    public func isFavorite(_ puzzleId: String) -> Bool {
+        let descriptor = FetchDescriptor<PuzzleProgress>(
+            predicate: #Predicate { $0.puzzleId == puzzleId }
+        )
+        return (try? context.fetch(descriptor).first?.isFavorite) ?? false
+    }
+
+    public func favoriteIDs() -> Set<String> {
+        let descriptor = FetchDescriptor<PuzzleProgress>(
+            predicate: #Predicate { $0.isFavorite == true }
+        )
+        return Set(((try? context.fetch(descriptor)) ?? []).map(\.puzzleId))
+    }
+
     public func completedCount() -> Int {
         let descriptor = FetchDescriptor<PuzzleProgress>(
             predicate: #Predicate { $0.isCompleted == true }

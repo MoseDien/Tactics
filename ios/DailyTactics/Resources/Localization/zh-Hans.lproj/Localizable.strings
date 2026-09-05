@@ -6,6 +6,7 @@
 "loading.library_failed" = "题库加载失败，请重试。";
 "settings.title" = "设置";
 "settings.history" = "历史记录";
+"settings.favorites" = "收藏";
 "settings.how_to_play" = "玩法说明";
 "settings.how_to_play_body" = "- 不要试棋：先在脑中记住整个局面，想出解法后再落子。\n- 每组共 5 道题。每 8 小时解锁新的一组；期间可以复盘当前题目组。";
 "settings.difficulty" = "难度";
@@ -23,6 +24,8 @@
 "tactics.find_best_black" = "为黑方找出最佳着法。";
 "tactics.hint_instruction" = "将高亮的棋子移动到标记的格子";
 "tactics.hint" = "提示";
+"tactics.favorite" = "收藏";
+"tactics.unfavorite" = "取消收藏";
 "tactics.opponent_moving" = "对手正在走棋…";
 "tactics.opponent_reply" = "对手回应";
 "tactics.incorrect_move" = "还不对，请寻找强制着法。";
@@ -58,6 +61,11 @@
 "history.week_prev" = "前周";
 "history.puzzle_progress" = "第 %d 题,共 %d 题";
 "history.row_accessibility" = "%@ 完成的一组 %3$d 题,答对 %2$d 题";
+/* favorites */
+"favorites.empty" = "还没有收藏";
+"favorites.empty_hint" = "完成一道题后,点亮爱心即可收藏到这里。";
+"favorites.stats" = "%d · %@ 次练习";
+"favorites.row_accessibility" = "题目 %@,难度 %d";
 "board.square_occupied" = "%@%@在%@";
 "board.square_empty" = "空格 %@";
 "piece.white.name" = "白";
@@ -81,3 +89,13 @@
 "debug.reset_all_confirm_title" = "全部重置?";
 "debug.reset_all_confirm" = "将删除所有题目、进度、历史、Rating 与设置,App 会回到首次启动并重新导入内置题块。";
 "common.cancel" = "取消";
+
+/* themes */
+"theme.fork" = "双击";
+"theme.pin" = "牵制";
+"theme.skewer" = "串击";
+"theme.discoveredAttack" = "闪击";
+"theme.sacrifice" = "弃子";
+"theme.mate" = "将杀";
+"theme.defensiveMove" = "防守";
+"theme.endgame" = "残局";

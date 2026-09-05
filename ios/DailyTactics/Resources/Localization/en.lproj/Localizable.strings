@@ -10,6 +10,7 @@
 /* settings */
 "settings.title" = "Settings";
 "settings.history" = "History";
+"settings.favorites" = "Favorites";
 "settings.how_to_play" = "How to play";
 "settings.how_to_play_body" = "- Don't guess through a move: hold the whole position in your head and find the solution there before touching a piece.\n- Each batch has 5 puzzles. A new batch unlocks every 8 hours; until then you can review the current batch.";
 "settings.difficulty" = "Difficulty";
@@ -28,6 +29,8 @@
 "tactics.find_best_black" = "Find the best move for Black.";
 "tactics.hint_instruction" = "Move the highlighted piece to the marked square";
 "tactics.hint" = "Hint";
+"tactics.favorite" = "Favorite";
+"tactics.unfavorite" = "Remove favorite";
 "tactics.opponent_moving" = "Opponent is moving…";
 "tactics.opponent_reply" = "Opponent's reply";
 "tactics.incorrect_move" = "Not quite — look for a forcing move.";
@@ -65,6 +68,11 @@
 "history.week_prev" = "Two Weeks Ago";
 "history.puzzle_progress" = "Puzzle %d of %d";
 "history.row_accessibility" = "Batch of %3$d puzzles on %@, %2$d solved";
+/* favorites */
+"favorites.empty" = "No favorites yet";
+"favorites.empty_hint" = "Finish a puzzle, then tap the heart to keep it here.";
+"favorites.stats" = "%d · %@ plays";
+"favorites.row_accessibility" = "Puzzle %@, rating %d";
 /* board accessibility */
 "board.square_occupied" = "%@ %@ on %@";
 "board.square_empty" = "Empty square %@";
@@ -76,6 +84,15 @@
 "piece.bishop.name" = "bishop";
 "piece.knight.name" = "knight";
 "piece.pawn.name" = "pawn";
+/* themes */
+"theme.fork" = "Fork";
+"theme.pin" = "Pin";
+"theme.skewer" = "Skewer";
+"theme.discoveredAttack" = "Discovered Attack";
+"theme.sacrifice" = "Sacrifice";
+"theme.mate" = "Checkmate";
+"theme.defensiveMove" = "Defensive Move";
+"theme.endgame" = "Endgame";
 /* results */
 "results.summary" = "Results: %ld correct, %ld wrong";
 

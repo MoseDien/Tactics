@@ -115,6 +115,37 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
+    func testFavoritePersistsAfterSolvingAndIgnoredBeforeCompletion() async throws {
+        let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        let puzzle = Puzzle.samples[0]
+        let vm = TacticsViewModel(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
+
+        // Before the puzzle is finished the heart is unavailable.
+        vm.toggleFavorite()
+        XCTAssertFalse(vm.isCurrentFavorite)
+        XCTAssertTrue(store.favoriteIDs().isEmpty, "favoriting must be a no-op before the puzzle is finished")
+
+        // Solve, then favorite: persists through the repository.
+        vm.start()
+        var waited = 0
+        while vm.state != .waitingForMove && waited < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            waited += 1
+        }
+        try await solveActivePuzzle(on: vm)
+        XCTAssertTrue(vm.currentPuzzleFinished)
+
+        vm.toggleFavorite()
+        XCTAssertTrue(vm.isCurrentFavorite)
+        XCTAssertEqual(store.favoriteIDs(), [puzzle.id])
+
+        // Toggling again removes it.
+        vm.toggleFavorite()
+        XCTAssertFalse(vm.isCurrentFavorite)
+        XCTAssertTrue(store.favoriteIDs().isEmpty)
+    }
+
+    @MainActor
     func testRatingSnapshotRecordedPerBatchWithFinalDelta() async throws {
         let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
         let defaults = UserDefaults(suiteName: "rating-snapshot-\(UUID().uuidString)")!

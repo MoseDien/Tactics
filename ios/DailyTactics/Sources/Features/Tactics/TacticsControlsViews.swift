@@ -52,6 +52,8 @@ struct MoveControlsView: View {
             }
             .accessibilityLabel(String(localized: "tactics.flip_board"))
 
+            favoriteButton
+
             Spacer()
 
             HStack(spacing: 5) {
@@ -82,6 +84,25 @@ struct MoveControlsView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
+    }
+
+    /// The favorite heart, right of the flip button. Outlines only: pink when
+    /// favorited, gray otherwise. Appears once the puzzle is finished (play
+    /// or review); hidden keeps its space so the center counter doesn't shift.
+    @ViewBuilder
+    private var favoriteButton: some View {
+        Button {
+            viewModel.toggleFavorite()
+        } label: {
+            Image(systemName: "heart")
+                .foregroundStyle(viewModel.isCurrentFavorite ? Color.pink : Color.secondary)
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(Color(.secondarySystemBackground)))
+        }
+        .opacity(viewModel.currentPuzzleFinished ? 1 : 0)
+        .allowsHitTesting(viewModel.currentPuzzleFinished)
+        .accessibilityLabel(String(localized: viewModel.isCurrentFavorite ? "tactics.unfavorite" : "tactics.favorite"))
+        .accessibilityHidden(!viewModel.currentPuzzleFinished)
     }
 }
 

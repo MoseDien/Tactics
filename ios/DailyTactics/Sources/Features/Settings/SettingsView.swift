@@ -38,6 +38,11 @@ struct SettingsView: View {
                     } label: {
                         Label(String(localized: "settings.history"), systemImage: "clock.arrow.circlepath")
                     }
+                    NavigationLink {
+                        FavoritesView()
+                    } label: {
+                        Label(String(localized: "settings.favorites"), systemImage: "heart")
+                    }
                 } header: {
                     Text(String(localized: "settings.library_section"))
                 } footer: {

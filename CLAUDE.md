@@ -97,6 +97,8 @@ wake-up — no polling timers anywhere.
   generation baked into piece ids so loads present fresh views). Keep this
   shape — priority lists of animation signals have repeatedly regressed.
 - A wrong legal move is displayed briefly, recorded, and retryable.
+- A puzzle can be favorited once finished (play or review): the heart
+  outline right of the flip button toggles `PuzzleProgress.isFavorite`;
 - A Hint is two-stage: the first tap highlights the expected move (scored
   immediately as a loss); a second tap plays the move for the player,
   including the puzzle line's promotion piece.

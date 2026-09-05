@@ -56,6 +56,12 @@ public protocol PuzzleProgressRepository: AnyObject {
     func isCompleted(_ puzzleId: String) -> Bool
     func completedCount() -> Int
     func failedCount() -> Int
+    /// Favorites (only completable puzzles, enforced by the caller): stamp or
+    /// clear the heart, creating the progress row if needed.
+    func setFavorite(_ puzzleId: String, _ favorite: Bool)
+    func isFavorite(_ puzzleId: String) -> Bool
+    /// All favorited puzzle ids — drives the favorites list.
+    func favoriteIDs() -> Set<String>
 }
 
 /// One row per completed batch.

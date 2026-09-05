@@ -13,6 +13,10 @@ public final class PuzzleProgress {
     public var isAttempted: Bool = false
     public var hasFailed: Bool = false
     public var completedAt: Date?
+    /// The player favorited this puzzle after completing it. Kept alongside
+    /// the other per-puzzle runtime state so the debug reset covers it.
+    public var isFavorite: Bool = false
+    public var favoritedAt: Date?
 
     public init(puzzleId: String) {
         self.puzzleId = puzzleId
@@ -20,5 +24,7 @@ public final class PuzzleProgress {
         self.isAttempted = false
         self.hasFailed = false
         self.completedAt = nil
+        self.isFavorite = false
+        self.favoritedAt = nil
     }
 }

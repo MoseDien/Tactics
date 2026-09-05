@@ -83,6 +83,39 @@ final class TacticsDataTests: XCTestCase {
     }
 
     @MainActor
+    func testSetFavoriteCreatesAndUpdatesRows() {
+        let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        // No progress row yet: favoriting creates one.
+        store.setFavorite("abc", true)
+        XCTAssertTrue(store.isFavorite("abc"))
+        // Toggling off clears the stamp.
+        store.setFavorite("abc", false)
+        XCTAssertFalse(store.isFavorite("abc"))
+        // A row that already exists (e.g. from completion) is updated in place.
+        store.markCompleted("xyz")
+        store.setFavorite("xyz", true)
+        XCTAssertTrue(store.isFavorite("xyz"))
+        XCTAssertTrue(store.isCompleted("xyz"), "favorite must not disturb completion state")
+    }
+
+    @MainActor
+    func testFavoriteIDsReturnsOnlyFavorited() {
+        let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        store.setFavorite("one", true)
+        store.setFavorite("two", false)
+        store.markCompleted("three")
+        XCTAssertEqual(store.favoriteIDs(), ["one"])
+    }
+
+    @MainActor
+    func testDeleteAllDataClearsFavorites() {
+        let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        store.setFavorite("gone", true)
+        store.deleteAllData()
+        XCTAssertTrue(store.favoriteIDs().isEmpty)
+    }
+
+    @MainActor
     func testAttemptedIDsDrivesSelectionExclusion() {
         let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
         store.markAttempted("a")

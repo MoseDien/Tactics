@@ -61,6 +61,9 @@ final class TacticsViewModel {
     /// Message surfaced when the user taps "Next batch" inside the cooldown
     /// window. Cleared on the next puzzle load.
     var batchCooldownMessage: String?
+    /// Whether the current puzzle is favorited. Refreshed on every puzzle
+    /// load; the heart button appears once the puzzle is finished.
+    var isCurrentFavorite = false
 
     /// Per-puzzle outcome for the current round. `nil` = not yet attempted.
     var results: [PuzzleOutcome?] = []
@@ -119,6 +122,17 @@ final class TacticsViewModel {
     /// Flip the board between the two playing perspectives.
     func toggleBoardFlip() {
         isBoardFlipped.toggle()
+    }
+
+    /// Favorite (or un-favorite) the current puzzle. Only offered once the
+    /// puzzle is finished; works identically in play and review modes and
+    /// never touches scoring.
+    func toggleFavorite() {
+        guard currentPuzzleFinished else { return }
+        let id = puzzles[currentIndex].id
+        let next = !isCurrentFavorite
+        progress?.setFavorite(id, next)
+        isCurrentFavorite = next
     }
 
     /// Orient the board so the player's own pieces are at the bottom. Called on

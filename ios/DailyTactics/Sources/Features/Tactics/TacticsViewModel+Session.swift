@@ -22,6 +22,7 @@ extension TacticsViewModel {
             firstAttemptWasCorrect = false
             ratingAppliedForPuzzle = false
             lastRatingDelta = nil
+            isCurrentFavorite = progress?.isFavorite(puzzles[index].id) ?? false
             orientBoardToPlayer()
             Task { await playOpponentMove() }
         } catch {

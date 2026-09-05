@@ -145,6 +145,15 @@
 - [x] `BatchReviewView`(新):历史 batch 的连续复盘播放器——纯 dataset(不碰评分/repo/tracker),单题步进(同 ReviewPuzzleView 语义)+ 题间导航(末题循环),结果行高亮当前题。
 - [x] 测试 +6(grouper:跨周边界/同周合并/倒序/汇总/相对标题/区间标题,固定 Monday-first 日历);69 全绿;iPhone 16e(最小可用)编译通过。
 
+## 收藏功能(2026-09-05 完成)
+
+- [x] 数据层:`PuzzleProgress` + `isFavorite`/`favoritedAt`(存量行默认 false,schema 未发布无需迁移);端口 `setFavorite/isFavorite/favoriteIDs`;SwiftData 实现(fetch-or-insert,`favoriteIDs` 单谓词 fetch)。
+- [x] VM:`isCurrentFavorite`(载题刷新)+ `toggleFavorite`(guard 完成态;play/review 一致;不碰评分)。
+- [x] 首页按钮:flip 右边 heart 轮廓(粉=已收藏/灰=未收藏,无 fill),未完成时 opacity 0 + 不可点(占位防布局跳动);无障碍 favorite/unfavorite。
+- [x] FavoritesView(Settings → 历史 下方):难度星级列 + 题号/rating/练习数 + 主题胶囊,点开 `ReviewPuzzleView`(从 git 恢复,上次 History 重写误删了它的最后引用);空态 ContentUnavailableView + 引导文案。
+- [x] 主题名本地化 8 键 + favorites/tactics/settings 键(en/zh-Hans 同步)。
+- [x] 测试 +4(数据层 3:建行/更新、过滤、重置清空;app 1:完成前 no-op、完成收藏持久化、再点取消);73 全绿;iPhone 16e 编译通过。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。
