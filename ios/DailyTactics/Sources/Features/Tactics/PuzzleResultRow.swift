@@ -25,23 +25,31 @@ struct PuzzleResultRow: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
+    /// The marker keeps its outcome color; being the current puzzle adds a
+    /// light gray disc behind it whatever the outcome.
     @ViewBuilder
     private func marker(for outcome: PuzzleOutcome?, isCurrent: Bool) -> some View {
-        if outcome == .correct {
+        symbol(for: outcome)
+            .frame(width: 22, height: 22)
+            .background {
+                if isCurrent {
+                    Circle().fill(Color.secondary.opacity(0.28))
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func symbol(for outcome: PuzzleOutcome?) -> some View {
+        switch outcome {
+        case .correct:
             Image(systemName: "checkmark")
                 .font(.headline.weight(.bold))
                 .foregroundStyle(.green)
-        } else if outcome == .wrong {
+        case .wrong:
             Image(systemName: "xmark")
                 .font(.headline.weight(.bold))
                 .foregroundStyle(.red.opacity(0.6))
-        } else if isCurrent {
-            Image(systemName: "checkmark")
-                .font(.headline.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 22, height: 22)
-                .background(Circle().fill(Color.secondary.opacity(0.45)))
-        } else {
+        case nil:
             Image(systemName: "checkmark")
                 .font(.headline.weight(.bold))
                 .foregroundStyle(.secondary)
