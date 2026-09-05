@@ -32,8 +32,11 @@ extension TacticsViewModel {
     func attemptMove(from origin: Square, to target: Square, promotion: PieceKind? = nil) {
         hintMove = nil
         // A revert only animates the render it happens in; anything else that
-        // changes the board below retires the snapback first.
-        snapbackMove = nil
+        // changes the board below retires the snapback first. A pending
+        // wrong-move preview also reverts here (e.g. the auto-played hint
+        // arriving while a demonstration is up), sliding back in this render.
+        snapbackMove = attemptedMove ?? snapbackMove
+        attemptedMove = nil
 
         guard let move = promotionResolvedMove(from: origin, to: target, promotion: promotion) else {
             // The player must choose the promotion piece; the choice UI is

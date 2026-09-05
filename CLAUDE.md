@@ -97,7 +97,9 @@ wake-up — no polling timers anywhere.
   generation baked into piece ids so loads present fresh views). Keep this
   shape — priority lists of animation signals have repeatedly regressed.
 - A wrong legal move is displayed briefly, recorded, and retryable.
-- A Hint highlights the expected move but does not play it.
+- A Hint is two-stage: the first tap highlights the expected move (scored
+  immediately as a loss); a second tap plays the move for the player,
+  including the puzzle line's promotion piece.
 - A pawn reaching the last rank opens a promotion picker
   (queen/rook/bishop/knight); the move is submitted only after a choice.
 - A new batch unlocks after the batch window (8 hours; 5 minutes in Debug builds); tapping

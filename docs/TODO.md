@@ -134,6 +134,10 @@
 
 - [x] 新 `AppWordmark`(Tactics 目录):红 "i"(crimson 220,20,60,与启动 storyboard 同色)+ 黑 "Tactics",bold 36pt,一处实现两处同步。`LibraryLoadingView` 头部的 crown 图标 + "iTactics" 标题换成该字标——首启导入读作启动的延续。注意:`Text` 拼接用 `(Text+Text)` 而非字符串插值内嵌 styled Text(插值会把内层样式压平,红 i 丢失);静态截图验证需录屏抓导入瞬间(导入 ~1s 即跳转)。
 
+## Hint 二段行为(2026-09-05 完成)
+
+- [x] 第一次点 Hint:高亮期望着法(现有行为,立即按失败结算);再次点:自动走出该着法(升变直接采用答案棋子,不弹选择器)。评分只结一次(惩罚在第一段已落),auto-play 后正常进对手回复链路。配套修复:错着预演进行中触发 auto-play 时,预演与真着同帧正确衔接(attemptMove 开头统一清预演)。棋盘点击会清高亮 → 再点 Hint 回到显示段(「继续自己下」的信号)。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。

@@ -16,14 +16,27 @@ extension TacticsViewModel {
     var currentMoveNumber: Int { session.currentMoveNumber }
     var totalUserMoves: Int { session.totalUserMoves }
 
-    /// Revealing a hint counts as giving up on this puzzle: it is scored
-    /// immediately as a loss (rating decreases) and marked attempted, so a
-    /// later clean solve can't recover the points.
+    /// Two-stage hint: the first tap reveals the expected move (highlighted,
+    /// scored immediately as a loss); the second tap plays it for the player.
+    /// The penalty already settled on the first tap, so the auto-play itself
+    /// costs nothing further.
     func requestHint() {
         guard hintEnabled, let expected = session.expectedMove else { return }
         hadMistake = true
-        hintMove = expected
-        applyHintPenalty()
+        if hintMove == nil {
+            // First tap: reveal.
+            hintMove = expected
+            applyHintPenalty()
+        } else {
+            // Second tap: play it. Clear the highlight so it reads as a real
+            // move; the promotion piece defaults to the puzzle line's choice.
+            hintMove = nil
+            attemptMove(
+                from: expected.from,
+                to: expected.to,
+                promotion: expected.promotion
+            )
+        }
     }
 
     /// Charge the rating for using a hint, once per puzzle. Idempotent so
