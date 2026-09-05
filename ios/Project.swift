@@ -10,7 +10,10 @@ let project = Project(
             "CODE_SIGN_STYLE": "Automatic",
             "DEVELOPMENT_TEAM": "4V4QEMAAYL",
             "MARKETING_VERSION": "1.0",
-            "CURRENT_PROJECT_VERSION": "1"
+            "CURRENT_PROJECT_VERSION": "1",
+            // iPhone only for 1.0: the layout is designed for iPhone SE and
+            // larger. iPad support can come later with a layout pass.
+            "TARGETED_DEVICE_FAMILY": "1"
         ]
     ),
     targets: [
@@ -49,6 +52,10 @@ let project = Project(
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "iTactics",
                 "UILaunchStoryboardName": "LaunchScreen",
+                // HTTPS-only networking qualifies for the exempt-encryption
+                // category; declaring it here skips the annual export
+                // compliance questionnaire in App Store Connect.
+                "ITSAppUsesNonExemptEncryption": false,
                 "UISupportedInterfaceOrientations": [
                     "UIInterfaceOrientationPortrait"
                 ]

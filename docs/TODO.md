@@ -160,12 +160,22 @@
 - [x] 方案迭代:**per-piece modifier 动画被录屏证伪**——`AnyTransition.modifier(active:identity:)` + modifier 内 `.animation(value: settled)` 的插值需要容器事务 tween,State 首帧即终值、onAppear 同帧置真不产生变化 → 实测零中间帧瞬移。退回**容器动画驱动**(可靠路径),时长取本手 arrival 的**最长距离**(易位双子微差 ≤1 格,牺牲换可靠)。
 - [x] 验证:60fps 录屏,开局 1 格着法连续 9 帧(~150ms)位移、easeOut 减速尾部清晰;此前同场景为 0 帧。附:验证脚本修了 paint 帧未更新 prev 导致全屏误报的 bug。73 测试全绿。
 
+## App Store 上架:代码侧准备(2026-09-05 完成)
+
+- [x] **PrivacyInfo.xcprivacy**(app bundle):`NSPrivacyTracking=false`、无收集数据类型、UserDefaults 申报 `CA92.1`。无第三方 SDK,清单极简。上架硬性要求(2024 起)。
+- [x] **加密出口合规**:`ITSAppUsesNonExemptEncryption = false`(仅 HTTPS,豁免类)——免每年 App Store Connect 加密问卷。
+- [x] **iPhone 收窄**:`TARGETED_DEVICE_FAMILY = 1`(布局按 iPhone 设计;iPad 待后续布局专项)。原「iPad 设备族」开放项就此关闭。
+- [x] **THIRD_PARTY_NOTICES** 题库路径修正(tier 文件 → `puzzle-0000.json` + 按需块)。
+- 验证:产物 Info.plist 三键落位(Privacy 清单打包/加密 false/UIDeviceFamily=[1]),73 测试全绿,冷启动正常。
+
+**上架余项(非代码,App Store Connect)**:6.9"/6.5" 截图、描述/关键词(建议 Games→Board)、隐私政策 URL(landing page 加一页:不收集数据/本地存储/仅静态 CDN 拉题库)、年龄分级(4+)、版权行、TestFlight 走一轮真机、归档 bump build。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。
 - ~~全局 UserDefaults 静态命名空间~~ **已解决(2026-09-02 架构整改阶段 4)**:`BatchStore`/`DifficultyModeStore`/`LibraryStateStore` 全部改为注入实例(`UserDefaultsBatchStateStore` 等),经 `AppDependencies` 组合根分发;`BatchTracker` 持有可注入 clock,`batchExpiryTick` 轮询 hack 已删除,测试用 `MutableClock`/`InMemoryBatchState` 无需 sleep。
 - **ViewModel 内三处 pacing 延时**:已收敛为可注入的 `TacticsPacing`(测试用 `.instant`),`PuzzleSession` 保持纯函数。进一步拆 BatchCoordinator 留待有实际需要时。
-- **iPad 设备族**:`Project.swift` 的 `.iOS` destination 包含 iPad,但布局按 iPhone 设计。待产品决定是否收窄为 `TARGETED_DEVICE_FAMILY = 1` 或做 iPad 布局。
+- ~~iPad 设备族~~ **已解决(2026-09-05 上架准备)**:`TARGETED_DEVICE_FAMILY = 1` 收窄为 iPhone;iPad 支持待后续布局专项再放开。
 - **SwiftData schema 迁移**:无 `VersionedSchema`/`SchemaMigrationPlan`。当前 schema 尚未发布(1.0 未上架),首次发布前若改 model 需补迁移计划。
 - **`PuzzleProgress.puzzleId` 无 `.unique` 约束**:加约束需要迁移;在发布前补上最合适(当前 fetch-then-insert 模式实际防止了重复)。
 - ~~`rating_puzzles.json`~~ 已删除(2026-09-03 清理,确认无代码引用)。

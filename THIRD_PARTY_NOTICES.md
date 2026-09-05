@@ -17,8 +17,9 @@ under `android/app/src/main/assets/pieces/` and is covered by the same license.
 
 ## Lichess puzzle database
 
-The bundled puzzle files under `ios/DailyTactics/Resources/puzzles/`
-(`1000.json`–`1900.json`) are derived from the Lichess open puzzle database:
+The bundled puzzle chunk `ios/TacticsData/Resources/Puzzles/puzzle-0000.json`
+(and the further `puzzle-NNNN.json` chunks fetched on demand from the deployed
+catalog) is derived from the Lichess open puzzle database:
 
 - Source: https://lichess.org/api/puzzle/daily and the Lichess puzzle database
   (https://database.lichess.org/#puzzles)
