@@ -48,7 +48,7 @@ let project = Project(
             bundleId: "com.dienbell.tactics",
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "iTactics",
-                "UILaunchScreen": [:],
+                "UILaunchStoryboardName": "LaunchScreen",
                 "UISupportedInterfaceOrientations": [
                     "UIInterfaceOrientationPortrait"
                 ]

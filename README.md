@@ -45,6 +45,8 @@ line at a time, and stores progress locally.
   chart in Settings
 - SwiftData stores completion/failure history plus per-batch round history
   (browsable in Settings → History with per-puzzle review)
+- A storyboard launch screen shows the wordmark — a red "i" before
+  "Tactics" (the app's logo) on white, centered
 - Localized in English and Simplified Chinese
 
 The app intentionally does not include accounts, networking, Stockfish,
