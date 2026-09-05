@@ -31,7 +31,7 @@ struct RoundProgressView: View {
     let viewModel: TacticsViewModel
 
     var body: some View {
-        PuzzleResultRow(outcomes: viewModel.results)
+        PuzzleResultRow(outcomes: viewModel.results, currentIndex: viewModel.currentIndex)
             .padding(.top, 8)
     }
 }
