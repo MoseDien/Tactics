@@ -90,6 +90,26 @@ Settings 中可以选择新 batch 的难度模式，默认是 `Medium`。设置�
 4. 答对后自动执行对手回复，直到题目完成。
 5. 题目完成后保存进度和 Rating 结果。
 
+### 棋子动画
+
+棋盘的移动动画完全由**一个派生映射**驱动(`TacticsViewModel.animatedArrival`):「本次渲染中哪个格刚得到棋子、它视觉上从哪格来」。映射为空即「无着法附着」——不动画。所有场景由这一个语义覆盖,无逐例特判:
+
+| 场景 | 行为 |
+|---|---|
+| 载入新题(setup) | 棋子**淡入**(0.18s),呈现就绪局面 |
+| 对手开局第一步 | 滑入(与普通着法相同) |
+| 用户/对手正常着法、王车易位 | 移动棋子(及易位车)滑入 0.18s easeOut |
+| 错着预演 | 错误棋子滑到目标格,~0.55s 后**滑回**原格 |
+| 吃子 | 被吃棋子立即消失(不做滑走) |
+| 翻转棋盘 / Reduce Motion | 瞬切,无动画 |
+
+两个安全不变量(由结构保证,是历次缺陷的修复结论):
+
+- **载入代号编入棋子 id**(`boardGeneration`):换题时全部棋子都是全新视图,不存在「沿用旧视图而 offset 被插值」的棋子横飞路径。
+- **映射为空时事务本身不带动画**:持久视图不插值、插入原样出现。
+
+动画开关(Debug 构建,Settings → 调试工具):「棋子移动动画」与「棋盘载入动画」两个独立 Toggle,缺省开,`AppPreferences.wipeAll` 覆盖(回到初始状态会还原默认)。动画实现集中在 `ChessBoardView`(`BoardAnimation` 值进、transition 出),域层(`PuzzleSession`)不含任何动画时序。
+
 ### 升变
 
 兵到达底线时，界面弹出 4 选 1 升变选择器（后/车/象/马）。期望着法是低升变（如 `e2e1r`）的题目必须选择对应棋子才能判对，不再强制升变为皇后。
@@ -125,6 +145,8 @@ Rating 是一个本地训练分数，不再是 Lichess 官方 Rating，也不再
 
 Settings 提供难度模式选择、玩法说明和历史记录入口。历史按每 5 道题保存为一个 batch，用户可以逐题进入 Review。
 
+Debug 构建额外显示「调试工具」区:棋子动画的两个开关(见「棋子动画」一节)、「清空未尝试题池」(触发自动下载路径)与「回到最初始状态」(清空全部 SwiftData 与 UserDefaults,重走首次导入)。
+
 ## 7. 本地化
 
 界面文案统一走 `Resources/Localization/{en,zh-Hans}.lproj/Localizable.strings`。新增用户可见文案时必须同时补两个语言条目；棋盘格子的无障碍标签同样本地化。
@@ -137,9 +159,11 @@ SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、历
              每 batch 的 rating 快照（RatingSnapshot）
 UserDefaults
   ├ dailytactics.libraryImported → 题库是否已一次性导入（首次启动 gate）
-  └ dailytactics.userRating      → 当前 Rating
-  └ dailytactics.puzzleSequence → 当前已载入的题库块序号
-  └ dailytactics.difficultyMode  → 新 batch 的难度模式
-  └ batchStartTime                → 当前 batch 开始时间
+  ├ dailytactics.userRating      → 当前 Rating
+  ├ dailytactics.puzzleSequence → 当前已载入的题库块序号
+  ├ dailytactics.difficultyMode  → 新 batch 的难度模式
+  ├ dailytactics.pieceAnimation  → 棋子移动动画开关（debug，缺省开）
+  ├ dailytactics.setupAnimation  → 棋盘载入动画开关（debug，缺省开）
+  ├ batchStartTime                → 当前 batch 开始时间
   └ activeBatchPuzzleIDs          → 当前 batch 的固定题目顺序
 ```

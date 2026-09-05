@@ -32,6 +32,10 @@ line at a time, and stores progress locally.
 - Pawn promotions open a 4-way piece picker (queen/rook/bishop/knight);
   under-promotion puzzles are solvable
 - Wrong legal moves are shown briefly and recorded; the player can retry
+- Piece movement animates: moves slide (0.18s ease-out, including the
+  castling rook), a freshly loaded board fades in, wrong-move previews
+  slide out and back; board flips render instantly. Debug builds expose
+  two toggles to disable either animation
 - Hint button highlights the expected move without auto-playing it
 - Review mode keeps Hint, board flipping, move interaction, and progress available;
   it never changes the user's Rating

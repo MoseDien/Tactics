@@ -16,14 +16,20 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 ## Boundaries
 
 - `ChessCore`: pure chess domain types; no SwiftUI or SwiftData.
-- `PuzzleKit`: puzzle data and line/session state; no UI/storage imports.
-- `Persistence`: SwiftData progress and local Rating storage/policy.
-- `Features/Tactics`: SwiftUI board, training layout, Hint, review controls,
-  orientation, and view-model orchestration.
+- `PuzzleKit`: puzzle data, session state, policies, repository ports; no
+  UI/storage imports.
+- `TacticsData`: SwiftData models, repositories, the bundled puzzle chunk,
+  chunked remote delivery, UserDefaults stores. The only module importing
+  SwiftData.
+- `DailyTactics` (app): SwiftUI features (Tactics/Settings/Onboarding), the
+  `AppDependencies` composition root, `BatchTracker`, `TacticsPacing`.
+  Animation timing lives in the board view, never in the domain.
 
 ## Product rules
 
-- The app is offline and uses bundled JSON puzzle buckets under `ios/DailyTactics/Resources/`.
+- The app is offline-first: one bundled chunk (`puzzle-0000.json`, 1000
+  puzzles, in the TacticsData bundle) plus on-demand chunk downloads when the
+  untried pool can't fill a batch (the only sanctioned network behavior).
 - Lichess lines are machine-first: `moves[0]` auto-plays, then the player
   starts at `moves[1]` and turns alternate.
 - Hint reveals the expected move visually but never auto-plays it.
@@ -33,8 +39,9 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 - Keep the normal training screen usable on iPhone SE without scrolling;
   retain `ScrollView` only as a Dynamic Type/accessibility fallback.
 - Do not display `Solved` or `Failed` counters in the training UI.
-- Rating starts at 1500, uses the isolated policy in `Persistence/Rating.swift`,
-  and is persisted locally.
+- Rating starts at 1500, uses the isolated policy in
+  `PuzzleKit/RatingPolicy.swift`, and persists locally (UserDefaults scalar +
+  one SwiftData snapshot per completed batch).
 
 ## Change checklist
 

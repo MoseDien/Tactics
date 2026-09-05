@@ -71,10 +71,12 @@ plugs into behind the same signatures.
 All persistence: the four SwiftData models (`PuzzleRecord`, `PuzzleProgress`,
 `RoundHistory`, `RatingSnapshot`), the single `SwiftDataRepositories` adapter
 implementing the data ports, `ModelContainerFactory`, `BundledPuzzleSource`
-(the 10 tier JSONs live in this framework's bundle), `PuzzleLibraryImporter`,
+(the bundled `puzzle-0000.json` chunk lives in this framework's bundle),
+`PuzzleLibraryImporter`,
 `RemotePuzzleFetcher`/`ChunkSequenceStore`/`LibraryProvisioner` for chunked
 delivery, and the UserDefaults-backed stores as injectable instances (`UserRatingStore`
-— the Rating starts at 1500, `DifficultyModeStore`, `UserDefaultsBatchStateStore`,
+— the Rating starts at 1500, `DifficultyModeStore`, `PieceAnimationStore`,
+`UserDefaultsBatchStateStore`,
 `LibraryStateStore`). Nothing above this module imports SwiftData; SwiftData
 models never leak out of it.
 
@@ -88,6 +90,12 @@ wake-up — no polling timers anywhere.
 ## Interaction rules
 
 - The machine's opening move is automatically played after a short transition.
+- Piece travel animates through one derived value: `TacticsViewModel.animatedArrival`
+  maps each square that just gained a piece to the square it arrived from; an
+  empty map means no move is attached (a puzzle load) and nothing slides. The
+  board takes a `BoardAnimation` value (arrival map, debug toggles, load
+  generation baked into piece ids so loads present fresh views). Keep this
+  shape — priority lists of animation signals have repeatedly regressed.
 - A wrong legal move is displayed briefly, recorded, and retryable.
 - A Hint highlights the expected move but does not play it.
 - A pawn reaching the last rank opens a promotion picker

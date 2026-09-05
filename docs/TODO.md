@@ -108,6 +108,24 @@
 
 61 测试全绿。
 
+## 棋子移动动画(2026-09-04~05 完成)
+
+三次方案迭代,最终收敛为「单一 arrival 映射」结构(`9d81d92`→`9836018`→`0bf936e`):
+
+- [x] **v1 两阶段状态(废弃)**:`travelOrigin` 覆盖 + onChange/task 时序,实测瞬移——走子必换棋子 id,`.animation(value:)` 对新插入视图永不触发,机制性失效。
+- [x] **v2 插入式 transition**:走子 = remove+insert,插入 transition 用偏移(原格 offset − 终格 offset)滑入;60fps 录屏逐帧验证 13 帧连续位移。
+- [x] **曲线修正**:easeInOut 慢启动造成「顿一下再窜」(前 3 帧仅 18% 路程)→ `easeOut(0.18)` 首帧 27% 位移。
+- [x] **错着动画修复**:错吃落到对手来格时从对手起点飞入(preview 优先级修正);被吃子幽灵回放(snapback 帧抑制其余匹配);回弹瞬移改滑回(VM 同渲染提供反向 arrival);snapback 用后即清(否则本题动画全灭——真 bug)。
+- [x] **setup/开局语义拆分**:载入(淡入,generation 编入 id 防横飞)、对手第一步(正常滑入)分开;`1d0d947`。
+- [x] **动画开关**:debug 两 Toggle(移动/载入),`PieceAnimationStore`,缺省开。
+- [x] **重构收敛**:三参数优先级列表 → 单一 `animatedArrival` 映射;`BoardAnimation` 值分组;魔术字符串 → `BoardStamp`;`TacticsControlsView` 假视图 → 五个真子视图;`attemptMove` 拆三个具名 helper(`0bf936e`,行为零变化,录屏逐帧与基线一致)。
+
+验证方法论:60fps `recordVideo` + AVFoundation 抽帧 + 棋盘区域逐帧像素差分(动画插值/单帧瞬切可区分);模拟器无法注入点击的场景靠结构推导。
+
+## 文件拆分与可读性(2026-09-05)
+
+- [x] 全仓库 >300 行文件清零:`Chess.swift`(505)→ Pieces/Square/Board/BoardRules;`TacticsViewModel`(550)→ 主文件 + Batch/Session/Rating extension;`TacticsView`(319)→ 主 + Header + Controls(`2b308e5`)。跨文件 extension 的可见性从 private 放宽到默认 internal。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。
