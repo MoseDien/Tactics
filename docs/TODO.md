@@ -130,6 +130,10 @@
 
 - [x] `DailyTactics/Resources/LaunchScreen/LaunchScreen.storyboard`:官方模板结构(document type 必须是 `...Storyboard.XIB`,`.Storyboard` 会被 ibtool 误报 "missing SDK"),水平 UIStackView 内两个 label——红 "i"(sRGB 220,20,60)+ 黑 "Tactics",boldSystem 36pt,居中。`Project.swift` 的 `UILaunchScreen: [:]` 换为 `UILaunchStoryboardName`。录屏 + 像素验证(626 红 / 6737 黑像素,词首红 i)。
 
+## 首启导入页用 app 字标(2026-09-05 完成)
+
+- [x] 新 `AppWordmark`(Tactics 目录):红 "i"(crimson 220,20,60,与启动 storyboard 同色)+ 黑 "Tactics",bold 36pt,一处实现两处同步。`LibraryLoadingView` 头部的 crown 图标 + "iTactics" 标题换成该字标——首启导入读作启动的延续。注意:`Text` 拼接用 `(Text+Text)` 而非字符串插值内嵌 styled Text(插值会把内层样式压平,红 i 丢失);静态截图验证需录屏抓导入瞬间(导入 ~1s 即跳转)。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。

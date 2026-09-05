@@ -7,7 +7,8 @@ import TacticsData
 /// `@AppStorage`), which advances routing to Daily Tactics. If the chunk
 /// fails to decode, the flag is *not* flipped — the screen shows an error
 /// with a retry instead of silently degrading to the bundled samples.
-/// visual treatment is an intentional placeholder pending a final design pass.
+/// The header is the launch screen's wordmark (see `AppWordmark`), so the
+/// import reads as a continuation of app startup.
 struct LibraryLoadingView: View {
     @Environment(AppDependencies.self) private var dependencies
     @AppStorage(LibraryStateStore.importedKey) private var libraryImported = false
@@ -18,11 +19,7 @@ struct LibraryLoadingView: View {
         VStack(spacing: 24) {
             Spacer()
             VStack(spacing: 16) {
-                Image(systemName: "crown")
-                    .font(.system(size: 54))
-                    .foregroundStyle(.tint)
-                Text(String(localized: "app.name"))
-                    .font(.title.bold())
+                AppWordmark()
                 if failedTiers == nil {
                     Text(String(localized: "loading.library"))
                         .font(.subheadline)
