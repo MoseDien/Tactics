@@ -22,48 +22,48 @@ enum TacticsMode { case play, reviewBatch }
 @Observable
 final class TacticsViewModel {
     /// Queries SwiftData at each batch boundary.
-    internal let dailyPuzzleCount: Int
-    internal var mode: TacticsMode
-    internal var puzzles: [Puzzle]
-    internal var currentIndex: Int
-    internal var session: PuzzleSession
-    internal var selectedSquare: Square?
-    internal var attemptedMove: ChessMove?
+    let dailyPuzzleCount: Int
+    var mode: TacticsMode
+    var puzzles: [Puzzle]
+    var currentIndex: Int
+    var session: PuzzleSession
+    var selectedSquare: Square?
+    var attemptedMove: ChessMove?
     /// The wrong move whose preview is being reverted in this render, so the
     /// board can slide the piece back to its origin instead of teleporting it.
-    internal var snapbackMove: ChessMove?
-    internal var hintMove: ChessMove?
-    internal var errorMessage: String?
+    var snapbackMove: ChessMove?
+    var hintMove: ChessMove?
+    var errorMessage: String?
     /// Pending promotion: set when a pawn move reaches the last rank, cleared
     /// once the player picks a piece (or the move is cancelled by re-selection).
-    internal var pendingPromotion: (from: Square, to: Square)?
+    var pendingPromotion: (from: Square, to: Square)?
     var progress: (any PuzzleDataRepositories)?
-    internal weak var batchTracker: BatchTracker?
-    internal var difficultyStore: DifficultyModeStore?
-    internal var provisioner: (any PuzzleProvisioning)?
+    weak var batchTracker: BatchTracker?
+    var difficultyStore: DifficultyModeStore?
+    var provisioner: (any PuzzleProvisioning)?
     var pacing: TacticsPacing = TacticsPacing()
-    internal let ratingStore: UserRatingStore
-    internal let ratingCalculator = PuzzleRatingCalculator()
-    internal var hadMistake = false
-    internal var ratingAppliedForPuzzle = false
-    internal var firstAttemptWasCorrect = false
-    internal var isAdvancing = false
+    let ratingStore: UserRatingStore
+    let ratingCalculator = PuzzleRatingCalculator()
+    var hadMistake = false
+    var ratingAppliedForPuzzle = false
+    var firstAttemptWasCorrect = false
+    var isAdvancing = false
     /// Whether this batch has already been written to `RoundHistory`. The
     /// round is recorded exactly once per batch — re-solving puzzles in review
     /// (or solving the last one after a hint) must not insert or skip a row.
-    internal var roundRecorded = false
+    var roundRecorded = false
     /// Remains true after the puzzle is solved, even while the user scrubs
     /// backward through the solution during review.
-    internal var currentPuzzleFinished = false
-    internal var userRating: Int
-    internal var lastRatingDelta: Int?
-    internal var isBoardFlipped: Bool = false
+    var currentPuzzleFinished = false
+    var userRating: Int
+    var lastRatingDelta: Int?
+    var isBoardFlipped: Bool = false
     /// Message surfaced when the user taps "Next batch" inside the cooldown
     /// window. Cleared on the next puzzle load.
-    internal var batchCooldownMessage: String?
+    var batchCooldownMessage: String?
 
     /// Per-puzzle outcome for the current round. `nil` = not yet attempted.
-    internal var results: [PuzzleOutcome?] = []
+    var results: [PuzzleOutcome?] = []
 
     /// Production initializer: selects the opening round through the
     /// repositories (falling back to the bundled samples on an empty library)
@@ -175,7 +175,7 @@ final class TacticsViewModel {
     /// so a load presents brand-new views (fade-in transition; no carried-over
     /// views that could interpolate offsets across the load). Monotonic and
     /// never cleared, so unlike a one-render signal it has no lifecycle.
-    internal var boardGenerationValue = 0
+    var boardGenerationValue = 0
     var boardGeneration: Int { boardGenerationValue }
 
     var state: PuzzleSessionState { session.state }

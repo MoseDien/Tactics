@@ -3,16 +3,44 @@ import PuzzleKit
 import ChessCore
 import TacticsData
 
-/// The rows under the board: rating panel, round progress, move controls,
-/// feedback area, and the promotion picker overlay.
-struct TacticsControlsView: View {
+/// The user's rating with the latest delta, shown above the move controls.
+struct RatingPanelView: View {
     let viewModel: TacticsViewModel
 
     var body: some View {
-        EmptyView()
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(String(localized: "tactics.rating"))
+                .font(.title3)
+            Text("\(viewModel.userRating)")
+            if let delta = viewModel.lastRatingDelta {
+                Text(delta >= 0 ? "+\(delta)" : "\(delta)")
+                    .font(.subheadline.bold().monospacedDigit())
+                    .foregroundStyle(delta >= 0 ? Color.primary : .red)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background((delta >= 0 ? Color.green : Color.red).opacity(0.13))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.top, 8)
     }
+}
 
-    func moveControls() -> some View {
+/// One row of dots: the per-puzzle outcomes of the current batch.
+struct RoundProgressView: View {
+    let viewModel: TacticsViewModel
+
+    var body: some View {
+        PuzzleResultRow(outcomes: viewModel.results)
+            .padding(.top, 8)
+    }
+}
+
+/// Flip / move counter / hint, between the board and the feedback area.
+struct MoveControlsView: View {
+    let viewModel: TacticsViewModel
+
+    var body: some View {
         HStack {
             Button {
                 viewModel.toggleBoardFlip()
@@ -55,32 +83,14 @@ struct TacticsControlsView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
     }
+}
 
-    func roundProgress() -> some View {
-        PuzzleResultRow(outcomes: viewModel.results)
-            .padding(.top, 8)
-    }
+/// The status line under the board: what is happening right now, and the
+/// next-puzzle / next-batch actions once a puzzle completes.
+struct FeedbackView: View {
+    let viewModel: TacticsViewModel
 
-    func ratingPanel() -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(String(localized: "tactics.rating"))
-                .font(.title3)
-            Text("\(viewModel.userRating)")
-            if let delta = viewModel.lastRatingDelta {
-                Text(delta >= 0 ? "+\(delta)" : "\(delta)")
-                    .font(.subheadline.bold().monospacedDigit())
-                    .foregroundStyle(delta >= 0 ? Color.primary : .red)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background((delta >= 0 ? Color.green : Color.red).opacity(0.13))
-                    .clipShape(Capsule())
-            }
-        }
-        .padding(.top, 8)
-    }
-
-    @ViewBuilder
-    func feedback() -> some View {
+    var body: some View {
         switch viewModel.feedbackState {
         case .idle:
             EmptyView()
@@ -100,8 +110,8 @@ struct TacticsControlsView: View {
             }
             .foregroundStyle(.secondary)
         case .opponentReply:
-                Label(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right")
-                    .foregroundStyle(.secondary)
+            Label(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right")
+                .foregroundStyle(.secondary)
         case .incorrectMove:
             Label(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise")
                 .foregroundStyle(.orange)
@@ -126,10 +136,15 @@ struct TacticsControlsView: View {
             .padding(.bottom, 28)
         }
     }
+}
 
-    /// The four promotion choices shown over the board when a pawn reaches the
-    /// last rank. The move itself is only submitted once a piece is picked.
-    func promotionPicker(for promotion: (from: Square, to: Square)) -> some View {
+/// The four promotion choices shown over the board when a pawn reaches the
+/// last rank. The move itself is only submitted once a piece is picked.
+struct PromotionPickerView: View {
+    let viewModel: TacticsViewModel
+    let promotion: (from: Square, to: Square)
+
+    var body: some View {
         VStack {
             Spacer()
             VStack(spacing: 12) {

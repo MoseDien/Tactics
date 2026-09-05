@@ -19,6 +19,7 @@ struct ReviewPuzzleView: View {
                 if let session {
                     ChessBoardView(position: session.board.pieces, selectedSquare: nil, hintMove: nil,
                                    lastMove: session.lastMove, isFlipped: session.userColor == .black,
+                                   animation: .passthrough,
                                    onSelect: { _ in })
                     .aspectRatio(1, contentMode: .fit)
                     HStack {

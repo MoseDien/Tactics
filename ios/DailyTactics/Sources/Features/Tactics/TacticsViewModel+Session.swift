@@ -34,16 +34,14 @@ extension TacticsViewModel {
         // A revert only animates the render it happens in; anything else that
         // changes the board below retires the snapback first.
         snapbackMove = nil
-        var move = ChessMove(from: origin, to: target)
-        if session.moveNeedsPromotion(move) {
-            guard let promotion else {
-                // The player must choose the promotion piece; the choice UI
-                // is up while the move itself waits.
-                pendingPromotion = (origin, target)
-                return
-            }
-            move = ChessMove(from: origin, to: target, promotion: promotion)
+
+        guard let move = promotionResolvedMove(from: origin, to: target, promotion: promotion) else {
+            // The player must choose the promotion piece; the choice UI is
+            // up while the move itself waits.
+            pendingPromotion = (origin, target)
+            return
         }
+
         // The expected move is trusted-legal (from the puzzle line), so accept
         // it even for moves the legality check would reject on partial data.
         // Any other move must be fully legal.
@@ -53,13 +51,7 @@ extension TacticsViewModel {
             return
         }
 
-        let puzzleID = puzzles[currentIndex].id
-        let isFirstAttempt = !(progress?.hasAttempted(puzzleID) ?? false)
-        if isFirstAttempt {
-            firstAttemptWasCorrect = isExpected
-            progress?.markAttempted(puzzleID)
-        }
-
+        recordFirstAttempt(correct: isExpected)
         selectedSquare = nil
         do {
             try session.submitUserMove(move)
@@ -70,26 +62,49 @@ extension TacticsViewModel {
 
         switch state {
         case .incorrectMove:
-            // Wrong move: record it as a failure, then let the user retry.
-            recordOutcome(.wrong, for: currentIndex)
-            recordFailure()
-            hadMistake = true
-            snapbackMove = nil
-            attemptedMove = move
-            let attempted = move
-            Task {
-                try? await Task.sleep(for: pacing.wrongMoveDisplay)
-                guard !Task.isCancelled, attemptedMove == attempted else { return }
-                // Same render as the preview clears: the piece slides back.
-                snapbackMove = attempted
-                attemptedMove = nil
-            }
+            demonstrateWrongMove(move)
         case .solved:
             markCurrentSolved()
         case .opponentMoving:
             Task { await playOpponentMove() }
         default:
             break
+        }
+    }
+
+    /// The move to submit, or nil when a pawn reached the last rank and the
+    /// promotion piece still has to be picked.
+    private func promotionResolvedMove(from origin: Square, to target: Square, promotion: PieceKind?) -> ChessMove? {
+        let plain = ChessMove(from: origin, to: target)
+        guard session.moveNeedsPromotion(plain) else { return plain }
+        guard let promotion else { return nil }
+        return ChessMove(from: origin, to: target, promotion: promotion)
+    }
+
+    /// The first attempt on a puzzle fixes its rating outcome and marks it
+    /// attempted, so retries can't game the score.
+    private func recordFirstAttempt(correct: Bool) {
+        let puzzleID = puzzles[currentIndex].id
+        guard !(progress?.hasAttempted(puzzleID) ?? false) else { return }
+        firstAttemptWasCorrect = correct
+        progress?.markAttempted(puzzleID)
+    }
+
+    /// A wrong move is recorded as a failure, demonstrated on the board, and
+    /// reverted after a beat so the player can retry.
+    private func demonstrateWrongMove(_ move: ChessMove) {
+        recordOutcome(.wrong, for: currentIndex)
+        recordFailure()
+        hadMistake = true
+        snapbackMove = nil
+        attemptedMove = move
+        let attempted = move
+        Task {
+            try? await Task.sleep(for: pacing.wrongMoveDisplay)
+            guard !Task.isCancelled, attemptedMove == attempted else { return }
+            // Same render as the preview clears: the piece slides back.
+            snapbackMove = attempted
+            attemptedMove = nil
         }
     }
 

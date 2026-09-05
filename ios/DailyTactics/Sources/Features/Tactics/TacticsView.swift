@@ -49,26 +49,21 @@ struct TacticsView: View {
                         hintMove: viewModel.hintMove,
                         lastMove: viewModel.lastMove,
                         isFlipped: viewModel.isBoardFlipped,
-                        animatedArrival: viewModel.animatedArrival,
-                        movesAnimated: dependencies.pieceAnimation.isEnabled,
-                        setupAnimated: dependencies.pieceAnimation.isSetupEnabled,
-                        boardGeneration: viewModel.boardGeneration,
+                        animation: boardAnimation(for: viewModel),
                         onSelect: viewModel.select
                     )
                     .frame(width: min(viewport.size.width, max(280, viewport.size.height - 238)))
 
-                    let controls = TacticsControlsView(viewModel: viewModel)
-
                     HStack(alignment: .center, spacing: 12) {
-                        controls.ratingPanel()
+                        RatingPanelView(viewModel: viewModel)
                         Spacer(minLength: 8)
-                        controls.roundProgress()
+                        RoundProgressView(viewModel: viewModel)
                     }
                     .padding(.horizontal, 4)
 
-                    controls.moveControls()
+                    MoveControlsView(viewModel: viewModel)
 
-                    controls.feedback()
+                    FeedbackView(viewModel: viewModel)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 12)
                 }
@@ -76,8 +71,7 @@ struct TacticsView: View {
             }
             .overlay {
                 if let promotion = viewModel.pendingPromotion {
-                TacticsControlsView(viewModel: viewModel)
-                    .promotionPicker(for: promotion)
+                    PromotionPickerView(viewModel: viewModel, promotion: promotion)
                 }
             }
             .background(Color(.systemBackground))
@@ -97,6 +91,16 @@ struct TacticsView: View {
                 SettingsView()
             }
         }
+    }
+
+    /// Collects the board's animation inputs from their sources.
+    private func boardAnimation(for viewModel: TacticsViewModel) -> BoardAnimation {
+        BoardAnimation(
+            arrival: viewModel.animatedArrival,
+            movesEnabled: dependencies.pieceAnimation.isEnabled,
+            setupEnabled: dependencies.pieceAnimation.isSetupEnabled,
+            boardGeneration: viewModel.boardGeneration
+        )
     }
 }
 
