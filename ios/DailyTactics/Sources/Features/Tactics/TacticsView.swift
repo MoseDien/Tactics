@@ -99,7 +99,8 @@ struct TacticsView: View {
             arrival: viewModel.animatedArrival,
             movesEnabled: dependencies.pieceAnimation.isEnabled,
             setupEnabled: dependencies.pieceAnimation.isSetupEnabled,
-            boardGeneration: viewModel.boardGeneration
+            boardGeneration: viewModel.boardGeneration,
+            moveRevision: viewModel.boardMoveRevision
         )
     }
 }

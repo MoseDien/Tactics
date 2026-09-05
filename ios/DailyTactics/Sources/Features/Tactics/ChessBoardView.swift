@@ -18,9 +18,12 @@ struct BoardAnimation: Equatable {
     /// carried-over piece can interpolate its offset across the load (the
     /// "pieces fly across the board" defect).
     var boardGeneration = 0
+    /// Monotonic token for each committed or preview move. Unlike pieceCount,
+    /// this changes for ordinary non-capturing moves as well.
+    var moveRevision = 0
 
     /// A board with no animation input — the review player's default.
-    static let passthrough = BoardAnimation(arrival: [:], movesEnabled: true, setupEnabled: false, boardGeneration: 0)
+    static let passthrough = BoardAnimation(arrival: [:], movesEnabled: true, setupEnabled: false, boardGeneration: 0, moveRevision: 0)
 }
 
 struct ChessBoardView: View {
@@ -152,7 +155,8 @@ struct ChessBoardView: View {
         BoardStamp(
             pieceCount: position.count,
             generation: animation.boardGeneration,
-            hasArrivals: !animation.arrival.isEmpty
+            hasArrivals: !animation.arrival.isEmpty,
+            moveRevision: animation.moveRevision
         )
     }
 
@@ -160,6 +164,7 @@ struct ChessBoardView: View {
         var pieceCount: Int
         var generation: Int
         var hasArrivals: Bool
+        var moveRevision: Int
     }
 
     /// Animate when something will actually play: a move slides, a load fades.

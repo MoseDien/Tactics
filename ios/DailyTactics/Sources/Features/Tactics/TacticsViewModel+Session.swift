@@ -55,6 +55,7 @@ extension TacticsViewModel {
         selectedSquare = nil
         do {
             try session.submitUserMove(move)
+            boardMoveRevisionValue += 1
         } catch {
             errorMessage = String(localized: "tactics.error_apply")
             return
@@ -114,6 +115,7 @@ extension TacticsViewModel {
         snapbackMove = nil
         do {
             try session.applyOpponentMove()
+            boardMoveRevisionValue += 1
         } catch {
             errorMessage = String(localized: "tactics.error_reply")
             return

@@ -176,7 +176,9 @@ final class TacticsViewModel {
     /// views that could interpolate offsets across the load). Monotonic and
     /// never cleared, so unlike a one-render signal it has no lifecycle.
     var boardGenerationValue = 0
+    var boardMoveRevisionValue = 0
     var boardGeneration: Int { boardGenerationValue }
+    var boardMoveRevision: Int { boardMoveRevisionValue }
 
     var state: PuzzleSessionState { session.state }
     var playerColor: PieceColor { session.userColor }
