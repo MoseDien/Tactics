@@ -154,6 +154,12 @@
 - [x] 主题名本地化 8 键 + favorites/tactics/settings 键(en/zh-Hans 同步)。
 - [x] 测试 +4(数据层 3:建行/更新、过滤、重置清空;app 1:完成前 no-op、完成收藏持久化、再点取消);73 全绿;iPhone 16e 编译通过。
 
+## 走子动画按距离自适应时长(2026-09-05 完成)
+
+- [x] 需求:固定 180ms 对短距拖沓/长距仓促;改为恒速模型 `duration = 90ms + 45ms/格`(切比雪夫距离,1 格 135ms、7 格 405ms),Lichess 同族惯例。参数收在 `BoardAnimation.slideBaseDuration/slideDurationPerSquare` 单点可调。
+- [x] 方案迭代:**per-piece modifier 动画被录屏证伪**——`AnyTransition.modifier(active:identity:)` + modifier 内 `.animation(value: settled)` 的插值需要容器事务 tween,State 首帧即终值、onAppear 同帧置真不产生变化 → 实测零中间帧瞬移。退回**容器动画驱动**(可靠路径),时长取本手 arrival 的**最长距离**(易位双子微差 ≤1 格,牺牲换可靠)。
+- [x] 验证:60fps 录屏,开局 1 格着法连续 9 帧(~150ms)位移、easeOut 减速尾部清晰;此前同场景为 0 帧。附:验证脚本修了 paint 帧未更新 prev 导致全屏误报的 bug。73 测试全绿。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。

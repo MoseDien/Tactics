@@ -24,6 +24,13 @@ struct BoardAnimation: Equatable {
 
     /// A board with no animation input — the review player's default.
     static let passthrough = BoardAnimation(arrival: [:], movesEnabled: true, setupEnabled: false, boardGeneration: 0, moveRevision: 0)
+
+    /// Distance-adaptive slide timing: constant start-up cost plus a per-square
+    /// cost, i.e. a roughly constant travel speed (the convention chess UIs
+    /// use). A one-square step finishes in 135ms; a rook sweeping the board
+    /// takes 405ms.
+    static let slideBaseDuration: TimeInterval = 0.09
+    static let slideDurationPerSquare: TimeInterval = 0.045
 }
 
 struct ChessBoardView: View {
@@ -167,12 +174,29 @@ struct ChessBoardView: View {
         var moveRevision: Int
     }
 
-    /// Animate when something will actually play: a move slides, a load fades.
+    /// The container animation. A move's duration comes from that move's
+    /// longest travel (castling moves two pieces; the king and rook lengths
+    /// differ by one square at most), so a one-square step finishes fast and
+    /// a board-sweep takes its time. The setup fade keeps one fixed duration.
     private var transactionAnimation: Animation? {
         guard !reduceMotion, animation.movesEnabled else { return nil }
-        if !animation.arrival.isEmpty { return moveAnimation }
+        if !animation.arrival.isEmpty {
+            return .easeOut(duration: moveSlideDuration)
+        }
         if animation.setupEnabled { return moveAnimation }
         return nil
+    }
+
+    /// Longest Chebyshev distance among this render's arrivals, mapped
+    /// through the constant-speed model.
+    private var moveSlideDuration: TimeInterval {
+        let squares = animation.arrival
+            .map { destination, origin in
+                max(abs(destination.file - origin.file), abs(destination.rank - origin.rank))
+            }
+            .max() ?? 1
+        return BoardAnimation.slideBaseDuration
+            + BoardAnimation.slideDurationPerSquare * TimeInterval(squares)
     }
 
     /// Pieces sorted by square notation for a stable z-order (dictionary
@@ -199,7 +223,8 @@ struct ChessBoardView: View {
     }
 
     /// The arriving piece first renders on its origin square (origin-offset
-    /// minus destination-offset), then the animation settles it into place.
+    /// minus destination-offset); the container's transaction animation —
+    /// whose duration this move's longest travel sets — settles it into place.
     private func slideTransition(from origin: Square, to destination: Square, squareSide: CGFloat) -> AnyTransition {
         let start = offset(for: origin, squareSide: squareSide)
         let end = offset(for: destination, squareSide: squareSide)
