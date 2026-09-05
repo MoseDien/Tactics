@@ -56,11 +56,15 @@
 "review.label" = "REVIEW";
 "review.previous_move" = "Previous move";
 "review.next_move" = "Next move";
+"review.prev_puzzle" = "Prev puzzle";
+"review.next_puzzle" = "Next puzzle";
 /* history */
-"history.round_review" = "Round Review";
-"history.puzzles_count" = "%lld puzzles";
-"history.puzzle" = "Puzzle %@";
 "history.empty" = "No history yet";
+"history.week_this" = "This Week";
+"history.week_last" = "Last Week";
+"history.week_prev" = "Two Weeks Ago";
+"history.puzzle_progress" = "Puzzle %d of %d";
+"history.row_accessibility" = "Batch of %3$d puzzles on %@, %2$d solved";
 /* board accessibility */
 "board.square_occupied" = "%@ %@ on %@";
 "board.square_empty" = "Empty square %@";

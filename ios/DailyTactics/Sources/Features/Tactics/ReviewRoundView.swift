@@ -3,112 +3,112 @@ import PuzzleKit
 import ChessCore
 import TacticsData
 
-/// Review for one completed puzzle. Batch review remains handled by
-/// `TacticsView(mode: .reviewBatch)`.
-struct ReviewPuzzleView: View {
-    @Environment(\.dismiss) private var dismiss
-    let puzzle: Puzzle
-    @State private var session: PuzzleSession?
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 14) {
-                Text(String(localized: "review.label"))
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
-                if let session {
-                    ChessBoardView(position: session.board.pieces, selectedSquare: nil, hintMove: nil,
-                                   lastMove: session.lastMove, isFlipped: session.userColor == .black,
-                                   animation: .passthrough,
-                                   onSelect: { _ in })
-                    .aspectRatio(1, contentMode: .fit)
-                    HStack {
-                        Button { step(-1) } label: { Label(String(localized: "review.previous_move"), systemImage: "chevron.left") }
-                            .disabled(!session.canStepBack)
-                        Spacer()
-                        Button { step(1) } label: { Label(String(localized: "review.next_move"), systemImage: "chevron.right") }
-                            .disabled(!session.canStepForward)
-                    }
-                    .buttonStyle(.bordered)
-                }
-                Spacer()
-            }
-            .padding()
-            .navigationTitle(String(localized: "review.title"))
-            .toolbar { Button(String(localized: "common.done")) { dismiss() } }
-            .task { loadCurrent() }
-        }
-    }
-
-    private func loadCurrent() {
-        session = try? PuzzleSession(puzzle: puzzle)
-        if session != nil { try? session?.stepForward() }
-    }
-
-    private func step(_ direction: Int) {
-        guard var current = session else { return }
-        if direction < 0, current.canStepBack { try? current.stepBack() }
-        if direction > 0, current.canStepForward { try? current.stepForward() }
-        session = current
-    }
-}
-
+/// History browser: rounds grouped into calendar weeks (newest first), each
+/// row showing the batch's results at a glance. Tapping a round opens the
+/// continuous batch review player.
 struct HistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppDependencies.self) private var dependencies
-    @State private var rounds: [RoundSummary] = []
+    @State private var weeks: [HistoryGrouper.Week] = []
     @State private var puzzleLookup: [String: Puzzle] = [:]
 
     var body: some View {
         NavigationStack {
-            List(rounds) { round in
-                NavigationLink {
-                    RoundHistoryDetail(round: round, puzzleLookup: puzzleLookup)
-                } label: {
-                    VStack(alignment: .leading) {
-                        Text(round.completedAt, style: .date)
-                        Text(String.localizedStringWithFormat(
-                            NSLocalizedString("history.puzzles_count", comment: "Number of puzzles in a history round"),
-                            round.puzzleIDs.count
-                        ))
-                            .font(.caption).foregroundStyle(.secondary)
+            List {
+                ForEach(weeks) { week in
+                    Section {
+                        ForEach(week.rounds) { round in
+                            NavigationLink {
+                                BatchReviewView(
+                                    puzzles: round.puzzleIDs.compactMap { puzzleLookup[$0] },
+                                    outcomes: round.outcomes
+                                )
+                            } label: {
+                                roundRow(round)
+                            }
+                        }
+                    } header: {
+                        weekHeader(week)
                     }
                 }
             }
-            .overlay { if rounds.isEmpty { ContentUnavailableView(String(localized: "history.empty"), systemImage: "clock") } }
+            .overlay { if weeks.isEmpty { ContentUnavailableView(String(localized: "history.empty"), systemImage: "clock") } }
             .navigationTitle(String(localized: "settings.history"))
             .toolbar { Button(String(localized: "common.done")) { dismiss() } }
             .task {
-                rounds = dependencies.data.history()
-                puzzleLookup = BatchLookup.puzzles(withIDs: dependencies.data.allPuzzles().map(\.id), in: dependencies.data.allPuzzles())
+                let library = dependencies.data.allPuzzles()
+                weeks = HistoryGrouper.weeks(from: dependencies.data.history())
+                puzzleLookup = BatchLookup.puzzles(withIDs: library.map(\.id), in: library)
                     .reduce(into: [:]) { lookup, puzzle in lookup[puzzle.id] = puzzle }
             }
         }
     }
-}
 
-private struct RoundHistoryDetail: View {
-    let round: RoundSummary
-    let puzzleLookup: [String: Puzzle]
+    /// One batch: completion time, the per-puzzle result row, and a solved
+    /// ratio capsule.
+    private func roundRow(_ round: RoundSummary) -> some View {
+        HStack(spacing: 12) {
+            Text(round.completedAt, format: .dateTime.weekday(.abbreviated).hour().minute())
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 86, alignment: .leading)
 
-    var body: some View {
-        List(Array(round.puzzleIDs.enumerated()), id: \.offset) { index, id in
-            if let puzzle = puzzleLookup[id] {
-                NavigationLink {
-                    ReviewPuzzleView(puzzle: puzzle)
-                } label: {
-                    HStack {
-                        Text(String.localizedStringWithFormat(
-                            NSLocalizedString("history.puzzle", comment: "Puzzle index in a history round"),
-                            "\(index + 1)"
-                        ))
-                        Spacer()
-                        Text(round.outcomes.indices.contains(index) && round.outcomes[index] == .correct ? "✓" : "×")
-                            .foregroundStyle(round.outcomes.indices.contains(index) && round.outcomes[index] == .correct ? .green : .secondary)
-                    }
+            HStack(spacing: 7) {
+                ForEach(round.outcomes.indices, id: \.self) { index in
+                    outcomeMark(round.outcomes[index])
+                        .font(.footnote.weight(.bold))
+                        .frame(width: 17, height: 17)
                 }
             }
+
+            Spacer(minLength: 4)
+
+            let solved = round.outcomes.filter { $0 == .correct }.count
+            Text("\(solved)/\(round.puzzleIDs.count)")
+                .font(.footnote.weight(.semibold).monospacedDigit())
+                .foregroundStyle(solved == round.puzzleIDs.count ? .green : .secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule().fill(solved == round.puzzleIDs.count
+                        ? Color.green.opacity(0.13)
+                        : Color.secondary.opacity(0.12))
+                )
         }
-        .navigationTitle(String(localized: "history.round_review"))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(rowAccessibilityLabel(round))
+    }
+
+    @ViewBuilder
+    private func outcomeMark(_ outcome: PuzzleOutcome?) -> some View {
+        switch outcome {
+        case .correct:
+            Image(systemName: "checkmark").foregroundStyle(.green)
+        case .wrong:
+            Image(systemName: "xmark").foregroundStyle(.red.opacity(0.65))
+        case nil:
+            Image(systemName: "circle.dashed").foregroundStyle(.secondary)
+        }
+    }
+
+    /// Week title plus a totals line (puzzles and correct/wrong counts).
+    private func weekHeader(_ week: HistoryGrouper.Week) -> some View {
+        let s = week.summary
+        return HStack {
+            Text(week.name)
+            Spacer()
+            Text("\(s.puzzles) · \(s.correct)✓ \(s.wrong)×")
+                .foregroundStyle(.secondary)
+                .font(.footnote.monospacedDigit())
+        }
+    }
+
+    private func rowAccessibilityLabel(_ round: RoundSummary) -> String {
+        let solved = round.outcomes.filter { $0 == .correct }.count
+        return String(
+            format: NSLocalizedString("history.row_accessibility", comment: "History row summary"),
+            round.completedAt.formatted(date: .abbreviated, time: .shortened),
+            solved, round.puzzleIDs.count
+        )
     }
 }

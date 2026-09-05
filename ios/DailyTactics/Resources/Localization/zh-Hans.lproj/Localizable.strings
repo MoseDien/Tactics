@@ -50,10 +50,14 @@
 "review.label" = "复盘";
 "review.previous_move" = "上一步";
 "review.next_move" = "下一步";
-"history.round_review" = "题组复盘";
-"history.puzzles_count" = "%lld 个题目";
-"history.puzzle" = "题目 %@";
+"review.prev_puzzle" = "上一题";
+"review.next_puzzle" = "下一题";
 "history.empty" = "暂无历史记录";
+"history.week_this" = "本周";
+"history.week_last" = "上周";
+"history.week_prev" = "前周";
+"history.puzzle_progress" = "第 %d 题,共 %d 题";
+"history.row_accessibility" = "%@ 完成的一组 %3$d 题,答对 %2$d 题";
 "board.square_occupied" = "%@%@在%@";
 "board.square_empty" = "空格 %@";
 "piece.white.name" = "白";

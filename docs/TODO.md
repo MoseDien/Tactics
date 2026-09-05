@@ -138,6 +138,13 @@
 
 - [x] 第一次点 Hint:高亮期望着法(现有行为,立即按失败结算);再次点:自动走出该着法(升变直接采用答案棋子,不弹选择器)。评分只结一次(惩罚在第一段已落),auto-play 后正常进对手回复链路。配套修复:错着预演进行中触发 auto-play 时,预演与真着同帧正确衔接(attemptMove 开头统一清预演)。棋盘点击会清高亮 → 再点 Hint 回到显示段(「继续自己下」的信号)。
 
+## History 增强:按周分组 + 整组复盘(2026-09-05 完成)
+
+- [x] `HistoryGrouper`(纯函数,注入 Calendar/now):rounds 按周分桶倒序;最近三周相对措辞(本周/上周/前周),更早用日期区间;`Week.summary` 出周汇总(题数/对/错)。
+- [x] `HistoryView` 重写:List Section 按周;行 = 周几+时刻 + 当行结果标记串(✓/×/虚圈)+ `4/5` 胶囊(全对绿);无障碍聚合标签。删 `RoundHistoryDetail` 中间层。
+- [x] `BatchReviewView`(新):历史 batch 的连续复盘播放器——纯 dataset(不碰评分/repo/tracker),单题步进(同 ReviewPuzzleView 语义)+ 题间导航(末题循环),结果行高亮当前题。
+- [x] 测试 +6(grouper:跨周边界/同周合并/倒序/汇总/相对标题/区间标题,固定 Monday-first 日历);69 全绿;iPhone 16e(最小可用)编译通过。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。
