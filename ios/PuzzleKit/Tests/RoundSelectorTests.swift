@@ -16,7 +16,7 @@ final class RoundSelectorTests: XCTestCase {
         let ids = Set(picked.map(\.id))
         XCTAssertFalse(ids.contains("p0"))
         XCTAssertFalse(ids.contains("p1"))
-        XCTAssertFalse(ids.contains("p2"), "the previous batch's puzzles are excluded")
+        XCTAssertFalse(ids.contains("p2"), "the previous round's puzzles are excluded")
     }
 
     func testEasyBandsBelowUserRatingPlus200() {
@@ -59,26 +59,26 @@ final class RoundSelectorTests: XCTestCase {
     }
 }
 
-final class BatchWindowTests: XCTestCase {
+final class RoundWindowTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_000)
 
     func testWindowBoundaries() {
-        let window = BatchWindow(startedAt: start, duration: 100)
+        let window = RoundWindow(startedAt: start, duration: 100)
         XCTAssertTrue(window.contains(start))
         XCTAssertTrue(window.contains(start + 99))
-        XCTAssertFalse(window.contains(start + 100), "expiry is exclusive — a new batch may start")
+        XCTAssertFalse(window.contains(start + 100), "expiry is exclusive — a new round may start")
         XCTAssertFalse(window.contains(start - 1))
     }
 
     func testSecondsRemainingSign() {
-        let window = BatchWindow(startedAt: start, duration: 100)
+        let window = RoundWindow(startedAt: start, duration: 100)
         XCTAssertEqual(window.secondsRemaining(at: start), 100, accuracy: 0.001)
         XCTAssertLessThan(window.secondsRemaining(at: start + 150), 0, "negative once expired")
     }
 
     func testLookupToleratesDuplicateLibraryIDs() {
         let puzzle = library0
-        let found = BatchLookup.puzzles(withIDs: [puzzle.id], in: [puzzle, puzzle])
+        let found = RoundLookup.puzzles(withIDs: [puzzle.id], in: [puzzle, puzzle])
         XCTAssertEqual(found.count, 1)
     }
 

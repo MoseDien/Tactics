@@ -16,12 +16,12 @@ enum TacticsFeedbackState: Equatable {
     case trainingComplete
 }
 
-enum TacticsMode { case play, reviewBatch }
+enum TacticsMode { case play, reviewRound }
 
 @MainActor
 @Observable
 final class TacticsViewModel {
-    /// Queries SwiftData at each batch boundary.
+    /// Queries SwiftData at each round boundary.
     let dailyPuzzleCount: Int
     var mode: TacticsMode
     var puzzles: [Puzzle]
@@ -38,7 +38,7 @@ final class TacticsViewModel {
     /// once the player picks a piece (or the move is cancelled by re-selection).
     var pendingPromotion: (from: Square, to: Square)?
     var progress: (any PuzzleDataRepositories)?
-    weak var batchTracker: BatchTracker?
+    weak var roundTracker: RoundTracker?
     var difficultyStore: DifficultyModeStore?
     var provisioner: (any PuzzleProvisioning)?
     var pacing: TacticsPacing = TacticsPacing()
@@ -48,8 +48,8 @@ final class TacticsViewModel {
     var ratingAppliedForPuzzle = false
     var firstAttemptWasCorrect = false
     var isAdvancing = false
-    /// Whether this batch has already been written to `RoundHistory`. The
-    /// round is recorded exactly once per batch — re-solving puzzles in review
+    /// Whether this round has already been written to `RoundHistory`. The
+    /// round is recorded exactly once per round — re-solving puzzles in review
     /// (or solving the last one after a hint) must not insert or skip a row.
     var roundRecorded = false
     /// Remains true after the puzzle is solved, even while the user scrubs
@@ -58,9 +58,9 @@ final class TacticsViewModel {
     var userRating: Int
     var lastRatingDelta: Int?
     var isBoardFlipped: Bool = false
-    /// Message surfaced when the user taps "Next batch" inside the cooldown
+    /// Message surfaced when the user taps "Next round" inside the cooldown
     /// window. Cleared on the next puzzle load.
-    var batchCooldownMessage: String?
+    var roundCooldownMessage: String?
     /// Whether the current puzzle is favorited. Refreshed on every puzzle
     /// load; the heart button appears once the puzzle is finished.
     var isCurrentFavorite = false
@@ -70,12 +70,12 @@ final class TacticsViewModel {
 
     /// Production initializer: selects the opening round through the
     /// repositories (falling back to the bundled samples on an empty library)
-    /// and takes over the injected batch tracker.
+    /// and takes over the injected round tracker.
     convenience init(dependencies: AppDependencies, dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
         let data = dependencies.data
         var round: [Puzzle]
-        if mode == .reviewBatch {
-            round = dependencies.batch.currentPuzzles(from: data.allPuzzles())
+        if mode == .reviewRound {
+            round = dependencies.round.currentPuzzles(from: data.allPuzzles())
         } else {
             var selector = RoundSelector()
             round = selector.select(
@@ -87,27 +87,27 @@ final class TacticsViewModel {
             )
         }
         if round.isEmpty { round = Puzzle.samples }
-        if mode == .play { dependencies.batch.begin(round) }
+        if mode == .play { dependencies.round.begin(round) }
         self.init(dataset: round, progress: data, ratingStore: dependencies.userRating, dailyPuzzleCount: dailyPuzzleCount, mode: mode)
-        self.batchTracker = dependencies.batch
+        self.roundTracker = dependencies.round
         self.difficultyStore = dependencies.difficulty
         self.provisioner = dependencies.provisioner
         self.pacing = dependencies.pacing
     }
 
     init(dataset: [Puzzle], progress: (any PuzzleDataRepositories)? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
-        let batch = dataset.isEmpty ? Puzzle.samples : dataset
+        let round = dataset.isEmpty ? Puzzle.samples : dataset
         self.dailyPuzzleCount = dailyPuzzleCount
         self.mode = mode
         self.progress = progress
         self.ratingStore = ratingStore
         userRating = ratingStore.rating
-        self.puzzles = batch
-        results = Array(repeating: nil, count: batch.count)
+        self.puzzles = round
+        results = Array(repeating: nil, count: round.count)
         roundRecorded = false
         currentIndex = 0
         do {
-            session = try PuzzleSession(puzzle: batch[0])
+            session = try PuzzleSession(puzzle: round[0])
         } catch {
             // A puzzle that cannot build a session is unusable, but crashing
             // the app over one data row is worse: fall back to the samples,
@@ -228,7 +228,7 @@ final class TacticsViewModel {
         case .incorrectMove:
             return .incorrectMove
         case .solved:
-            return isBatchComplete ? .trainingComplete : .puzzleComplete
+            return isRoundComplete ? .trainingComplete : .puzzleComplete
         }
     }
 

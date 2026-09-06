@@ -170,6 +170,10 @@
 
 **上架余项(非代码,App Store Connect)**:6.9"/6.5" 截图、描述/关键词(建议 Games→Board)、隐私政策 URL(landing page 加一页:不收集数据/本地存储/仅静态 CDN 拉题库)、年龄分级(4+)、版权行、TestFlight 走一轮真机、归档 bump build。
 
+## 术语统一 batch → round(2026-09-06 完成)
+
+- [x] 全库重命名:代码符号(BatchPolicy/Tracker/Window/Lookup/StateRepository→Round 系、reviewBatch→reviewRound、ensureBatchAvailable→ensureRoundAvailable、isBatchComplete→isRoundComplete 等)、文件名(BatchTracker.swift→RoundTracker.swift、TacticsViewModel+Batch→+Round、BatchReviewView.swift→RoundReviewView.swift、BatchTrackerTests→RoundTrackerTests)、字符串键(tactics.next_batch/batch_cooldown→round 系)与文案、UserDefaults 持久化键(roundStartTime/activeRoundPuzzleIDs——app 未上架,键名变更等同一次 batch 状态重置,可接受)。SwiftData 模型本就是 RoundHistory 系,未动。文档(README/CLAUDE/AGENTS/BUSINESS_LOGIC)同步;本 TODO 为历史台账保留原词。73 测试全绿。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。

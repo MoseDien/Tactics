@@ -19,8 +19,8 @@ private struct RootView: View {
     /// First-launch gate: the puzzle library is bulk-imported into SwiftData
     /// once. Observed via `@AppStorage` so completing the import re-routes.
     @AppStorage(LibraryStateStore.importedKey) private var libraryImported = false
-    // Resolve the initial mode once per app session. The batch window changes
-    // when a new batch starts, and must not cause SwiftUI to recreate the
+    // Resolve the initial mode once per app session. The round window changes
+    // when a new round starts, and must not cause SwiftUI to recreate the
     // active TacticsView in review mode.
     @State private var initialMode: TacticsMode?
 
@@ -32,9 +32,9 @@ private struct RootView: View {
         } else {
             ProgressView("Loading…")
                 .task {
-                    dependencies.batch.restore()
-                    initialMode = dependencies.batch.isWithinWindow && !dependencies.batch.activePuzzleIDs().isEmpty
-                        ? .reviewBatch
+                    dependencies.round.restore()
+                    initialMode = dependencies.round.isWithinWindow && !dependencies.round.activePuzzleIDs().isEmpty
+                        ? .reviewRound
                         : .play
                 }
         }

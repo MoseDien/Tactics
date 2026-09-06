@@ -1,6 +1,6 @@
 import Foundation
 
-/// Pure batch selection: reproduces the historical `fetchUnattemptedRound`
+/// Pure round selection: reproduces the historical `fetchUnattemptedRound`
 /// chain — unattempted pool (minus `excluding`) → difficulty band → fallback
 /// to the unattempted pool → fallback to the whole library — then shuffle and
 /// prefix. Randomness is injected as a value-shuffling closure so the selector

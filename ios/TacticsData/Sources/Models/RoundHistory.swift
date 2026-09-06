@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// One completed batch: the puzzle ids in order plus per-puzzle outcomes.
+/// One completed round: the puzzle ids in order plus per-puzzle outcomes.
 @Model
 public final class RoundHistory {
     public var id: UUID

@@ -216,7 +216,7 @@ final class FakeChunkFetcher: PuzzleChunkFetching {
         let (provisioner, store, fetcher, sequence) = makeProvisioner()
         fetcher.programmed[1] = .chunk(FakeChunkFetcher.makePuzzles((0..<5).map { "n\($0)" }))
 
-        let outcome = await provisioner.ensureBatchAvailable(minimum: 5)
+        let outcome = await provisioner.ensureRoundAvailable(minimum: 5)
         XCTAssertEqual(outcome, .added(count: 5))
         XCTAssertEqual(fetcher.requested, [1])
         XCTAssertEqual(store.allPuzzles().count, 9, "cache invalidated — new rows visible")
@@ -231,21 +231,21 @@ final class FakeChunkFetcher: PuzzleChunkFetching {
         try? store.context.save()
         store.invalidateLibraryCache()
 
-        let outcome = await provisioner.ensureBatchAvailable(minimum: 5)
+        let outcome = await provisioner.ensureRoundAvailable(minimum: 5)
         XCTAssertEqual(outcome, .skipped)
-        XCTAssertTrue(fetcher.requested.isEmpty, "no request when the pool fills a batch")
+        XCTAssertTrue(fetcher.requested.isEmpty, "no request when the pool fills a round")
     }
 
     @MainActor
     func testProvisionerLatchesNoMoreChunksOn404() async {
         let (provisioner, _, fetcher, sequence) = makeProvisioner()
         // Nothing programmed → 404.
-        let first = await provisioner.ensureBatchAvailable(minimum: 5)
+        let first = await provisioner.ensureRoundAvailable(minimum: 5)
         XCTAssertEqual(first, .notPublished)
         XCTAssertTrue(sequence.noMoreChunks)
 
         // Second call must not hit the network again this session.
-        let second = await provisioner.ensureBatchAvailable(minimum: 5)
+        let second = await provisioner.ensureRoundAvailable(minimum: 5)
         XCTAssertEqual(second, .notPublished)
         XCTAssertEqual(fetcher.requested, [1], "404 latched — one request only")
     }
@@ -255,13 +255,13 @@ final class FakeChunkFetcher: PuzzleChunkFetching {
         // Network failure → 0 inserted, no crash, sequence unchanged.
         let (provisioner, store, fetcher, sequence) = makeProvisioner()
         fetcher.programmed[1] = .failure
-        var outcome = await provisioner.ensureBatchAvailable(minimum: 5)
+        var outcome = await provisioner.ensureRoundAvailable(minimum: 5)
         XCTAssertEqual(outcome, .failed)
         XCTAssertEqual(sequence.current, 0)
 
         // Chunk overlapping existing ids only inserts the new ones.
         fetcher.programmed[1] = .chunk(FakeChunkFetcher.makePuzzles(["s1", "s2", "x1", "x2", "x3"]))
-        outcome = await provisioner.ensureBatchAvailable(minimum: 5)
+        outcome = await provisioner.ensureRoundAvailable(minimum: 5)
         XCTAssertEqual(outcome, .added(count: 3), "duplicate ids deduped against the existing library")
         XCTAssertEqual(store.allPuzzles().count, 7)
     }
@@ -302,8 +302,8 @@ final class FakeChunkFetcher: PuzzleChunkFetching {
     func testWipeAllRestoresEveryStoreToDefaults() {
         let defaults = UserDefaults(suiteName: "wipe-\(UUID().uuidString)")!
         defaults.set(2000, forKey: AppPreferences.userRating)
-        defaults.set(Date.now, forKey: AppPreferences.batchStartTime)
-        defaults.set(["x"], forKey: AppPreferences.activeBatchPuzzleIDs)
+        defaults.set(Date.now, forKey: AppPreferences.roundStartTime)
+        defaults.set(["x"], forKey: AppPreferences.activeRoundPuzzleIDs)
         defaults.set("hard", forKey: AppPreferences.difficultyMode)
         defaults.set(7, forKey: AppPreferences.puzzleSequence)
         defaults.set(true, forKey: AppPreferences.libraryImported)
@@ -312,7 +312,7 @@ final class FakeChunkFetcher: PuzzleChunkFetching {
 
         XCTAssertEqual(UserRatingStore(defaults: defaults).rating, 1500)
         XCTAssertEqual(DifficultyModeStore(defaults: defaults).current, .medium)
-        XCTAssertNil(UserDefaultsBatchStateStore(defaults: defaults).startTime())
+        XCTAssertNil(UserDefaultsRoundStateStore(defaults: defaults).startTime())
         XCTAssertEqual(ChunkSequenceStore(defaults: defaults).current, 0)
         XCTAssertFalse(defaults.bool(forKey: AppPreferences.libraryImported))
     }

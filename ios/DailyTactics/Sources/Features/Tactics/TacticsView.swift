@@ -21,11 +21,11 @@ struct TacticsView: View {
         }
         .task {
             // Top up the library first: if the unattempted pool can't fill a
-            // batch, fetch the next remote chunk (silently skipped offline).
-            _ = await dependencies.provisioner.ensureBatchAvailable(minimum: BatchPolicy.puzzleCount)
+            // round, fetch the next remote chunk (silently skipped offline).
+            _ = await dependencies.provisioner.ensureRoundAvailable(minimum: RoundPolicy.puzzleCount)
             let vm = TacticsViewModel(
                 dependencies: dependencies,
-                dailyPuzzleCount: BatchPolicy.puzzleCount,
+                dailyPuzzleCount: RoundPolicy.puzzleCount,
                 mode: mode
             )
             vm.start()

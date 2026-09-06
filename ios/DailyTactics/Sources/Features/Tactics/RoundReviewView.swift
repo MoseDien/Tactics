@@ -2,11 +2,11 @@ import SwiftUI
 import PuzzleKit
 import ChessCore
 
-/// Continuous review player for a completed batch: step through each puzzle's
+/// Continuous review player for a completed round: step through each puzzle's
 /// line, then move on to the next puzzle (looping at the end). Read-only —
-/// no scoring, no repositories, no batch tracker; the historical batch is a
+/// no scoring, no repositories, no round tracker; the historical round is a
 /// plain dataset by the time it reaches this view.
-struct BatchReviewView: View {
+struct RoundReviewView: View {
     @Environment(\.dismiss) private var dismiss
     let puzzles: [Puzzle]
     let outcomes: [PuzzleOutcome?]
@@ -45,11 +45,11 @@ struct BatchReviewView: View {
         .task(id: puzzleIndex) { loadCurrent() }
     }
 
-    /// "Puzzle 2 of 5" plus the batch's per-puzzle result row, marking where
+    /// "Puzzle 2 of 5" plus the round's per-puzzle result row, marking where
     /// the player currently is.
     private var header: some View {
         VStack(spacing: 6) {
-            Text(String(format: NSLocalizedString("history.puzzle_progress", comment: "Current puzzle within a reviewed batch"), puzzleIndex + 1, puzzles.count))
+            Text(String(format: NSLocalizedString("history.puzzle_progress", comment: "Current puzzle within a reviewed round"), puzzleIndex + 1, puzzles.count))
                 .font(.subheadline.weight(.semibold))
             HStack(spacing: 14) {
                 marker(at: puzzleIndex)

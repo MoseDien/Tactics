@@ -24,7 +24,7 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 
 - 题库以块为单位交付：每块 1000 题，一个 `puzzle-NNNN.json`；App 内置第 0 块，其余部署在远端目录。
 - App 在本地记录「当前数据序号」（UserDefaults `dailytactics.puzzleSequence`，内置块 = 0）。
-- 当未尝试题目不足以组成一个 batch（< `BatchPolicy.puzzleCount`）时，自动下载下一块并导入：启动选题前与每次开始新 batch 时各检查一次。
+- 当未尝试题目不足以组成一个 round（< `RoundPolicy.puzzleCount`）时，自动下载下一块并导入：启动选题前与每次开始新 round 时各检查一次。
 - 下载失败（断网/超时/坏数据/404）静默跳过，选题回退到既有链条（未尝试不足 → 全库随机）；404 表示块未发布，本次会话不再重试。
 - 导入按 puzzleId 去重，重复下载同一块无副作用。
 - Settings 中展示当前块序号与已载入题目数。
@@ -36,13 +36,13 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 
 Rating 由 `UserRatingStore` 保存在本地，并在首次有效尝试完成题目后按 Elo 风格规则更新。
 
-每个 batch 完成时（最后一题结算之后）追加一条 `RatingSnapshot`（SwiftData）：记录该 batch 结算后的 Rating 值，形成随时间变化的趋势序列，供 Settings 中的曲线展示。当前 Rating 仍以 `UserDefaults` 标量为准，快照只追加、不回写。
+每个 round 完成时（最后一题结算之后）追加一条 `RatingSnapshot`（SwiftData）：记录该 round 结算后的 Rating 值，形成随时间变化的趋势序列，供 Settings 中的曲线展示。当前 Rating 仍以 `UserDefaults` 标量为准，快照只追加、不回写。
 
 ## 2. 题库组织
 
 题库文件按 100 分 Rating 区间组织（`1000.json`–`1900.json`），但这只是**导入时的数据分片**。10 个文件在首次启动时全部写入 SwiftData，总量约 10000 题。
 
-「用户当前等级」不再驱动题库切换；但 Difficulty Mode（见下）会按用户当前 Rating 与题目 Rating 的相对关系筛选新 batch 的题目。
+「用户当前等级」不再驱动题库切换；但 Difficulty Mode（见下）会按用户当前 Rating 与题目 Rating 的相对关系筛选新 round 的题目。
 
 ## 3. Daily Tactics
 
@@ -50,34 +50,34 @@ Rating 由 `UserRatingStore` 保存在本地，并在首次有效尝试完成题
 
 ### Difficulty Mode
 
-Settings 中可以选择新 batch 的难度模式，默认是 `Medium`。设置保存在 UserDefaults，仅影响后续创建的 Play batch，当前 batch 和 Review 不受影响。
+Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置保存在 UserDefaults，仅影响后续创建的 Play round，当前 round 和 Review 不受影响。
 
 - `Easy`：选择 rating 不高于用户当前 Rating + 200 的题目。
 - `Medium`：完全随机选择，不考虑题目 rating。
 - `Hard`：选择 rating 不低于用户当前 Rating - 200 的题目。
-- 当符合筛选条件的题目不足一个 batch 时，回退到未尝试题目池；未尝试题目不足时再从全部题库随机选择。
+- 当符合筛选条件的题目不足一个 round 时，回退到未尝试题目池；未尝试题目不足时再从全部题库随机选择。
 
-### Batch（8 小时节奏）
+### Round（8 小时节奏）
 
-- 每个 batch 默认包含 5 道题，数量由 `BatchConfiguration.puzzleCount` 配置。
-- 新 batch 开始时记录 `batchStartTime` 到 UserDefaults，并持久化当前题目 ID。
-- 只有当 `当前时间 - batchStartTime >= BatchConfiguration.batchDuration` 时，才能开始下一个 batch；正式版 `batchDuration = 8 小时`，Debug 构建缩短为 5 分钟以便手工测试完整周期。
-- 冷却期间重新打开 App 不会随机生成新题，只进入当前 batch 的 Review mode。
-- 冷却结束后 `Next batch` 解锁；用户点击后才创建下一组题目并更新开始时间。
-- Review mode 下 `Next puzzle` 只循环当前 batch；`Next batch` 与其分离，只有用户主动点击才会尝试创建新 batch。时间未到时点击会显示等待提示（剩余冷却说明），仍停留在 Review mode。
-- Play mode 完成 batch 后，`Next puzzle` 仍保持可用；用户点击后进入 Review mode，并从当前 batch 循环查看题目。
+- 每个 round 默认包含 5 道题，数量由 `BatchConfiguration.puzzleCount` 配置。
+- 新 round 开始时记录 `batchStartTime` 到 UserDefaults，并持久化当前题目 ID。
+- 只有当 `当前时间 - batchStartTime >= BatchConfiguration.batchDuration` 时，才能开始下一个 round；正式版 `batchDuration = 8 小时`，Debug 构建缩短为 5 分钟以便手工测试完整周期。
+- 冷却期间重新打开 App 不会随机生成新题，只进入当前 round 的 Review mode。
+- 冷却结束后 `Next round` 解锁；用户点击后才创建下一组题目并更新开始时间。
+- Review mode 下 `Next puzzle` 只循环当前 round；`Next round` 与其分离，只有用户主动点击才会尝试创建新 round。时间未到时点击会显示等待提示（剩余冷却说明），仍停留在 Review mode。
+- Play mode 完成 round 后，`Next puzzle` 仍保持可用；用户点击后进入 Review mode，并从当前 round 循环查看题目。
 
 ### Round
 
 - 每个 round 默认包含 5 道题。
 - 题目从整个题库中随机选择尚未尝试过的 5 道（按 Difficulty Mode 的相对 rating 规则筛选）。
-- **查询数据库只在 batch 开始时发生一次**。一个 batch 进行中不再重新随机选择题目。
+- **查询数据库只在 round 开始时发生一次**。一个 round 进行中不再重新随机选择题目。
 - 当未做过的题目不足 5 道时，回退为从全部题目中随机选择。
 - 一轮完成时恰好写入一条 `RoundHistory`：最后一题用 Hint 不影响历史记录；Review 中重解最后一题也不会重复写入。
 
 ### Review mode
 
-- Review 当前 batch 的 5 道题，最后一道之后循环回第一道。
+- Review 当前 round 的 5 道题，最后一道之后循环回第一道。
 - Hint 和 Flip board 保持可用，用户可以继续落子并查看当前题目的进度。
 - Review 可以更新题目的完成/失败进度，但不修改用户 Rating。
 - Review 不会改变实时解题结果，也不会触发对手自动回应。
@@ -151,7 +151,7 @@ Rating 是一个本地训练分数，不再是 Lichess 官方 Rating，也不再
 
 ## 6. Settings
 
-Settings 提供难度模式选择、玩法说明和历史记录入口。历史按每 5 道题保存为一个 batch;历史列表按**周**分组(本周/上周/前周用相对措辞,更早显示日期区间,每组带题数与对错汇总),每个 batch 一行(完成时刻 + 结果标记 + 正确率)。点开一个 batch 进入**整组连续复盘**(BatchReviewView):单题可逐步回放,题间直接切换、末题循环;复盘只读,不影响任何进度或评分。
+Settings 提供难度模式选择、玩法说明和历史记录入口。历史按每 5 道题保存为一个 round;历史列表按**周**分组(本周/上周/前周用相对措辞,更早显示日期区间,每组带题数与对错汇总),每个 round 一行(完成时刻 + 结果标记 + 正确率)。点开一个 round 进入**整组连续复盘**(RoundReviewView):单题可逐步回放,题间直接切换、末题循环;复盘只读,不影响任何进度或评分。
 
 Debug 构建额外显示「调试工具」区:棋子动画的两个开关(见「棋子动画」一节)、「清空未尝试题池」(触发自动下载路径)与「回到最初始状态」(清空全部 SwiftData 与 UserDefaults,重走首次导入)。
 
@@ -163,15 +163,15 @@ Debug 构建额外显示「调试工具」区:棋子动画的两个开关(见「
 
 ```text
 ios/DailyTactics/Resources/puzzles/*.json → 首次启动一次性全部导入
-SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、历史 batch（RoundHistory）、
-             每 batch 的 rating 快照（RatingSnapshot）
+SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、历史 round（RoundHistory）、
+             每 round 的 rating 快照（RatingSnapshot）
 UserDefaults
   ├ dailytactics.libraryImported → 题库是否已一次性导入（首次启动 gate）
   ├ dailytactics.userRating      → 当前 Rating
   ├ dailytactics.puzzleSequence → 当前已载入的题库块序号
-  ├ dailytactics.difficultyMode  → 新 batch 的难度模式
+  ├ dailytactics.difficultyMode  → 新 round 的难度模式
   ├ dailytactics.pieceAnimation  → 棋子移动动画开关（debug，缺省开）
   ├ dailytactics.setupAnimation  → 棋盘载入动画开关（debug，缺省开）
-  ├ batchStartTime                → 当前 batch 开始时间
-  └ activeBatchPuzzleIDs          → 当前 batch 的固定题目顺序
+  ├ batchStartTime                → 当前 round 开始时间
+  └ activeBatchPuzzleIDs          → 当前 round 的固定题目顺序
 ```

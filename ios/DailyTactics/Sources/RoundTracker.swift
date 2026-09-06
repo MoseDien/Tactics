@@ -2,21 +2,21 @@ import Foundation
 import Observation
 import PuzzleKit
 
-/// Observable wrapper over the batch window. Owns the clock (injectable) so
+/// Observable wrapper over the round window. Owns the clock (injectable) so
 /// `isWithinWindow` is testable without sleeping, and schedules a single
-/// wake-up at expiry so the Next-batch button unlocks on time without any
+/// wake-up at expiry so the Next-round button unlocks on time without any
 /// polling timer in the view.
 @MainActor
 @Observable
-final class BatchTracker {
-    private let state: any BatchStateRepository
+final class RoundTracker {
+    private let state: any RoundStateRepository
     private let now: @Sendable () -> Date
     private var expiryTask: Task<Void, Never>?
 
     /// Recomputed from the persisted start time; observers see it flip.
     private(set) var isWithinWindow: Bool = false
 
-    init(state: any BatchStateRepository, now: @escaping @Sendable () -> Date = { .now }) {
+    init(state: any RoundStateRepository, now: @escaping @Sendable () -> Date = { .now }) {
         self.state = state
         self.now = now
     }
@@ -27,7 +27,7 @@ final class BatchTracker {
         watchExpiry()
     }
 
-    /// Begins a new batch at the current instant and watches its expiry.
+    /// Begins a new round at the current instant and watches its expiry.
     func begin(_ puzzles: [Puzzle]) {
         state.begin(puzzles, at: now())
         refresh()
@@ -39,7 +39,7 @@ final class BatchTracker {
     }
 
     func currentPuzzles(from library: [Puzzle]) -> [Puzzle] {
-        BatchLookup.puzzles(withIDs: state.activePuzzleIDs(), in: library)
+        RoundLookup.puzzles(withIDs: state.activePuzzleIDs(), in: library)
     }
 
     private func refresh() {
@@ -47,7 +47,7 @@ final class BatchTracker {
             isWithinWindow = false
             return
         }
-        isWithinWindow = BatchWindow(startedAt: start).contains(now())
+        isWithinWindow = RoundWindow(startedAt: start).contains(now())
     }
 
     /// One scheduled wake-up at window expiry (no periodic timer). Replacing
@@ -55,7 +55,7 @@ final class BatchTracker {
     private func watchExpiry() {
         expiryTask?.cancel()
         guard let start = state.startTime() else { return }
-        let remaining = BatchWindow(startedAt: start).secondsRemaining(at: now())
+        let remaining = RoundWindow(startedAt: start).secondsRemaining(at: now())
         guard remaining > 0 else {
             isWithinWindow = false
             return

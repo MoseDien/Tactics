@@ -12,13 +12,13 @@
 "settings.history" = "History";
 "settings.favorites" = "Favorites";
 "settings.how_to_play" = "How to play";
-"settings.how_to_play_body" = "- Don't guess through a move: hold the whole position in your head and find the solution there before touching a piece.\n- Each batch has 5 puzzles. A new batch unlocks every 8 hours; until then you can review the current batch.";
+"settings.how_to_play_body" = "- Don't guess through a move: hold the whole position in your head and find the solution there before touching a piece.\n- Each round has 5 puzzles. A new round unlocks every 8 hours; until then you can review the current round.";
 "settings.difficulty" = "Difficulty";
 "settings.library_section" = "Puzzle library";
 "settings.library_status" = "Chunk %ld · %ld puzzles loaded. New chunks download automatically when the untried pool runs low.";
 "settings.rating_trend" = "Rating trend";
-"settings.rating_trend_empty" = "Complete a batch to see your rating trend here.";
-"settings.rating_trend_delta" = "%+ld since the first batch";
+"settings.rating_trend_empty" = "Complete a round to see your rating trend here.";
+"settings.rating_trend_delta" = "%+ld since the first round";
 "settings.difficulty_easy" = "Easy";
 "settings.difficulty_medium" = "Medium";
 "settings.difficulty_hard" = "Hard";
@@ -38,7 +38,7 @@
 "tactics.puzzle_difficulty_hint" = "Tap to reveal the puzzle rating and play count";
 "tactics.mode_play" = "Play mode";
 "tactics.mode_review" = "Review mode";
-"tactics.batch_cooldown" = "The next batch unlocks 8 hours after this one started — keep reviewing until then.";
+"tactics.round_cooldown" = "The next round unlocks 8 hours after this one started — keep reviewing until then.";
 "tactics.promotion_title" = "Promote to…";
 "tactics.promotion_queen" = "Queen";
 "tactics.promotion_rook" = "Rook";
@@ -53,7 +53,7 @@
 "tactics.reviewing_move" = "Reviewing move %ld / %ld";
 "tactics.puzzle_progress" = "PUZZLE %ld OF %ld";
 "tactics.next_puzzle" = "Next";
-"tactics.next_batch" = "Next batch";
+"tactics.next_round" = "Next round";
 /* review */
 "review.title" = "Review";
 "review.label" = "REVIEW";
@@ -67,7 +67,7 @@
 "history.week_last" = "Last Week";
 "history.week_prev" = "Two Weeks Ago";
 "history.puzzle_progress" = "Puzzle %d of %d";
-"history.row_accessibility" = "Batch of %3$d puzzles on %@, %2$d solved";
+"history.row_accessibility" = "Round of %3$d puzzles on %@, %2$d solved";
 /* favorites */
 "favorites.empty" = "No favorites yet";
 "favorites.empty_hint" = "Finish a puzzle, then tap the heart to keep it here.";
@@ -101,8 +101,8 @@
 "debug.piece_animation" = "Piece move animation";
 "debug.setup_animation" = "Board setup animation";
 "debug.drain_pool" = "Drain untried pool";
-"debug.footer" = "Drain marks every puzzle attempted so the next batch triggers a real chunk download.";
-"debug.drained" = "Marked %ld puzzles attempted. Start a new batch to trigger the download.\nNote: rating updates stay frozen for these puzzles until new chunks arrive.";
+"debug.footer" = "Drain marks every puzzle attempted so the next round triggers a real chunk download.";
+"debug.drained" = "Marked %ld puzzles attempted. Start a new round to trigger the download.\nNote: rating updates stay frozen for these puzzles until new chunks arrive.";
 "debug.notice_title" = "Pool drained";
 "debug.reset_all" = "Reset to initial state";
 "debug.reset_all_confirm_title" = "Reset everything?";

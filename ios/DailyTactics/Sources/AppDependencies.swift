@@ -11,7 +11,7 @@ import TacticsData
 final class AppDependencies {
     let data: any PuzzleDataRepositories
     let importer: any LibraryImporting
-    let batch: BatchTracker
+    let round: RoundTracker
     let difficulty: DifficultyModeStore
     let userRating: UserRatingStore
     let pieceAnimation: PieceAnimationStore
@@ -22,7 +22,7 @@ final class AppDependencies {
     init(
         data: any PuzzleDataRepositories,
         importer: any LibraryImporting,
-        batch: BatchTracker,
+        round: RoundTracker,
         difficulty: DifficultyModeStore,
         userRating: UserRatingStore,
         pieceAnimation: PieceAnimationStore,
@@ -32,7 +32,7 @@ final class AppDependencies {
     ) {
         self.data = data
         self.importer = importer
-        self.batch = batch
+        self.round = round
         self.difficulty = difficulty
         self.userRating = userRating
         self.pieceAnimation = pieceAnimation
@@ -48,7 +48,7 @@ final class AppDependencies {
         return AppDependencies(
             data: repositories,
             importer: PuzzleLibraryImporter(context: repositories.context),
-            batch: BatchTracker(state: UserDefaultsBatchStateStore()),
+            round: RoundTracker(state: UserDefaultsRoundStateStore()),
             difficulty: DifficultyModeStore(),
             userRating: UserRatingStore(),
             pieceAnimation: PieceAnimationStore(),
@@ -70,7 +70,7 @@ final class AppDependencies {
         return AppDependencies(
             data: repositories,
             importer: PuzzleLibraryImporter(context: repositories.context),
-            batch: BatchTracker(state: UserDefaultsBatchStateStore(defaults: defaults)),
+            round: RoundTracker(state: UserDefaultsRoundStateStore(defaults: defaults)),
             difficulty: DifficultyModeStore(defaults: defaults),
             userRating: UserRatingStore(defaults: defaults),
             pieceAnimation: PieceAnimationStore(defaults: defaults),

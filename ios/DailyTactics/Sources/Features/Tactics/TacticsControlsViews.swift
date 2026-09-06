@@ -26,7 +26,7 @@ struct RatingPanelView: View {
     }
 }
 
-/// One row of dots: the per-puzzle outcomes of the current batch.
+/// One row of dots: the per-puzzle outcomes of the current round.
 struct RoundProgressView: View {
     let viewModel: TacticsViewModel
 
@@ -60,13 +60,13 @@ struct MoveControlsView: View {
                 Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.secondary)
-                Text(viewModel.mode == .reviewBatch ? "R" : "P")
+                Text(viewModel.mode == .reviewRound ? "R" : "P")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(width: 20, height: 20)
-                    .background(viewModel.mode == .reviewBatch ? Color.secondary : Color.accentColor)
+                    .background(viewModel.mode == .reviewRound ? Color.secondary : Color.accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 5))
-                    .accessibilityLabel(String(localized: viewModel.mode == .reviewBatch ? "tactics.mode_review" : "tactics.mode_play"))
+                    .accessibilityLabel(String(localized: viewModel.mode == .reviewRound ? "tactics.mode_review" : "tactics.mode_play"))
             }
 
             Spacer()
@@ -107,7 +107,7 @@ struct MoveControlsView: View {
 }
 
 /// The status line under the board: what is happening right now, and the
-/// next-puzzle / next-batch actions once a puzzle completes.
+/// next-puzzle / next-round actions once a puzzle completes.
 struct FeedbackView: View {
     let viewModel: TacticsViewModel
 
@@ -139,16 +139,16 @@ struct FeedbackView: View {
         case .puzzleComplete, .trainingComplete:
             VStack(spacing: 12) {
                 HStack {
-                    if viewModel.mode == .reviewBatch || viewModel.isBatchComplete {
-                        Button(String(localized: "tactics.next_batch"), action: viewModel.startNextBatch)
+                    if viewModel.mode == .reviewRound || viewModel.isRoundComplete {
+                        Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
                             .buttonStyle(.borderedProminent)
-                            .tint(viewModel.isNewBatchAvailable ? .accentColor : Color.gray)
+                            .tint(viewModel.isNewRoundAvailable ? .accentColor : Color.gray)
                     }
                     Spacer()
                     Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
                         .buttonStyle(.borderedProminent)
                 }
-                if let cooldown = viewModel.batchCooldownMessage {
+                if let cooldown = viewModel.roundCooldownMessage {
                     Label(cooldown, systemImage: "clock")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)

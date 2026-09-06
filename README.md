@@ -17,13 +17,13 @@ line at a time, and stores progress locally.
 - On first launch the entire bundled library (10 rating tiers, ~10,000 puzzles)
   is imported into SwiftData in one pass behind a loading screen; a decode
   failure shows an error with Retry instead of silently degrading
-- Daily puzzle batches are selected from SwiftData and can be reviewed after completion
-- After a batch is complete, `Next puzzle` remains available and enters Review mode,
-  looping through the current batch without changing Rating
-- Each batch draws 5 random not-yet-attempted puzzles (queried only at batch
-  start); a new batch unlocks every 8 hours (5 minutes in Debug builds), and
+- Daily puzzle rounds are selected from SwiftData and can be reviewed after completion
+- After a round is complete, `Next puzzle` remains available and enters Review mode,
+  looping through the current round without changing Rating
+- Each round draws 5 random not-yet-attempted puzzles (queried only at round
+  start); a new round unlocks every 8 hours (5 minutes in Debug builds), and
   the difficulty setting
-  (Easy/Medium/Hard) filters new batches relative to the user's Rating
+  (Easy/Medium/Hard) filters new rounds relative to the user's Rating
 - Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
 - The first move in every Lichess line is the machine's setup move; user and
   machine then alternate through the remaining UCI moves
@@ -41,9 +41,9 @@ line at a time, and stores progress locally.
   it never changes the user's Rating
 - Board orientation follows the player's color and can be flipped manually
 - A local Elo-like puzzle Rating starts at 1500 and is persisted with
-  `UserDefaults`; one snapshot per completed batch feeds a Rating trend
+  `UserDefaults`; one snapshot per completed round feeds a Rating trend
   chart in Settings
-- SwiftData stores completion/failure history plus per-batch round history
+- SwiftData stores completion/failure history plus per-round round history
   (browsable in Settings → History with per-puzzle review)
 - A storyboard launch screen shows the wordmark — a red "i" before
   "Tactics" (the app's logo) on white, centered; the first-launch import
@@ -81,14 +81,14 @@ ios/
   DailyTactics/
     Sources/
       AppDependencies.swift    composition root (injected via environment)
-      BatchTracker.swift       observable batch window, injectable clock
+      RoundTracker.swift       observable round window, injectable clock
       TacticsPacing.swift      injectable interaction timing
       Features/Tactics/        training view, board, view model, round history UI
       Features/Settings/       difficulty, rating trend chart, history entry
       Features/Onboarding/     first-launch library import screen
       DailyTacticsApp.swift    app entry point
     Resources/                 assets, localization, legal
-    Tests/                     view-model + batch-tracker tests, fakes
+    Tests/                     view-model + round-tracker tests, fakes
 android/                    Android client (frozen)
 data/source/                local SQLite source data (ignored by Git)
 tools/                      puzzle import/export scripts
@@ -132,7 +132,7 @@ xcodebuild \
 
 `ios/TacticsData/Resources/Puzzles/puzzle-0000.json` is the app-bundled chunk
 (1000 puzzles, read through `BundledPuzzleSource`). Further chunks arrive over
-the network: when the untried pool can't fill a batch, the app fetches the
+the network: when the untried pool can't fill a round, the app fetches the
 next `puzzle-NNNN.json` from the deployed catalog and imports it (offline
 failures fall back to replaying attempted puzzles). Chunks are generated from
 the raw Lichess SQLite database by `tools/export_puzzle_chunk.py`, which also
@@ -152,3 +152,13 @@ are in `THIRD_PARTY_NOTICES.md`.
 The older scripts under `tools/` (`export_tier_puzzles.py`,
 `export_puzzles.py`, `import_lichess_puzzles.py`) produced the retired
 tier-file layout and are kept for reference.
+
+For a short explanation of the six FEN fields and how puzzle positions use
+them, see [`docs/FEN_FORMAT.md`](docs/FEN_FORMAT.md).
+
+For the move-string format used by puzzle lines, including promotion,
+castling, and en passant examples, see
+[`docs/UCI_MOVE_NOTATION.md`](docs/UCI_MOVE_NOTATION.md).
+
+For the Lichess puzzle tags currently recognized by the app, see
+[`docs/LICHESS_PUZZLE_THEMES.md`](docs/LICHESS_PUZZLE_THEMES.md).

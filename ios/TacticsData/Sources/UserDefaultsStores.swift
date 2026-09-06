@@ -6,8 +6,8 @@ import PuzzleKit
 public enum AppPreferences {
     public static let userRating = "dailytactics.userRating"
     public static let difficultyMode = "dailytactics.difficultyMode"
-    public static let batchStartTime = "dailytactics.batchStartTime"
-    public static let activeBatchPuzzleIDs = "dailytactics.activeBatchPuzzleIDs"
+    public static let roundStartTime = "dailytactics.roundStartTime"
+    public static let activeRoundPuzzleIDs = "dailytactics.activeRoundPuzzleIDs"
     public static let puzzleSequence = "dailytactics.puzzleSequence"
     public static let libraryImported = "dailytactics.libraryImported"
     public static let pieceAnimation = "dailytactics.pieceAnimation"
@@ -15,11 +15,11 @@ public enum AppPreferences {
 
     /// All of the above.
     public static let allKeys: [String] = [
-        userRating, difficultyMode, batchStartTime, activeBatchPuzzleIDs,
+        userRating, difficultyMode, roundStartTime, activeRoundPuzzleIDs,
         puzzleSequence, libraryImported, pieceAnimation, setupAnimation,
     ]
 
-    /// Debug reset: removes every stored preference (rating, batch window,
+    /// Debug reset: removes every stored preference (rating, round window,
     /// difficulty, chunk sequence, import gate included).
     public static func wipeAll(defaults: UserDefaults = .standard) {
         for key in allKeys {
@@ -92,7 +92,7 @@ public final class PieceAnimationStore {
     }
 }
 
-/// Difficulty setting for new batches, persisted in UserDefaults. Instances
+/// Difficulty setting for new rounds, persisted in UserDefaults. Instances
 /// (injectable defaults) — no global statics.
 @MainActor
 public final class DifficultyModeStore {
@@ -114,11 +114,11 @@ public final class DifficultyModeStore {
     }
 }
 
-/// Persisted batch state: the active batch's start time and fixed puzzle ids.
+/// Persisted round state: the active round's start time and fixed puzzle ids.
 @MainActor
-public final class UserDefaultsBatchStateStore: BatchStateRepository {
-    private let startKey = AppPreferences.batchStartTime
-    private let puzzleIDsKey = AppPreferences.activeBatchPuzzleIDs
+public final class UserDefaultsRoundStateStore: RoundStateRepository {
+    private let startKey = AppPreferences.roundStartTime
+    private let puzzleIDsKey = AppPreferences.activeRoundPuzzleIDs
     private let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {

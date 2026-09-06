@@ -8,7 +8,7 @@
 "settings.history" = "历史记录";
 "settings.favorites" = "收藏";
 "settings.how_to_play" = "玩法说明";
-"settings.how_to_play_body" = "- 不要试棋：先在脑中记住整个局面，想出解法后再落子。\n- 每组共 5 道题。每 8 小时解锁新的一组；期间可以复盘当前题目组。";
+"settings.how_to_play_body" = "- 不要试棋：先在脑中记住整个局面，想出解法后再落子。\n- 每组共 5 道题。每 8 小时解锁新的一轮；期间可以复盘当前题目组。";
 "settings.difficulty" = "难度";
 "settings.library_section" = "题库";
 "settings.library_status" = "数据块 %ld · 已载入 %ld 道题。未做题目不足时会自动下载新数据块。";
@@ -33,7 +33,7 @@
 "tactics.puzzle_difficulty_hint" = "点按查看题目难度和游玩次数";
 "tactics.mode_play" = "练习模式";
 "tactics.mode_review" = "复盘模式";
-"tactics.batch_cooldown" = "本题组开始 8 小时后解锁下一组，期间可继续复盘。";
+"tactics.round_cooldown" = "本题组开始 8 小时后解锁下一轮，期间可继续复盘。";
 "tactics.promotion_title" = "升变为…";
 "tactics.promotion_queen" = "皇后";
 "tactics.promotion_rook" = "车";
@@ -48,7 +48,7 @@
 "tactics.reviewing_move" = "正在复盘第 %ld / %ld 步";
 "tactics.puzzle_progress" = "第 %ld 题，共 %ld 题";
 "tactics.next_puzzle" = "下一题";
-"tactics.next_batch" = "下一组题目";
+"tactics.next_round" = "下一轮题目";
 "review.title" = "复盘";
 "review.label" = "复盘";
 "review.previous_move" = "上一步";
@@ -82,8 +82,8 @@
 "debug.piece_animation" = "棋子移动动画";
 "debug.setup_animation" = "棋盘载入动画";
 "debug.drain_pool" = "清空未尝试题池";
-"debug.footer" = "清空会把所有题目标记为已尝试,下一个 batch 会触发真实下载。";
-"debug.drained" = "已将 %ld 道题标记为已尝试。开新的一组即可触发下载。\n注意:这些题在新数据块到来前不再影响 Rating。";
+"debug.footer" = "清空会把所有题目标记为已尝试,下一个 round 会触发真实下载。";
+"debug.drained" = "已将 %ld 道题标记为已尝试。开新的一轮即可触发下载。\n注意:这些题在新数据块到来前不再影响 Rating。";
 "debug.notice_title" = "题池已清空";
 "debug.reset_all" = "回到初始状态";
 "debug.reset_all_confirm_title" = "全部重置?";

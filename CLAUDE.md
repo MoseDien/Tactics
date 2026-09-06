@@ -11,7 +11,7 @@ move to the next puzzle.
 Do not add backend services, accounts, social features, AI, multiplayer,
 subscriptions, analytics, or cloud sync unless explicitly requested.
 (The one sanctioned network behavior is chunked puzzle downloads: when the
-untried pool can't fill a batch, the next `puzzle-NNNN.json` is fetched from
+untried pool can't fill a round, the next `puzzle-NNNN.json` is fetched from
 the deployed catalog and imported; failures fall back silently.)
 
 ## Technology
@@ -24,7 +24,7 @@ the deployed catalog and imported; failures fall back silently.)
 
 Bundle ID: `com.dienbell.tactics`.
 
-The current Daily Tactics, batch, persistence, difficulty, promotion, and
+The current Daily Tactics, round, persistence, difficulty, promotion, and
 localization rules are documented in
 [docs/BUSINESS_LOGIC.md](docs/BUSINESS_LOGIC.md).
 
@@ -42,7 +42,7 @@ PuzzleKit           → ChessCore
 ```text
 DailyTacticsApp
   ├── AppDependencies (composition root, injected via .environment)
-  ├── BatchTracker / TacticsPacing (observable batch window, injectable clock & pacing)
+  ├── RoundTracker / TacticsPacing (observable round window, injectable clock & pacing)
   ├── Features/Tactics
   ├── Features/Settings     difficulty, rating trend, history entry
   └── Features/Onboarding   first-launch library import
@@ -59,7 +59,7 @@ passant, promotion). It must not import SwiftUI, SwiftData, or feature code.
 
 Domain: `Puzzle`/`PuzzleSession` (Lichess move arrays start with the machine
 setup move; review replay is deterministic), policies (`RatingPolicy`,
-`BatchPolicy`/`BatchWindow`/`BatchLookup`, `RoundSelector` with injectable
+`RoundPolicy`/`RoundWindow`/`RoundLookup`, `RoundSelector` with injectable
 shuffle), and the repository ports (`PuzzleLibraryRepository`, the chunked
 delivery ports (`PuzzleChunkFetching`, `PuzzleProvisioning`),
 `PuzzleProgressRepository`, `RoundHistoryRepository`, `RatingHistoryRepository`,
@@ -84,7 +84,7 @@ models never leak out of it.
 
 Views receive `AppDependencies` from the environment; they never construct
 stores or read global statics. `TacticsViewModel` keeps a plain-dataset test
-initializer. `BatchTracker` owns an injectable clock and schedules one expiry
+initializer. `RoundTracker` owns an injectable clock and schedules one expiry
 wake-up — no polling timers anywhere.
 
 ## Interaction rules
@@ -104,12 +104,12 @@ wake-up — no polling timers anywhere.
   including the puzzle line's promotion piece.
 - A pawn reaching the last rank opens a promotion picker
   (queen/rook/bishop/knight); the move is submitted only after a choice.
-- A new batch unlocks after the batch window (8 hours; 5 minutes in Debug builds); tapping
-  `Next batch` inside the window shows a wait message and stays in Review.
-- Round history (`RoundHistory`) is written exactly once per batch: neither a
-  hint on the final puzzle nor re-solving the batch in review may skip or
+- A new round unlocks after the round window (8 hours; 5 minutes in Debug builds); tapping
+  `Next round` inside the window shows a wait message and stays in Review.
+- Round history (`RoundHistory`) is written exactly once per round: neither a
+  hint on the final puzzle nor re-solving the round in review may skip or
   duplicate the row.
-- Review navigation is batch-scoped. After the final puzzle, `Next puzzle` loops
+- Review navigation is round-scoped. After the final puzzle, `Next puzzle` loops
   to the first puzzle and transitions Play mode into Review mode.
 - Review mode keeps Hint, board flipping, move interaction, and progress updates,
   but must never change the user's Rating.

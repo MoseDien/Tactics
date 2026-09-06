@@ -3,7 +3,7 @@ import PuzzleKit
 import SwiftData
 
 /// Keeps the local library stocked: when the unattempted pool drops below the
-/// batch size, fetches the next remote chunk and inserts it. All failures are
+/// round size, fetches the next remote chunk and inserts it. All failures are
 /// swallowed — selection's existing fallbacks keep the app playable offline.
 @MainActor
 public final class LibraryProvisioner: PuzzleProvisioning {
@@ -21,7 +21,7 @@ public final class LibraryProvisioner: PuzzleProvisioning {
         self.fetcher = fetcher
     }
 
-    public func ensureBatchAvailable(minimum: Int) async -> ProvisionOutcome {
+    public func ensureRoundAvailable(minimum: Int) async -> ProvisionOutcome {
         let library = repositories.allPuzzles()
         let attempted = repositories.attemptedIDs()
         let unattempted = library.count - attempted.count

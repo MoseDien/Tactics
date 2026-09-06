@@ -3,8 +3,8 @@ import PuzzleKit
 import ChessCore
 
 /// Review for one completed puzzle: step through its line move by move.
-/// Used from the favorites list; batch review has its own continuous player
-/// (`BatchReviewView`).
+/// Used from the favorites list; round review has its own continuous player
+/// (`RoundReviewView`).
 struct ReviewPuzzleView: View {
     @Environment(\.dismiss) private var dismiss
     let puzzle: Puzzle

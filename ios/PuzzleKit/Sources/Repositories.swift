@@ -3,7 +3,7 @@ import Foundation
 // Domain values exchanged across the repository seams. Property names mirror
 // the SwiftData models so views move over with minimal churn.
 
-/// One completed batch in the history list.
+/// One completed round in the history list.
 public struct RoundSummary: Identifiable, Sendable, Equatable {
     public let id: UUID
     public let completedAt: Date
@@ -18,7 +18,7 @@ public struct RoundSummary: Identifiable, Sendable, Equatable {
     }
 }
 
-/// One rating sample — the settled rating after a completed batch.
+/// One rating sample — the settled rating after a completed round.
 public struct RatingSample: Identifiable, Sendable, Equatable {
     public let id: UUID
     public let recordedAt: Date
@@ -64,14 +64,14 @@ public protocol PuzzleProgressRepository: AnyObject {
     func favoriteIDs() -> Set<String>
 }
 
-/// One row per completed batch.
+/// One row per completed round.
 @MainActor
 public protocol RoundHistoryRepository: AnyObject {
     func recordRound(puzzles: [Puzzle], outcomes: [PuzzleOutcome?])
     func history() -> [RoundSummary]
 }
 
-/// One rating sample per completed batch.
+/// One rating sample per completed round.
 @MainActor
 public protocol RatingHistoryRepository: AnyObject {
     func recordRatingSnapshot(value: Int)
@@ -89,9 +89,9 @@ public protocol PuzzleDataRepositories: PuzzleLibraryRepository,
     func deleteAllData()
 }
 
-/// Persisted batch state (active batch identity + start time).
+/// Persisted round state (active round identity + start time).
 @MainActor
-public protocol BatchStateRepository: AnyObject {
+public protocol RoundStateRepository: AnyObject {
     func startTime() -> Date?
     func activePuzzleIDs() -> [String]
     func begin(_ puzzles: [Puzzle], at start: Date)
@@ -130,8 +130,8 @@ public enum ProvisionOutcome: Sendable, Equatable {
 /// Keeps the local library stocked: when fewer than `minimum` unattempted
 /// puzzles remain, the next chunk is fetched and imported. Failures are
 /// reported, not thrown — the existing selection fallbacks still guarantee a
-/// playable batch.
+/// playable round.
 @MainActor
 public protocol PuzzleProvisioning: AnyObject {
-    func ensureBatchAvailable(minimum: Int) async -> ProvisionOutcome
+    func ensureRoundAvailable(minimum: Int) async -> ProvisionOutcome
 }

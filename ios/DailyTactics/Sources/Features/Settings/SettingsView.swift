@@ -137,7 +137,7 @@ struct SettingsView: View {
     }
 
     /// Marks every library puzzle as attempted so the untried pool drops to
-    /// zero; the next batch boundary then exercises the real download path.
+    /// zero; the next round boundary then exercises the real download path.
     /// Note: this freezes rating updates for the drained library (no puzzle
     /// can be a first attempt anymore) — play still works via selection
     /// fallbacks. Reset by reinstalling or waiting for new chunks.
@@ -150,7 +150,7 @@ struct SettingsView: View {
 
     // MARK: - Rating trend
 
-    /// One point per completed batch. Single series: the section title names
+    /// One point per completed round. Single series: the section title names
     /// it, so no legend; the line uses the app accent, which iOS keeps
     /// legible in both appearances.
     private var ratingTrendSection: some View {

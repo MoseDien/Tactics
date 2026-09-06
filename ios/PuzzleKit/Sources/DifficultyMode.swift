@@ -1,6 +1,6 @@
 import Foundation
 
-/// Difficulty selection for new batches, relative to the user's rating.
+/// Difficulty selection for new rounds, relative to the user's rating.
 public enum DifficultyMode: String, CaseIterable, Identifiable, Sendable {
     case easy
     case medium

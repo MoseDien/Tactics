@@ -22,26 +22,26 @@ feature and preserve the existing offline iOS SwiftUI product direction.
   chunked remote delivery, UserDefaults stores. The only module importing
   SwiftData.
 - `DailyTactics` (app): SwiftUI features (Tactics/Settings/Onboarding), the
-  `AppDependencies` composition root, `BatchTracker`, `TacticsPacing`.
+  `AppDependencies` composition root, `RoundTracker`, `TacticsPacing`.
   Animation timing lives in the board view, never in the domain.
 
 ## Product rules
 
 - The app is offline-first: one bundled chunk (`puzzle-0000.json`, 1000
   puzzles, in the TacticsData bundle) plus on-demand chunk downloads when the
-  untried pool can't fill a batch (the only sanctioned network behavior).
+  untried pool can't fill a round (the only sanctioned network behavior).
 - Lichess lines are machine-first: `moves[0]` auto-plays, then the player
   starts at `moves[1]` and turns alternate.
 - Hint reveals the expected move visually but never auto-plays it.
-- Batch review navigation is not undo. After a Play batch is complete, `Next
-  puzzle` enters Review mode and loops through the current batch.
+- Round review navigation is not undo. After a Play round is complete, `Next
+  puzzle` enters Review mode and loops through the current round.
 - Review may record puzzle progress, but must never update the user's Rating.
 - Keep the normal training screen usable on iPhone SE without scrolling;
   retain `ScrollView` only as a Dynamic Type/accessibility fallback.
 - Do not display `Solved` or `Failed` counters in the training UI.
 - Rating starts at 1500, uses the isolated policy in
   `PuzzleKit/RatingPolicy.swift`, and persists locally (UserDefaults scalar +
-  one SwiftData snapshot per completed batch).
+  one SwiftData snapshot per completed round).
 
 ## Change checklist
 

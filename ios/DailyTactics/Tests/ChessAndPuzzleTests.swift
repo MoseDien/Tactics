@@ -118,13 +118,13 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0)
     }
 
-    // MARK: - Round history records exactly once per batch
+    // MARK: - Round history records exactly once per round
 
     @MainActor
     func testRoundHistoryRecordsOnceDespiteHintOnLastPuzzleAndReviewReplay() async throws {
         let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
 
-        // One puzzle in the dataset so it is also the last puzzle of the batch.
+        // One puzzle in the dataset so it is also the last puzzle of the round.
         let puzzle = Puzzle.samples[0]
         let vm = TacticsViewModel(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
 
@@ -144,8 +144,8 @@ final class ChessAndPuzzleTests: XCTestCase {
         try await solveActivePuzzle(on: vm)
         XCTAssertEqual(store.history().count, 1, "hint on the last puzzle must not lose the round record")
 
-        // Re-solving the batch in review must not insert a second row.
-        vm.startNextBatch()  // inside the cooldown: stays on the same batch
+        // Re-solving the round in review must not insert a second row.
+        vm.startNextRound()  // inside the cooldown: stays on the same round
         try await solveActivePuzzle(on: vm)
         XCTAssertEqual(store.history().count, 1, "review replay must not duplicate the round record")
         // Same idempotency for the rating snapshot.
@@ -184,12 +184,12 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
-    func testRatingSnapshotRecordedPerBatchWithFinalDelta() async throws {
+    func testRatingSnapshotRecordedPerRoundWithFinalDelta() async throws {
         let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
         let defaults = UserDefaults(suiteName: "rating-snapshot-\(UUID().uuidString)")!
         let ratingStore = UserRatingStore(defaults: defaults)
 
-        // Single-puzzle batch solved cleanly: the snapshot must capture the
+        // Single-puzzle round solved cleanly: the snapshot must capture the
         // rating AFTER the last puzzle's delta landed, not before.
         let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)), progress: store, ratingStore: ratingStore, dailyPuzzleCount: 1)
         let ratingBefore = vm.userRating
@@ -198,7 +198,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         try await waitForWaitingForMove(on: vm)
         try await solveActivePuzzle(on: vm)
 
-        XCTAssertEqual(store.ratingHistory().count, 1, "one snapshot per completed batch")
+        XCTAssertEqual(store.ratingHistory().count, 1, "one snapshot per completed round")
         let snapshot = try XCTUnwrap(store.ratingHistory().first)
         XCTAssertEqual(snapshot.rating, vm.userRating,
                        "snapshot must equal the settled rating (hint-free solve moves it)")

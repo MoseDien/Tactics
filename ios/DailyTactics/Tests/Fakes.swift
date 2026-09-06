@@ -19,9 +19,9 @@ final class MutableClock: @unchecked Sendable {
     func advance(_ interval: TimeInterval) { now = now.addingTimeInterval(interval) }
 }
 
-/// In-memory batch state: the UserDefaults-free `BatchStateRepository` fake.
+/// In-memory round state: the UserDefaults-free `RoundStateRepository` fake.
 @MainActor
-final class InMemoryBatchState: BatchStateRepository {
+final class InMemoryRoundState: RoundStateRepository {
     private(set) var storedStart: Date?
     private(set) var storedIDs: [String] = []
 

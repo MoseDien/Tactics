@@ -158,21 +158,21 @@ final class PuzzleKitTests: XCTestCase {
 
     @MainActor
 
-    func testBatchPolicyDuration() {
+    func testRoundPolicyDuration() {
         // Tests build in Debug: the window is shortened to 5 minutes so the
-        // batch cycle is exercisable by hand. Release uses the full cadence.
+        // round cycle is exercisable by hand. Release uses the full cadence.
         #if DEBUG
-        XCTAssertEqual(BatchPolicy.batchDuration, 5 * 60)
+        XCTAssertEqual(RoundPolicy.roundDuration, 5 * 60)
         #else
-        XCTAssertEqual(BatchPolicy.batchDuration, 8 * 60 * 60)
+        XCTAssertEqual(RoundPolicy.roundDuration, 8 * 60 * 60)
         #endif
-        XCTAssertEqual(BatchPolicy.puzzleCount, 5)
+        XCTAssertEqual(RoundPolicy.puzzleCount, 5)
     }
 
-    func testBatchLookupToleratesDuplicateLibraryIDs() {
+    func testRoundLookupToleratesDuplicateLibraryIDs() {
         let puzzle = Puzzle.samples[0]
         let library = [puzzle, puzzle]  // duplicate id in the library
         // Must not trap despite the duplicated id.
-        XCTAssertEqual(BatchLookup.puzzles(withIDs: [puzzle.id], in: library).count, 1)
+        XCTAssertEqual(RoundLookup.puzzles(withIDs: [puzzle.id], in: library).count, 1)
     }
 }

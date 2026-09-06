@@ -4,8 +4,8 @@ import ChessCore
 import TacticsData
 
 /// History browser: rounds grouped into calendar weeks (newest first), each
-/// row showing the batch's results at a glance. Tapping a round opens the
-/// continuous batch review player.
+/// row showing the round's results at a glance. Tapping a round opens the
+/// continuous round review player.
 struct HistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppDependencies.self) private var dependencies
@@ -19,7 +19,7 @@ struct HistoryView: View {
                     Section {
                         ForEach(week.rounds) { round in
                             NavigationLink {
-                                BatchReviewView(
+                                RoundReviewView(
                                     puzzles: round.puzzleIDs.compactMap { puzzleLookup[$0] },
                                     outcomes: round.outcomes
                                 )
@@ -38,13 +38,13 @@ struct HistoryView: View {
             .task {
                 let library = dependencies.data.allPuzzles()
                 weeks = HistoryGrouper.weeks(from: dependencies.data.history())
-                puzzleLookup = BatchLookup.puzzles(withIDs: library.map(\.id), in: library)
+                puzzleLookup = RoundLookup.puzzles(withIDs: library.map(\.id), in: library)
                     .reduce(into: [:]) { lookup, puzzle in lookup[puzzle.id] = puzzle }
             }
         }
     }
 
-    /// One batch: completion time, the per-puzzle result row, and a solved
+    /// One round: completion time, the per-puzzle result row, and a solved
     /// ratio capsule.
     private func roundRow(_ round: RoundSummary) -> some View {
         HStack(spacing: 12) {
