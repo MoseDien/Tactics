@@ -25,13 +25,13 @@ struct BoardAnimation: Equatable {
     /// A board with no animation input — the review player's default.
     static let passthrough = BoardAnimation(arrival: [:], movesEnabled: true, setupEnabled: false, boardGeneration: 0, moveRevision: 0)
 
-    /// Distance-adaptive slide timing, capped: 55ms per square (plus a 60ms
-    /// start-up) up to 4 squares, and a hard 249ms ceiling beyond — long
-    /// slides all land together instead of stretching with the distance.
-    /// A one-square step finishes in 115ms; everything past four squares in 249ms.
-    static let slideBaseDuration: TimeInterval = 0.06
-    static let slideNearPerSquare: TimeInterval = 0.055
-    static let slideMaxSquares = 4
+    /// Distance-adaptive slide timing, capped: 50ms per square (plus a 45ms
+    /// start-up) up to 2 squares, a hard ceiling beyond — every slide of two
+    /// or more squares lands together. A one-square step finishes in 95ms;
+    /// everything else in 145ms.
+    static let slideBaseDuration: TimeInterval = 0.045
+    static let slideNearPerSquare: TimeInterval = 0.05
+    static let slideMaxSquares = 2
 }
 
 struct ChessBoardView: View {

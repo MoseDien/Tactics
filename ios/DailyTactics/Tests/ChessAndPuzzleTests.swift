@@ -118,6 +118,49 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0)
     }
 
+    @MainActor
+    func testWrongMoveSnapbackAdvancesBoardAnimationRevision() async throws {
+        let puzzle = Puzzle(
+            id: "wrong-move-snapback",
+            fen: "4k3/8/8/8/8/8/4K3/8 b - - 0 1",
+            moves: ["e8e7", "e2e3"],
+            rating: 1500,
+            themes: []
+        )
+        let vm = TacticsViewModel(dataset: [puzzle], dailyPuzzleCount: 1)
+        vm.pacing = TacticsPacing(
+            nextPuzzleDelay: .milliseconds(1),
+            wrongMoveDisplay: .milliseconds(20),
+            opponentReplyDelay: .milliseconds(1)
+        )
+
+        vm.start()
+        try await waitForWaitingForMove(on: vm)
+
+        let origin = try XCTUnwrap(Square(notation: "e2"))
+        let target = try XCTUnwrap(Square(notation: "d2"))
+        let revisionBeforeAttempt = vm.boardMoveRevision
+
+        vm.attemptMove(from: origin, to: target)
+
+        XCTAssertEqual(vm.attemptedMove, ChessMove(from: origin, to: target))
+        XCTAssertEqual(vm.animatedArrival, [target: origin])
+        XCTAssertEqual(vm.boardMoveRevision, revisionBeforeAttempt + 1,
+                       "the wrong-move preview starts its own animation transaction")
+
+        var waited = 0
+        while vm.attemptedMove != nil && waited < 100 {
+            try await Task.sleep(for: .milliseconds(5))
+            waited += 1
+        }
+
+        XCTAssertNil(vm.attemptedMove)
+        XCTAssertEqual(vm.snapbackMove, ChessMove(from: origin, to: target))
+        XCTAssertEqual(vm.animatedArrival, [origin: target])
+        XCTAssertEqual(vm.boardMoveRevision, revisionBeforeAttempt + 2,
+                       "snap-back must change the observed value so SwiftUI animates the return")
+    }
+
     // MARK: - Round history records exactly once per round
 
     @MainActor

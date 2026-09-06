@@ -9,7 +9,7 @@ struct TacticsPacing: Sendable {
     /// How long a wrong move stays demonstrated on the board.
     var wrongMoveDisplay: Duration = .milliseconds(550)
     /// Pause before the machine's reply is applied.
-    var opponentReplyDelay: Duration = .milliseconds(450)
+    var opponentReplyDelay: Duration = .milliseconds(650)
 
     /// Test pace: every delay collapses to near-zero.
     static let instant = TacticsPacing(

@@ -116,6 +116,10 @@ extension TacticsViewModel {
             // Same render as the preview clears: the piece slides back.
             snapbackMove = attempted
             attemptedMove = nil
+            // Preview and snap-back both have a non-empty arrival map and the
+            // same piece count. Advance the board's observed revision so
+            // SwiftUI starts a distinct animation transaction for the return.
+            boardMoveRevisionValue += 1
         }
     }
 
