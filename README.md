@@ -14,7 +14,7 @@ line at a time, and stores progress locally.
 
 - iOS-only, iOS 17+, Swift 6, SwiftUI, Tuist 4.x
 - Bundle identifier: `com.dienbell.tactics`, display name **iTactics**
-- On first launch the entire bundled library (10 rating tiers, ~10,000 puzzles)
+- On first launch the bundled `puzzle-0000.json` chunk (1000 puzzles)
   is imported into SwiftData in one pass behind a loading screen; a decode
   failure shows an error with Retry instead of silently degrading
 - Daily puzzle rounds are selected from SwiftData and can be reviewed after completion
@@ -32,7 +32,7 @@ line at a time, and stores progress locally.
 - Pawn promotions open a 4-way piece picker (queen/rook/bishop/knight);
   under-promotion puzzles are solvable
 - Wrong legal moves are shown briefly and recorded; the player can retry
-- Piece movement animates: moves slide (0.18s ease-out, including the
+- Piece movement animates: moves slide (distance-adaptive ease-out, including the
   castling rook), a freshly loaded board fades in, wrong-move previews
   slide out and back; board flips render instantly. Debug builds expose
   two toggles to disable either animation
@@ -50,8 +50,9 @@ line at a time, and stores progress locally.
   screen reuses the same wordmark (`AppWordmark`) as its header
 - Localized in English and Simplified Chinese
 
-The app intentionally does not include accounts, networking, Stockfish,
-analytics, subscriptions, or cloud synchronization.
+The app intentionally does not include accounts, a general-purpose backend,
+Stockfish, analytics, subscriptions, or cloud synchronization. Its only
+network path is the on-demand download of static puzzle chunks.
 
 ## Rating
 
@@ -63,9 +64,9 @@ expected = 1 / (1 + 10 ^ ((puzzleRating - userRating) / 400))
 change   = round(32 * (result - expected))
 ```
 
-`result` is `1` for a clean solve. A **first-attempt mistake** does not change
-the Rating at all (the puzzle is only marked attempted); using a **Hint**
-settles the puzzle immediately as a loss and deducts points. A round that
+`result` is `1` for a clean solve. A **first-attempt mistake** or use of a
+**Hint** settles the puzzle immediately as a loss and deducts points; a later
+solve cannot add points for that puzzle. A calculation that
 would round to 0 is forced to +1 (solve) or −1 (loss), so every settled puzzle
 moves the score. Scores are clamped to `400...3000`. The value is deliberately
 isolated in `PuzzleKit/RatingPolicy.swift` so the policy can be replaced later.
@@ -77,7 +78,7 @@ ios/
   Project.swift            one manifest: 4 product targets + 4 test targets
   ChessCore/               pure chess value types and full legality
   PuzzleKit/               domain: puzzles, session, policies, repository ports
-  TacticsData/             SwiftData models, repositories, bundled tiers, defaults stores
+  TacticsData/             SwiftData models, repositories, bundled chunk, defaults stores
   DailyTactics/
     Sources/
       AppDependencies.swift    composition root (injected via environment)
@@ -162,3 +163,7 @@ castling, and en passant examples, see
 
 For the Lichess puzzle tags currently recognized by the app, see
 [`docs/LICHESS_PUZZLE_THEMES.md`](docs/LICHESS_PUZZLE_THEMES.md).
+
+For the iOS target boundaries, runtime composition, feature state flows,
+persistence design, and testing structure, see
+[`docs/arch/ARCHITECTURE.md`](docs/arch/ARCHITECTURE.md).

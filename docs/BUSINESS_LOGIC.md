@@ -6,16 +6,15 @@
 
 当前阶段只完成和维护 iOS 版本。Android 版本暂时暂停，待 iOS 功能、数据流程和产品体验稳定后再恢复开发。
 
-## 0. 首次启动：一次性导入全部题库
+## 0. 首次启动：导入内置题库块
 
 App 第一次启动（或题库未导入时），先进行一次性批量导入：
 
-- 从 `ios/TacticsData/Resources/Puzzles/` 下的 **全部 10 个等级 JSON**
-  （`1000.json`–`1900.json`，每个 1000 题）读取并写入 SwiftData。
+- 从 `ios/TacticsData/Resources/Puzzles/puzzle-0000.json` 读取 1000 道内置题并写入 SwiftData。
 - JSON 读取与解码在后台线程执行，只有 SwiftData 写入留在主线程。
 - 整个过程显示一个 Loading 页面和进度，导入完成后翻起
   `LibraryStateStore`（UserDefaults `dailytactics.libraryImported`）标志位。
-- **任何 tier 解析失败都不会置位标志位**：Loading 页显示错误与「重试」按钮，
+- **内置块解析失败不会置位标志位**：Loading 页显示错误与「重试」按钮，
   避免静默降级到内置样例题。
 - 导入是幂等的：按 `puzzleId` 去重，重复运行不会插入重复题目。
 - 这个 gate 独立于 Daily Tactics，之后每次启动都跳过导入，直接进入后续流程。
@@ -34,15 +33,15 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 
 ## 1. Rating
 
-Rating 由 `UserRatingStore` 保存在本地，并在首次有效尝试完成题目后按 Elo 风格规则更新。
+Rating 由 `UserRatingStore` 保存在本地，并在首次有效尝试成功、首次走错或使用 Hint 时按 Elo 风格规则结算。
 
 每个 round 完成时（最后一题结算之后）追加一条 `RatingSnapshot`（SwiftData）：记录该 round 结算后的 Rating 值，形成随时间变化的趋势序列，供 Settings 中的曲线展示。当前 Rating 仍以 `UserDefaults` 标量为准，快照只追加、不回写。
 
 ## 2. 题库组织
 
-题库文件按 100 分 Rating 区间组织（`1000.json`–`1900.json`），但这只是**导入时的数据分片**。10 个文件在首次启动时全部写入 SwiftData，总量约 10000 题。
+题库按 1000 题一块组织为 `puzzle-NNNN.json`。App 首次启动只导入内置的第 0 块；后续在未尝试题池不足一个 round 时按序下载第 1、2、3……块。
 
-「用户当前等级」不再驱动题库切换；但 Difficulty Mode（见下）会按用户当前 Rating 与题目 Rating 的相对关系筛选新 round 的题目。
+块编号不代表难度等级。「用户当前等级」不驱动题库块切换；Difficulty Mode（见下）在所有已导入题目中，按用户当前 Rating 与题目 Rating 的相对关系筛选新 round。
 
 ## 3. Daily Tactics
 
@@ -59,9 +58,9 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 
 ### Round（8 小时节奏）
 
-- 每个 round 默认包含 5 道题，数量由 `BatchConfiguration.puzzleCount` 配置。
-- 新 round 开始时记录 `batchStartTime` 到 UserDefaults，并持久化当前题目 ID。
-- 只有当 `当前时间 - batchStartTime >= BatchConfiguration.batchDuration` 时，才能开始下一个 round；正式版 `batchDuration = 8 小时`，Debug 构建缩短为 5 分钟以便手工测试完整周期。
+- 每个 round 默认包含 5 道题，数量由 `RoundPolicy.puzzleCount` 配置。
+- 新 round 开始时记录 `dailytactics.roundStartTime` 到 UserDefaults，并持久化当前题目 ID。
+- 只有当 `当前时间 - roundStartTime >= RoundPolicy.roundDuration` 时，才能开始下一个 round；正式版 `roundDuration = 8 小时`，Debug 构建缩短为 5 分钟以便手工测试完整周期。
 - 冷却期间重新打开 App 不会随机生成新题，只进入当前 round 的 Review mode。
 - 冷却结束后 `Next round` 解锁；用户点击后才创建下一组题目并更新开始时间。
 - Review mode 下 `Next puzzle` 只循环当前 round；`Next round` 与其分离，只有用户主动点击才会尝试创建新 round。时间未到时点击会显示等待提示（剩余冷却说明），仍停留在 Review mode。
@@ -98,7 +97,7 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 |---|---|
 | 载入新题(setup) | 棋子**淡入**(0.18s),呈现就绪局面 |
 | 对手开局第一步 | 滑入(与普通着法相同) |
-| 用户/对手正常着法、王车易位 | 移动棋子(及易位车)滑入 easeOut,**时长按距离、封顶**:`60ms + 55ms/格`,最多按 4 格计(1 格 115ms、3 格 225ms、**≥4 格一律 249ms**);易位取王/车中较长者 |
+| 用户/对手正常着法、王车易位 | 移动棋子（及易位车）滑入 easeOut，**时长按距离、封顶**：`45ms + 50ms/格`，最多按 2 格计（1 格 95ms、**≥2 格一律 145ms**）；易位取王/车中较长者 |
 | 错着预演 | 错误棋子滑到目标格,~0.55s 后**滑回**原格 |
 | 吃子 | 被吃棋子立即消失(不做滑走) |
 | 翻转棋盘 / Reduce Motion | 瞬切,无动画 |
@@ -129,7 +128,7 @@ Round 选择时优先排除已尝试的题目。
 ### 只对首次有效尝试更新 Rating
 
 - 题目之前没有被尝试过，并且第一次尝试答对：根据 Elo 风格规则更新 Rating。
-- 题目第一次尝试答错：标记为已尝试；即使之后答对，也不再修改 Rating（本次尝试不产生任何 Rating 变化）。
+- 题目第一次尝试答错：立即按失败结算并扣分；即使之后答对，也不再增加 Rating。
 - 使用 Hint 即视为放弃，立即按失败结算并扣分。
 - 题目之前已经做过：无论本次答对或答错，都不再修改 Rating。
 - 真实 delta 四舍五入为 0 时，强制为 +1（答对）/ −1（答错）：每次结算 Rating 必有变化。
@@ -162,7 +161,7 @@ Debug 构建额外显示「调试工具」区:棋子动画的两个开关(见「
 ## 8. 持久化职责
 
 ```text
-ios/DailyTactics/Resources/puzzles/*.json → 首次启动一次性全部导入
+ios/TacticsData/Resources/Puzzles/puzzle-0000.json → 首次启动导入内置块
 SwiftData  → 题目（PuzzleRecord）、题目进度（PuzzleProgress）、历史 round（RoundHistory）、
              每 round 的 rating 快照（RatingSnapshot）
 UserDefaults
@@ -172,6 +171,6 @@ UserDefaults
   ├ dailytactics.difficultyMode  → 新 round 的难度模式
   ├ dailytactics.pieceAnimation  → 棋子移动动画开关（debug，缺省开）
   ├ dailytactics.setupAnimation  → 棋盘载入动画开关（debug，缺省开）
-  ├ batchStartTime                → 当前 round 开始时间
-  └ activeBatchPuzzleIDs          → 当前 round 的固定题目顺序
+  ├ dailytactics.roundStartTime          → 当前 round 开始时间
+  └ dailytactics.activeRoundPuzzleIDs    → 当前 round 的固定题目顺序
 ```
