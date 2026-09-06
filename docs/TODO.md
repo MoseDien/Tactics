@@ -174,6 +174,12 @@
 
 - [x] 全库重命名:代码符号(BatchPolicy/Tracker/Window/Lookup/StateRepository→Round 系、reviewBatch→reviewRound、ensureBatchAvailable→ensureRoundAvailable、isBatchComplete→isRoundComplete 等)、文件名(BatchTracker.swift→RoundTracker.swift、TacticsViewModel+Batch→+Round、BatchReviewView.swift→RoundReviewView.swift、BatchTrackerTests→RoundTrackerTests)、字符串键(tactics.next_batch/batch_cooldown→round 系)与文案、UserDefaults 持久化键(roundStartTime/activeRoundPuzzleIDs——app 未上架,键名变更等同一次 batch 状态重置,可接受)。SwiftData 模型本就是 RoundHistory 系,未动。文档(README/CLAUDE/AGENTS/BUSINESS_LOGIC)同步;本 TODO 为历史台账保留原词。73 测试全绿。
 
+## 走子动画时长曲线改分段线性(2026-09-06 完成)
+
+- [x] 体感反馈:恒速模型(90ms+45ms/格)1 格偏慢、3 格合适、6/7 格偏长 → 两端向 3 格收拢。形状探索:过 (3,225) 的线性无法两端同降;√ 幂短端反向、p>1 幂长端爆炸 → **分段线性折线**(Lichess 同做法)。
+- [x] 参数:`60ms 截距 + 55ms/格(≤3)` → 锚点 225ms@3 格 → `24ms/格(>3)`。新表:1格115(-15%)、3格225(不动)、6格296(-18%)、7格320(-21%)。速度感:近 18格/秒 → 远 42格/秒,长距"提速收尾"。
+- [x] 录屏实测开局 1 格 117ms ≈ 公式 115ms ✓;73 测试全绿。调参入口:`BoardAnimation.slideBaseDuration`(1 格利落度)/`slideFarPerSquare`(长端收尾速度)。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。
