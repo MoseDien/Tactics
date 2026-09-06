@@ -39,6 +39,9 @@ struct RoundProgressView: View {
 }
 
 /// Flip / move counter / hint, between the board and the feedback area.
+/// The counter sits at the row's true geometric center (overlay) — the sides
+/// hold different content widths (flip + favorite vs. hint), so flow layout
+/// with two spacers would push it off-center.
 struct MoveControlsView: View {
     let viewModel: TacticsViewModel
 
@@ -58,21 +61,6 @@ struct MoveControlsView: View {
 
             Spacer()
 
-            HStack(spacing: 5) {
-                Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
-                    .font(.subheadline.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                Text(viewModel.mode == .reviewRound ? "R" : "P")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
-                    .background(viewModel.mode == .reviewRound ? Color.secondary : Color.accentColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
-                    .accessibilityLabel(String(localized: viewModel.mode == .reviewRound ? "tactics.mode_review" : "tactics.mode_play"))
-            }
-
-            Spacer()
-
             Button {
                 viewModel.requestHint()
             } label: {
@@ -86,6 +74,26 @@ struct MoveControlsView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
+        .overlay {
+            moveCounter
+        }
+    }
+
+    /// "2 / 3 · P" pinned to the row's center, whatever the sides hold.
+    private var moveCounter: some View {
+        HStack(spacing: 5) {
+            Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.secondary)
+            Text(viewModel.mode == .reviewRound ? "R" : "P")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 20, height: 20)
+                .background(viewModel.mode == .reviewRound ? Color.secondary : Color.accentColor)
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+                .accessibilityLabel(String(localized: viewModel.mode == .reviewRound ? "tactics.mode_review" : "tactics.mode_play"))
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// The favorite heart, right of the flip button. Outlines only: pink when
