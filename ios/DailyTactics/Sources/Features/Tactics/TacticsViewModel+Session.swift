@@ -65,6 +65,13 @@ extension TacticsViewModel {
             return
         }
 
+        // The move committed: this render's arrival is the move itself, so the
+        // previous revert signal must not survive to override it (a stale
+        // snapback would make the next move appear without its slide).
+        if state != .incorrectMove {
+            snapbackMove = nil
+        }
+
         switch state {
         case .incorrectMove:
             demonstrateWrongMove(move)
