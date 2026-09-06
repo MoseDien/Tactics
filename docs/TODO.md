@@ -180,6 +180,10 @@
 - [x] 参数:`60ms 截距 + 55ms/格(≤3)` → 锚点 225ms@3 格 → `24ms/格(>3)`。新表:1格115(-15%)、3格225(不动)、6格296(-18%)、7格320(-21%)。速度感:近 18格/秒 → 远 42格/秒,长距"提速收尾"。
 - [x] 录屏实测开局 1 格 117ms ≈ 公式 115ms ✓;73 测试全绿。调参入口:`BoardAnimation.slideBaseDuration`(1 格利落度)/`slideFarPerSquare`(长端收尾速度)。
 
+## 走子时长远段封顶 249ms(2026-09-06)
+
+- [x] 在分段线性基础上再简化:4/5/6/7 格统一 249ms——`slideFarPerSquare` 删除,`slideMaxSquares = 4` 封顶(60ms + 55ms×min(距离,4))。长滑行(车横扫/长易位)不再随时长递增,一律 249ms 落定。73 测试全绿。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。

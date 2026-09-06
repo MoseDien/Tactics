@@ -25,15 +25,13 @@ struct BoardAnimation: Equatable {
     /// A board with no animation input — the review player's default.
     static let passthrough = BoardAnimation(arrival: [:], movesEnabled: true, setupEnabled: false, boardGeneration: 0, moveRevision: 0)
 
-    /// Distance-adaptive slide timing, piecewise-linear over the Chebyshev
-    /// distance: near moves cost 55ms per square up to a 3-square anchor
-    /// (225ms — the pacing that felt right), longer moves accelerate the tail
-    /// at 24ms per square so board sweeps stay brisk instead of slow-motion.
-    /// A one-square step finishes in 115ms; a full-board sweep in 320ms.
+    /// Distance-adaptive slide timing, capped: 55ms per square (plus a 60ms
+    /// start-up) up to 4 squares, and a hard 249ms ceiling beyond — long
+    /// slides all land together instead of stretching with the distance.
+    /// A one-square step finishes in 115ms; everything past four squares in 249ms.
     static let slideBaseDuration: TimeInterval = 0.06
     static let slideNearPerSquare: TimeInterval = 0.055
-    static let slideNearAnchorSquares = 3
-    static let slideFarPerSquare: TimeInterval = 0.02375
+    static let slideMaxSquares = 4
 }
 
 struct ChessBoardView: View {
@@ -191,18 +189,16 @@ struct ChessBoardView: View {
     }
 
     /// Longest Chebyshev distance among this render's arrivals, mapped
-    /// through the piecewise model (near pace to the anchor, faster tail).
+    /// through the capped model (per-square pace up to the ceiling).
     private var moveSlideDuration: TimeInterval {
         let squares = animation.arrival
             .map { destination, origin in
                 max(abs(destination.file - origin.file), abs(destination.rank - origin.rank))
             }
             .max() ?? 1
-        let near = TimeInterval(min(squares, BoardAnimation.slideNearAnchorSquares))
-        let tail = TimeInterval(max(0, squares - BoardAnimation.slideNearAnchorSquares))
+        let effective = TimeInterval(min(squares, BoardAnimation.slideMaxSquares))
         return BoardAnimation.slideBaseDuration
-            + BoardAnimation.slideNearPerSquare * near
-            + BoardAnimation.slideFarPerSquare * tail
+            + BoardAnimation.slideNearPerSquare * effective
     }
 
     /// Pieces sorted by square notation for a stable z-order (dictionary
