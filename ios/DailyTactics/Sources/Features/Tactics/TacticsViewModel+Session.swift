@@ -98,9 +98,8 @@ extension TacticsViewModel {
     /// A wrong move is recorded as a failure, demonstrated on the board, and
     /// reverted after a beat so the player can retry.
     private func demonstrateWrongMove(_ move: ChessMove) {
-        recordOutcome(.wrong, for: currentIndex)
-        recordFailure()
         hadMistake = true
+        settlePuzzleAsFailed()
         snapbackMove = nil
         attemptedMove = move
         let attempted = move

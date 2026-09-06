@@ -54,7 +54,8 @@ final class ChessAndPuzzleTests: XCTestCase {
     func testHintImmediatelyCostsRating() async throws {
         let defaults = UserDefaults(suiteName: "hint-penalty-\(UUID().uuidString)")!
         let store = UserRatingStore(defaults: defaults)
-        let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)), ratingStore: store)
+        let progress = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)), progress: progress, ratingStore: store)
 
         // Wait for the opening machine move so a hint is enabled. Generous
         // bound keeps this stable under CI load; it waits only as long as needed.
@@ -73,11 +74,48 @@ final class ChessAndPuzzleTests: XCTestCase {
         // marker records it as wrong.
         XCTAssertLessThan(vm.userRating, before, "Hint should cost rating points")
         XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0, "Hint should record a negative delta")
+        XCTAssertEqual(progress.failedCount(), 1, "Hint should persist the puzzle as failed")
 
         // A second tap must not stack another penalty.
         let afterFirstHint = vm.userRating
         vm.requestHint()
         XCTAssertEqual(vm.userRating, afterFirstHint)
+        XCTAssertEqual(progress.failedCount(), 1)
+    }
+
+    @MainActor
+    func testWrongMoveImmediatelyCostsRatingAndRemainsFailedAfterSolve() async throws {
+        let puzzle = Puzzle(
+            id: "wrong-move-rating",
+            fen: "4k3/8/8/8/8/8/4K3/8 b - - 0 1",
+            moves: ["e8e7", "e2e3"],
+            rating: 1500,
+            themes: []
+        )
+        let defaults = UserDefaults(suiteName: "wrong-move-penalty-\(UUID().uuidString)")!
+        let ratingStore = UserRatingStore(defaults: defaults)
+        let progress = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        let vm = TacticsViewModel(dataset: [puzzle], progress: progress, ratingStore: ratingStore, dailyPuzzleCount: 1)
+
+        vm.start()
+        try await waitForWaitingForMove(on: vm)
+        let ratingBefore = vm.userRating
+
+        vm.attemptMove(from: Square(notation: "e2")!, to: Square(notation: "d2")!)
+
+        XCTAssertEqual(vm.state, .incorrectMove)
+        XCTAssertEqual(vm.results, [.wrong])
+        XCTAssertEqual(progress.failedCount(), 1)
+        XCTAssertLessThan(vm.userRating, ratingBefore, "A wrong move should cost rating points")
+        XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0, "The deducted score should be available to display")
+
+        let ratingAfterFailure = vm.userRating
+        vm.attemptMove(from: Square(notation: "e2")!, to: Square(notation: "e3")!)
+
+        XCTAssertEqual(vm.state, .solved)
+        XCTAssertTrue(vm.currentPuzzleFinished)
+        XCTAssertEqual(vm.userRating, ratingAfterFailure, "Finishing after a mistake must not apply rating twice")
+        XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0)
     }
 
     // MARK: - Round history records exactly once per batch

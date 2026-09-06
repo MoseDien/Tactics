@@ -42,11 +42,19 @@ extension TacticsViewModel {
     /// Charge the rating for using a hint, once per puzzle. Idempotent so
     /// repeated taps don't stack penalties.
     func applyHintPenalty() {
+        settlePuzzleAsFailed()
+    }
+
+    /// A wrong move or hint fixes the puzzle outcome as failed and applies the
+    /// rating loss once. The player can still finish the line, but retries and
+    /// additional hints cannot stack another penalty.
+    func settlePuzzleAsFailed() {
+        recordOutcome(.wrong, for: currentIndex)
+        recordFailure()
+        progress?.markAttempted(puzzles[currentIndex].id)
         guard !ratingAppliedForPuzzle else { return }
         ratingAppliedForPuzzle = true
-        recordOutcome(.wrong, for: currentIndex)
         applySolveRating(solved: false)
-        progress?.markAttempted(puzzles[currentIndex].id)
     }
 
     func markCurrentSolved() {

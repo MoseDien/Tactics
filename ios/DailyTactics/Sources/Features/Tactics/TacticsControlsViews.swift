@@ -15,7 +15,7 @@ struct RatingPanelView: View {
             if let delta = viewModel.lastRatingDelta {
                 Text(delta >= 0 ? "+\(delta)" : "\(delta)")
                     .font(.subheadline.bold().monospacedDigit())
-                    .foregroundStyle(delta >= 0 ? Color.primary : .red)
+                    .foregroundStyle(delta >= 0 ? Color.accentColor : .red)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)
                     .background((delta >= 0 ? Color.green : Color.red).opacity(0.13))
