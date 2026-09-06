@@ -14,6 +14,7 @@ struct TacticsHeaderView: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.secondary)
                 .tracking(1.2)
+                .lineLimit(1)
 
             HStack(spacing: 14) {
                 HStack {
@@ -27,9 +28,12 @@ struct TacticsHeaderView: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(viewModel.headerTitle)
+                            .lineLimit(1)
                         Text(viewModel.headerSubtitle)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 

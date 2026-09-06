@@ -11,7 +11,9 @@ struct RatingPanelView: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(String(localized: "tactics.rating"))
                 .font(.title3)
+                .lineLimit(1)
             Text("\(viewModel.userRating)")
+                .lineLimit(1)
             if let delta = viewModel.lastRatingDelta {
                 Text(delta >= 0 ? "+\(delta)" : "\(delta)")
                     .font(.subheadline.bold().monospacedDigit())

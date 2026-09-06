@@ -8,7 +8,7 @@ public enum RoundPolicy {
     /// Debug builds use a short window so the round cycle is testable by hand.
     public static var roundDuration: TimeInterval {
         #if DEBUG
-        5 * 60
+        1 * 60 * 60
         #else
         8 * 60 * 60
         #endif

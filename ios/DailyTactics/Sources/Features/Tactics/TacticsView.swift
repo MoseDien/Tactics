@@ -8,6 +8,7 @@ struct TacticsView: View {
     @Environment(AppDependencies.self) private var dependencies
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
+    @State private var showingHowToPlay = false
 
     init(mode: TacticsMode = .play) { self.mode = mode }
 
@@ -78,6 +79,14 @@ struct TacticsView: View {
             .navigationTitle(String(localized: "app.name"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingHowToPlay = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
+                    .accessibilityLabel(String(localized: "settings.how_to_play"))
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingSettings = true
@@ -86,6 +95,11 @@ struct TacticsView: View {
                     }
                     .accessibilityLabel(String(localized: "tactics.settings"))
                 }
+            }
+            .popover(isPresented: $showingHowToPlay) {
+                HowToPlayView()
+                    .presentationDetents([.medium, .large])
+                    .frame(minWidth: 320, minHeight: 240)
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()

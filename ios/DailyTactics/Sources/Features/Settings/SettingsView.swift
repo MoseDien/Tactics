@@ -8,7 +8,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppDependencies.self) private var dependencies
     @State private var difficulty = DifficultyMode.medium
-    @State private var showingHowToPlay = false
     @State private var snapshots: [RatingSample] = []
     @State private var libraryChunk = 0
     @State private var libraryCount = 0
@@ -78,14 +77,6 @@ struct SettingsView: View {
             .navigationTitle(String(localized: "settings.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingHowToPlay = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                    }
-                    .accessibilityLabel(String(localized: "settings.how_to_play"))
-                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(String(localized: "common.done")) { dismiss() }
                 }
@@ -111,11 +102,6 @@ struct SettingsView: View {
                 Text(debugNotice ?? "")
             }
             #endif
-            .alert(String(localized: "settings.how_to_play"), isPresented: $showingHowToPlay) {
-                Button(String(localized: "common.got_it"), role: .cancel) { }
-            } message: {
-                Text(String(localized: "settings.how_to_play_body"))
-            }
             .task {
                 snapshots = dependencies.data.ratingHistory()
                 difficulty = dependencies.difficulty.current
