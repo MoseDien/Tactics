@@ -40,7 +40,7 @@ struct RoundReviewView: View {
                 .aspectRatio(1, contentMode: .fit)
                 .padding(.horizontal, 16)
 
-                moveStepping(for: session)
+                controls(for: session)
             } else {
                 Spacer()
                 ProgressView()
@@ -54,62 +54,105 @@ struct RoundReviewView: View {
         .task(id: puzzleIndex) { loadCurrent() }
     }
 
-    /// "Puzzle 2 of 5" plus the round's per-puzzle result row, marking where
-    /// the player currently is.
+    // MARK: - Header
+
+    /// Mirrors the live screen's header: puzzle progress over the round's
+    /// result row (the shared `PuzzleResultRow` with the current index), then
+    /// the puzzle's own card — side to move (the player's king) and the
+    /// difficulty stars with the rating.
     private var header: some View {
-        VStack(spacing: 6) {
-            Text(String(format: NSLocalizedString("history.puzzle_progress", comment: "Current puzzle within a reviewed round"), puzzleIndex + 1, puzzles.count))
-                .font(.subheadline.weight(.semibold))
-            HStack(spacing: 14) {
-                marker(at: puzzleIndex)
-                    .frame(width: 26, height: 26)
-                    .background(Circle().fill(Color.accentColor.opacity(0.14)))
-                HStack(spacing: 8) {
-                    ForEach(outcomes.indices, id: \.self) { index in
-                        marker(at: index)
-                            .frame(width: 20, height: 20)
-                            .opacity(index == puzzleIndex ? 1 : 0.45)
+        VStack(spacing: 10) {
+            Text(String(format: NSLocalizedString("tactics.puzzle_progress", comment: "Puzzle progress"), puzzleIndex + 1, puzzles.count))
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.secondary)
+                .tracking(1.2)
+                .lineLimit(1)
+
+            PuzzleResultRow(outcomes: outcomes, currentIndex: puzzleIndex)
+
+            if let puzzle = currentPuzzle {
+                HStack(spacing: 14) {
+                    HStack {
+                        Image(playerColor == .white ? "wK" : "bK")
+                            .resizable()
+                            .scaledToFit()
+                            .padding(10)
+                            .frame(width: 46, height: 46)
+                            .background(Color(red: 0.94, green: 0.85, blue: 0.70))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(String(localized: playerColor == .white ? "tactics.find_best_white" : "tactics.find_best_black"))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            if let rating = puzzle.rating {
+                                Text("\(rating)")
+                                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    VStack(alignment: .trailing, spacing: 4) {
+                        HStack(spacing: 2) {
+                            ForEach(1...5, id: \.self) { level in
+                                Image(systemName: level <= FavoritesView.difficultyLevel(for: puzzle.rating) ? "star.fill" : "star")
+                                    .foregroundStyle(level <= FavoritesView.difficultyLevel(for: puzzle.rating) ? Color.primary : Color.secondary.opacity(0.45))
+                            }
+                        }
+                        if let plays = puzzle.playCount {
+                            Text(plays.formatted())
+                                .font(.caption2.weight(.semibold).monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
+                .padding(8)
+                .background(Color(.secondarySystemBackground).opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal, 4)
             }
         }
         .padding(.top, 8)
     }
 
-    @ViewBuilder
-    private func marker(at index: Int) -> some View {
-        if outcomes.indices.contains(index), outcomes[index] == .wrong {
-            Image(systemName: "xmark")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.red.opacity(0.65))
-        } else if outcomes.indices.contains(index), outcomes[index] == .correct {
-            Image(systemName: "checkmark")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.green)
-        } else {
-            Image(systemName: "circle.dashed")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
+    private var currentPuzzle: Puzzle? {
+        puzzles.indices.contains(puzzleIndex) ? puzzles[puzzleIndex] : nil
     }
 
+    /// The side the replayed puzzle asks the player to move for (the FEN
+    /// side-to-move's opponent — same rule as the live session).
+    private var playerColor: PieceColor {
+        guard let puzzle = currentPuzzle,
+              let side = puzzle.fen.split(separator: " ").dropFirst().first,
+              side == "w" || side == "b"
+        else { return .white }
+        return side == "w" ? .black : .white
+    }
+
+    // MARK: - Controls
+
     /// In-line stepping for the current puzzle, plus puzzle-to-puzzle
-    /// navigation (looping after the last one).
-    private func moveStepping(for session: PuzzleSession) -> some View {
-        VStack(spacing: 10) {
+    /// navigation (looping after the last one). The rows sit well apart so
+    /// the two step directions can't be mis-tapped for each other.
+    private func controls(for session: PuzzleSession) -> some View {
+        VStack(spacing: 22) {
             HStack {
-                Button { step(-1) } label: { Label(String(localized: "review.previous_move"), systemImage: "chevron.left") }
+                Button { step(-1) } label: { Text("\(String(localized: "review.previous_move")) <") }
                     .disabled(!session.canStepBack)
                 Spacer()
-                Button { step(1) } label: { Label(String(localized: "review.next_move"), systemImage: "chevron.right") }
+                Button { step(1) } label: { Text("\(String(localized: "review.next_move")) >") }
                     .disabled(!session.canStepForward)
             }
             .buttonStyle(.bordered)
 
             HStack {
-                Button { advancePuzzle(-1) } label: { Label(String(localized: "review.prev_puzzle"), systemImage: "backward.end") }
+                Button { advancePuzzle(-1) } label: { Text("\(String(localized: "review.prev_puzzle")) <") }
                 Spacer()
-                Button { advancePuzzle(1) } label: { Label(String(localized: "review.next_puzzle"), systemImage: "forward.end") }
+                Button { advancePuzzle(1) } label: { Text("\(String(localized: "review.next_puzzle")) >") }
             }
             .buttonStyle(.borderless)
             .font(.subheadline)
@@ -117,6 +160,8 @@ struct RoundReviewView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 12)
     }
+
+    // MARK: - Replay animation
 
     /// The replay's animation input: forward steps slide the arriving piece in
     /// from its origin (the live screen's rule, castling rook included); a
