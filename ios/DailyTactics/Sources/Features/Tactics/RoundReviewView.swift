@@ -13,6 +13,15 @@ struct RoundReviewView: View {
 
     @State private var puzzleIndex = 0
     @State private var session: PuzzleSession?
+    /// Bumped on every in-line step so each replayed move gets its own
+    /// animation transaction (forward and back alike).
+    @State private var stepRevision = 0
+    /// Bumped on every puzzle change so the new board fades in (same load
+    /// semantics as the live screen).
+    @State private var boardGeneration = 0
+    /// Whether the pending step moves the line forward (the only direction
+    /// that slides; back-steps snap).
+    @State private var steppingForward = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -25,7 +34,7 @@ struct RoundReviewView: View {
                     hintMove: nil,
                     lastMove: session.lastMove,
                     isFlipped: session.userColor == .black,
-                    animation: .passthrough,
+                    animation: boardAnimation(for: session),
                     onSelect: { _ in }
                 )
                 .aspectRatio(1, contentMode: .fit)
@@ -109,17 +118,41 @@ struct RoundReviewView: View {
         .padding(.bottom, 12)
     }
 
+    /// The replay's animation input: forward steps slide the arriving piece in
+    /// from its origin (the live screen's rule, castling rook included); a
+    /// puzzle change fades the fresh board in; back-steps render in place.
+    private func boardAnimation(for session: PuzzleSession) -> BoardAnimation {
+        var arrival: [Square: Square] = [:]
+        if stepRevision > 0, let move = session.lastMove, steppingForward {
+            arrival[move.to] = move.from
+            if let rook = session.castlingRookMove() {
+                arrival[rook.to] = rook.from
+            }
+        }
+        return BoardAnimation(
+            arrival: arrival,
+            movesEnabled: true,
+            setupEnabled: true,
+            boardGeneration: boardGeneration,
+            moveRevision: stepRevision
+        )
+    }
+
     private func loadCurrent() {
         guard puzzles.indices.contains(puzzleIndex) else { return }
         session = try? PuzzleSession(puzzle: puzzles[puzzleIndex])
         if session != nil { try? session?.stepForward() }
+        stepRevision = 0
+        boardGeneration += 1
     }
 
     private func step(_ direction: Int) {
         guard var current = session else { return }
+        steppingForward = direction > 0
         if direction < 0, current.canStepBack { try? current.stepBack() }
         if direction > 0, current.canStepForward { try? current.stepForward() }
         session = current
+        stepRevision += 1
     }
 
     private func advancePuzzle(_ direction: Int) {

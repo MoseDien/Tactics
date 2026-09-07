@@ -59,8 +59,8 @@
 /* review */
 "review.title" = "Review";
 "review.label" = "REVIEW";
-"review.previous_move" = "Previous move";
-"review.next_move" = "Next move";
+"review.previous_move" = "Previous";
+"review.next_move" = "Next";
 "review.prev_puzzle" = "Prev puzzle";
 "review.next_puzzle" = "Next puzzle";
 /* history */
