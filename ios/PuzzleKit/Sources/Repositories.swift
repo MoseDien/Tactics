@@ -62,6 +62,9 @@ public protocol PuzzleProgressRepository: AnyObject {
     func isFavorite(_ puzzleId: String) -> Bool
     /// All favorited puzzle ids — drives the favorites list.
     func favoriteIDs() -> Set<String>
+    /// The favorite stamp per puzzle id (when the heart was tapped), for
+    /// showing and sorting the favorites list.
+    func favoriteStamps() -> [String: Date]
 }
 
 /// One row per completed round.

@@ -75,6 +75,9 @@
 "favorites.empty_hint" = "Finish a puzzle, then tap the heart to keep it here.";
 "favorites.stats" = "%d · %@ plays";
 "favorites.row_accessibility" = "Puzzle %@, rating %d";
+"favorites.side_white" = "You play White";
+"favorites.side_black" = "You play Black";
+"favorites.side_unknown" = "Unknown side";
 /* board accessibility */
 "board.square_occupied" = "%@ %@ on %@";
 "board.square_empty" = "Empty square %@";

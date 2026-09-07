@@ -203,10 +203,18 @@ public final class SwiftDataRepositories: PuzzleDataRepositories {
     }
 
     public func favoriteIDs() -> Set<String> {
+        Set(Array(favoriteStamps().keys))
+    }
+
+    public func favoriteStamps() -> [String: Date] {
         let descriptor = FetchDescriptor<PuzzleProgress>(
             predicate: #Predicate { $0.isFavorite == true }
         )
-        return Set(((try? context.fetch(descriptor)) ?? []).map(\.puzzleId))
+        var stamps: [String: Date] = [:]
+        for row in (try? context.fetch(descriptor)) ?? [] where row.favoritedAt != nil {
+            stamps[row.puzzleId] = row.favoritedAt
+        }
+        return stamps
     }
 
     public func completedCount() -> Int {

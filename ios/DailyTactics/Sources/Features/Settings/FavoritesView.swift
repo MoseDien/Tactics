@@ -8,15 +8,15 @@ import TacticsData
 struct FavoritesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppDependencies.self) private var dependencies
-    @State private var favorites: [Puzzle] = []
+    @State private var favorites: [(puzzle: Puzzle, favoritedAt: Date?)] = []
 
     var body: some View {
         NavigationStack {
-            List(favorites) { puzzle in
+            List(favorites, id: \.puzzle.id) { entry in
                 NavigationLink {
-                    ReviewPuzzleView(puzzle: puzzle)
+                    ReviewPuzzleView(puzzle: entry.puzzle)
                 } label: {
-                    favoriteRow(puzzle)
+                    favoriteRow(entry)
                 }
             }
             .overlay { if favorites.isEmpty { emptyState } }
@@ -35,10 +35,11 @@ struct FavoritesView: View {
         )
     }
 
-    /// One favorite: difficulty stars on the left, id and stats in the
-    /// middle, themes as a trailing caption.
-    private func favoriteRow(_ puzzle: Puzzle) -> some View {
-        HStack(spacing: 12) {
+    /// One favorite: difficulty stars on the left; id, stats, the side the
+    /// player had and the favorite date in the middle; theme on the right.
+    private func favoriteRow(_ entry: (puzzle: Puzzle, favoritedAt: Date?)) -> some View {
+        let puzzle = entry.puzzle
+        return HStack(spacing: 12) {
             VStack(spacing: 3) {
                 ForEach(0..<5, id: \.self) { level in
                     Image(systemName: level < Self.difficultyLevel(for: puzzle.rating) ? "star.fill" : "star")
@@ -58,6 +59,17 @@ struct FavoritesView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
+                HStack(spacing: 8) {
+                    Label(
+                        NSLocalizedString(playerColorKey(puzzle), comment: "Side the player holds"),
+                        systemImage: playerColorSymbol(puzzle)
+                    )
+                    if let date = entry.favoritedAt {
+                        Label(date.formatted(date: .abbreviated, time: .omitted), systemImage: "heart")
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
             }
 
             Spacer(minLength: 8)
@@ -71,23 +83,47 @@ struct FavoritesView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(rowAccessibilityLabel(puzzle))
+        .accessibilityLabel(rowAccessibilityLabel(entry))
+    }
+
+    /// The side the puzzle asks the player to move for, read off the FEN's
+    /// side to move (the machine opens, so the user holds its opponent).
+    private func playerColorKey(_ puzzle: Puzzle) -> String {
+        guard let fenSide = puzzle.fen.split(separator: " ").dropFirst().first,
+              fenSide == "w" || fenSide == "b"
+        else { return "favorites.side_unknown" }
+        return fenSide == "w" ? "favorites.side_black" : "favorites.side_white"
+    }
+
+    private func playerColorSymbol(_ puzzle: Puzzle) -> String {
+        guard let fenSide = puzzle.fen.split(separator: " ").dropFirst().first,
+              fenSide == "w" || fenSide == "b"
+        else { return "questionmark" }
+        return fenSide == "w" ? "circle.fill" : "circle"
     }
 
     private func reload() {
         let library = dependencies.data.allPuzzles()
-        let favoriteIDs = dependencies.data.favoriteIDs()
-        // Newest favorites first: keep the set-membership filter, order by the
-        // library is unstable, so sort by id for determinism.
+        let stamps = dependencies.data.favoriteStamps()
+        // Newest favorites first; puzzles without a stamp (legacy rows) sink
+        // to the bottom in id order.
         favorites = library
-            .filter { favoriteIDs.contains($0.id) }
-            .sorted { $0.id < $1.id }
+            .filter { stamps[$0.id] != nil }
+            .map { ($0, stamps[$0.id]) }
+            .sorted { lhs, rhs in
+                switch (lhs.1, rhs.1) {
+                case let (l?, r?): return l > r
+                case (_?, nil): return true
+                case (nil, _?): return false
+                default: return lhs.0.id < rhs.0.id
+                }
+            }
     }
 
-    private func rowAccessibilityLabel(_ puzzle: Puzzle) -> String {
+    private func rowAccessibilityLabel(_ entry: (puzzle: Puzzle, favoritedAt: Date?)) -> String {
         String(
             format: NSLocalizedString("favorites.row_accessibility", comment: "Favorite row summary"),
-            puzzle.id, puzzle.rating ?? 0
+            entry.puzzle.id, entry.puzzle.rating ?? 0
         )
     }
 

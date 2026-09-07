@@ -184,6 +184,12 @@
 
 - [x] 在分段线性基础上再简化:4/5/6/7 格统一 249ms——`slideFarPerSquare` 删除,`slideMaxSquares = 4` 封顶(60ms + 55ms×min(距离,4))。长滑行(车横扫/长易位)不再随时长递增,一律 249ms 落定。73 测试全绿。
 
+## 收藏列表增强(2026-09-07)
+
+- [x] 端口加 `favoriteStamps() -> [String: Date]`(favoriteIDs 改为其 keys 的派生);列表拿得到收藏时间。
+- [x] 行信息:星级列 + 题号/rating/练习数 + **执方(执白/执黑,读 FEN side-to-move 的对手)** + **收藏日期** + 主题胶囊;排序改**收藏时间倒序**(无时间戳的旧行沉底按 id)。
+- [x] 双语 3 新 key;73 测试全绿。
+
 ## 仍开放(有意保留或待产品决定)
 
 - **`tuist test` 不可用(Tuist 4.197)**:该命令只解析 workspace 级 scheme,而本项目不再生成 workspace(生成文件已退出 git,见工程卫生一节)。曾尝试 `Workspace.swift` manifest 定义 workspace scheme:buildAction 的 `.project(path:, target:)` 可用,但 testAction 的 `TestableTarget` 只接受字符串、lint 又强制要求带 project path,二者矛盾,无法通过。验证命令已改为 `xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics`(三份文档已同步)。若未来升级 Tuist 解决此矛盾,可恢复 `tuist test`。

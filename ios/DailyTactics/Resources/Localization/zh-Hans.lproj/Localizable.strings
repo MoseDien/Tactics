@@ -68,6 +68,9 @@
 "favorites.empty_hint" = "完成一道题后,点亮爱心即可收藏到这里。";
 "favorites.stats" = "%d · %@ 次练习";
 "favorites.row_accessibility" = "题目 %@,难度 %d";
+"favorites.side_white" = "执白";
+"favorites.side_black" = "执黑";
+"favorites.side_unknown" = "执方未知";
 "board.square_occupied" = "%@%@在%@";
 "board.square_empty" = "空格 %@";
 "piece.white.name" = "白";
