@@ -12,7 +12,9 @@
 "settings.history" = "History";
 "settings.favorites" = "Favorites";
 "settings.how_to_play" = "How to play";
-"settings.how_to_play_body" = "Find the first move, then think about how your opponent might respond. This will help you find the best move. \n You can play up to 5 puzzles every 8 hours. \n Review the puzzles frequently. ";
+"how_to_play.calculate" = "Find the first move, then think about how your opponent might respond. This will help you find the best move.";
+"how_to_play.rounds" = "You can play up to 5 puzzles every 8 hours.";
+"how_to_play.review" = "Review the puzzles frequently.";
 "settings.difficulty" = "Difficulty";
 "settings.library_section" = "Puzzle library";
 "settings.library_status" = "Chunk %ld · %ld puzzles loaded. New chunks download automatically when the untried pool runs low.";

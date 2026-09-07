@@ -1,9 +1,20 @@
 import SwiftUI
 
 /// The how-to-play note, presented as a popover from the board screen's
-/// info button. The body scrolls so large Dynamic Type stays readable.
+/// info button. Three numbered points in a scrolling list so large Dynamic
+/// Type stays readable.
 struct HowToPlayView: View {
     @Environment(\.dismiss) private var dismiss
+
+    /// The three points, in reading order. Localized separately so the list
+    /// can label each row with its number.
+    private var points: [(icon: String, text: String)] {
+        [
+            ("lightbulb", String(localized: "how_to_play.calculate")),
+            ("clock.arrow.circlepath", String(localized: "how_to_play.rounds")),
+            ("eye", String(localized: "how_to_play.review")),
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,12 +39,24 @@ struct HowToPlayView: View {
             .padding(.bottom, 8)
 
             ScrollView {
-                Text(String(localized: "settings.how_to_play_body"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(Array(points.enumerated()), id: \.offset) { index, point in
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Image(systemName: point.icon)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.accentColor)
+                                .frame(width: 28)
+                            Text(point.text)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
             }
 
             HStack {

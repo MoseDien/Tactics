@@ -8,7 +8,9 @@
 "settings.history" = "历史记录";
 "settings.favorites" = "收藏";
 "settings.how_to_play" = "玩法说明";
-"settings.how_to_play_body" = "- 不要试棋：先在脑中记住整个局面，想出解法后再落子。\n- 每组共 5 道题。每 8 小时解锁新的一轮；期间可以复盘当前题目组。";
+"how_to_play.calculate" = "先在脑中算清整条变化线:你的第一手、对手的应手,再找出最佳着法。不要试棋。";
+"how_to_play.rounds" = "每 8 小时解锁一轮,每轮共 5 道题。";
+"how_to_play.review" = "经常复盘做过的题目,巩固棋感。";
 "settings.difficulty" = "难度";
 "settings.library_section" = "题库";
 "settings.library_status" = "数据块 %ld · 已载入 %ld 道题。未做题目不足时会自动下载新数据块。";
