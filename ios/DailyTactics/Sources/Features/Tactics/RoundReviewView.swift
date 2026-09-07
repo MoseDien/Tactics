@@ -82,31 +82,38 @@ struct RoundReviewView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 10))
 
                         VStack(alignment: .leading, spacing: 4) {
+                            Text("#\(puzzle.id)")
+                                .font(.subheadline.weight(.semibold).monospacedDigit())
+                                .lineLimit(1)
                             Text(String(localized: playerColor == .white ? "tactics.find_best_white" : "tactics.find_best_black"))
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                            if let rating = puzzle.rating {
-                                Text("\(rating)")
-                                    .font(.subheadline.weight(.semibold).monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
+                                .lineLimit(2)
                         }
                     }
 
                     Spacer(minLength: 0)
 
-                    VStack(alignment: .trailing, spacing: 4) {
+                    // Rating and difficulty stars stacked on the trailing side.
+                    VStack(alignment: .trailing, spacing: 6) {
+                        if let rating = puzzle.rating {
+                            Text("\(rating)")
+                                .font(.subheadline.weight(.semibold).monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
                         HStack(spacing: 2) {
                             ForEach(1...5, id: \.self) { level in
                                 Image(systemName: level <= FavoritesView.difficultyLevel(for: puzzle.rating) ? "star.fill" : "star")
+                                    .font(.caption2)
                                     .foregroundStyle(level <= FavoritesView.difficultyLevel(for: puzzle.rating) ? Color.primary : Color.secondary.opacity(0.45))
                             }
                         }
-                        if let plays = puzzle.playCount {
-                            Text(plays.formatted())
-                                .font(.caption2.weight(.semibold).monospacedDigit())
-                                .foregroundStyle(.secondary)
+                        if let theme = puzzle.themes.first {
+                            Text(themeName(theme))
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(Color.accentColor.opacity(0.12)))
                         }
                     }
                 }
@@ -133,6 +140,10 @@ struct RoundReviewView: View {
         return side == "w" ? .black : .white
     }
 
+    private func themeName(_ theme: PuzzleTheme) -> String {
+        NSLocalizedString("theme.\(theme.rawValue)", comment: "Puzzle theme name")
+    }
+
     // MARK: - Controls
 
     /// In-line stepping for the current puzzle, plus puzzle-to-puzzle
@@ -141,7 +152,7 @@ struct RoundReviewView: View {
     private func controls(for session: PuzzleSession) -> some View {
         VStack(spacing: 22) {
             HStack {
-                Button { step(-1) } label: { Text("\(String(localized: "review.previous_move")) <") }
+                Button { step(-1) } label: { Text("< \(String(localized: "review.previous_move"))") }
                     .disabled(!session.canStepBack)
                 Spacer()
                 Button { step(1) } label: { Text("\(String(localized: "review.next_move")) >") }
@@ -150,7 +161,7 @@ struct RoundReviewView: View {
             .buttonStyle(.bordered)
 
             HStack {
-                Button { advancePuzzle(-1) } label: { Text("\(String(localized: "review.prev_puzzle")) <") }
+                Button { advancePuzzle(-1) } label: { Text("< \(String(localized: "review.prev_puzzle"))") }
                 Spacer()
                 Button { advancePuzzle(1) } label: { Text("\(String(localized: "review.next_puzzle")) >") }
             }

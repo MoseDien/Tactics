@@ -55,8 +55,8 @@
 "review.label" = "复盘";
 "review.previous_move" = "上一步";
 "review.next_move" = "下一步";
-"review.prev_puzzle" = "上一题";
-"review.next_puzzle" = "下一题";
+"review.prev_puzzle" = "上一道题";
+"review.next_puzzle" = "下一道题";
 "history.empty" = "暂无历史记录";
 "history.week_this" = "本周";
 "history.week_last" = "上周";
