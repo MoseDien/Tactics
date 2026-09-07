@@ -12,28 +12,32 @@ struct ReviewPuzzleView: View {
     /// Bumped on every step so the board sees each replayed move as a fresh
     /// animation transaction (forward and back alike).
     @State private var stepRevision = 0
+    /// Whether the pending step moves the line forward (the only direction
+    /// that plays a slide; back-steps snap).
+    @State private var steppingForward = false
 
     var body: some View {
         VStack(spacing: 14) {
-            Text(String(localized: "review.label"))
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.secondary)
+            header
+
             if let session {
                 ChessBoardView(position: session.board.pieces, selectedSquare: nil, hintMove: nil,
                                lastMove: session.lastMove, isFlipped: session.userColor == .black,
                                animation: boardAnimation(for: session),
                                onSelect: { _ in })
                 .aspectRatio(1, contentMode: .fit)
+
                 HStack {
-                    Button { step(-1) } label: { Label(String(localized: "review.previous_move"), systemImage: "chevron.left") }
+                    Button { step(-1) } label: { Text("< \(String(localized: "review.previous_move"))") }
                         .disabled(!session.canStepBack)
                     Spacer()
-                    Button { step(1) } label: { Label(String(localized: "review.next_move"), systemImage: "chevron.right") }
+                    Button { step(1) } label: { Text("\(String(localized: "review.next_move")) >") }
                         .disabled(!session.canStepForward)
                 }
                 .buttonStyle(.bordered)
+                .padding(.horizontal, 8)
             }
-            Spacer()
+            Spacer(minLength: 0)
         }
         .padding()
         .navigationTitle(String(localized: "review.title"))
@@ -41,6 +45,77 @@ struct ReviewPuzzleView: View {
         .toolbar { Button(String(localized: "common.done")) { dismiss() } }
         .task { loadCurrent() }
     }
+
+    // MARK: - Header
+
+    /// The puzzle's own card, mirroring `RoundReviewView`'s: side to move
+    /// (the player's king), id and subtitle on the left; rating, difficulty
+    /// stars and the leading theme on the right.
+    private var header: some View {
+        HStack(spacing: 14) {
+            HStack {
+                Image(playerColor == .white ? "wK" : "bK")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(10)
+                    .frame(width: 46, height: 46)
+                    .background(Color(red: 0.94, green: 0.85, blue: 0.70))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("#\(puzzle.id)")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .lineLimit(1)
+                    Text(String(localized: playerColor == .white ? "tactics.find_best_white" : "tactics.find_best_black"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .trailing, spacing: 6) {
+                if let rating = puzzle.rating {
+                    Text("\(rating)")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                HStack(spacing: 2) {
+                    ForEach(1...5, id: \.self) { level in
+                        Image(systemName: level <= FavoritesView.difficultyLevel(for: puzzle.rating) ? "star.fill" : "star")
+                            .font(.caption2)
+                            .foregroundStyle(level <= FavoritesView.difficultyLevel(for: puzzle.rating) ? Color.primary : Color.secondary.opacity(0.45))
+                    }
+                }
+                if let theme = puzzle.themes.first {
+                    Text(themeName(theme))
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color.accentColor.opacity(0.12)))
+                }
+            }
+        }
+        .padding(8)
+        .background(Color(.secondarySystemBackground).opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// The side the puzzle asks the player to move for (the FEN side-to-move's
+    /// opponent — same rule as the live session).
+    private var playerColor: PieceColor {
+        guard let side = puzzle.fen.split(separator: " ").dropFirst().first,
+              side == "w" || side == "b"
+        else { return .white }
+        return side == "w" ? .black : .white
+    }
+
+    private func themeName(_ theme: PuzzleTheme) -> String {
+        NSLocalizedString("theme.\(theme.rawValue)", comment: "Puzzle theme name")
+    }
+
+    // MARK: - Replay animation
 
     /// The replay's animation input: stepping forward slides the arriving
     /// piece in from its origin (same rule as live play); the initial load
@@ -62,10 +137,6 @@ struct ReviewPuzzleView: View {
             moveRevision: stepRevision
         )
     }
-
-    /// Whether the pending step moves the line forward (the only direction
-    /// that plays a slide; back-steps snap).
-    @State private var steppingForward = false
 
     private func loadCurrent() {
         session = try? PuzzleSession(puzzle: puzzle)
