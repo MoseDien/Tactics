@@ -9,6 +9,7 @@ struct TacticsView: View {
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
     @State private var showingHowToPlay = false
+    @State private var reviewingPuzzle: Puzzle?
 
     init(mode: TacticsMode = .play) { self.mode = mode }
 
@@ -62,7 +63,9 @@ struct TacticsView: View {
                     }
                     .padding(.horizontal, 4)
 
-                    MoveControlsView(viewModel: viewModel)
+                    MoveControlsView(viewModel: viewModel) {
+                        reviewingPuzzle = viewModel.puzzles[viewModel.currentIndex]
+                    }
 
                     FeedbackView(viewModel: viewModel)
                         .padding(.horizontal, 20)
@@ -109,6 +112,11 @@ struct TacticsView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
+            }
+            .sheet(item: $reviewingPuzzle) { puzzle in
+                NavigationStack {
+                    ReviewPuzzleView(puzzle: puzzle)
+                }
             }
         }
     }

@@ -12,6 +12,9 @@ extension TacticsViewModel {
     var hintEnabled: Bool {
         !inReview && (session.state == .waitingForMove || session.state == .incorrectMove)
     }
+    /// Once a puzzle has finished, the Hint control changes purpose: it opens
+    /// a read-only replay of this puzzle rather than changing its outcome.
+    var canReviewCurrentPuzzle: Bool { currentPuzzleFinished }
     var isReviewing: Bool { session.isReviewing }
     var currentMoveNumber: Int { session.currentMoveNumber }
     var totalUserMoves: Int { session.totalUserMoves }

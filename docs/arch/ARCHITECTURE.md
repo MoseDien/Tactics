@@ -217,6 +217,7 @@ Hint 是两阶段行为：
 
 - 第一次点击：高亮期望着法，并立即按失败结算一次。
 - 第二次点击：代用户执行期望着法，不重复扣分。
+- 题目完成后：同一 Hint 控制打开 `ReviewPuzzleView` 的只读单题复盘，不再改变当前题或 Rating。
 
 Hint 只通过 ViewModel 编排，`PuzzleSession` 不包含 Hint 概念。
 

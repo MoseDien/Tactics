@@ -30,12 +30,15 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 - The app is offline-first: one bundled chunk (`puzzle-0000.json`, 1000
   puzzles, in the TacticsData bundle) plus on-demand chunk downloads when the
   untried pool can't fill a round (the only sanctioned network behavior).
-- Settings exposes the same next-chunk delivery path manually only while the
-  untried pool has fewer than 50 puzzles; its loading indicator must remain
-  local to the control, not replace the screen.
+- Settings exposes the same next-chunk delivery path manually. When the
+  untried pool has 50 or more puzzles, its always-tappable control explains
+  the threshold instead of silently disabling; its loading indicator remains
+  local to the control, not a screen replacement.
 - Lichess lines are machine-first: `moves[0]` auto-plays, then the player
   starts at `moves[1]` and turns alternate.
-- Hint reveals the expected move visually but never auto-plays it.
+- During an active puzzle Hint reveals the expected move visually but never
+  auto-plays it. Once the puzzle is complete, the same control opens a
+  read-only review of that puzzle.
 - Round review navigation is not undo. After a Play round is complete, `Next
   puzzle` enters Review mode and loops through the current round.
 - Review may record puzzle progress, but must never update the user's Rating.

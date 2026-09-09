@@ -44,6 +44,7 @@ struct RoundProgressView: View {
 /// with two spacers would push it off-center.
 struct MoveControlsView: View {
     let viewModel: TacticsViewModel
+    let onReviewCurrentPuzzle: () -> Void
 
     var body: some View {
         HStack {
@@ -62,14 +63,18 @@ struct MoveControlsView: View {
             Spacer()
 
             Button {
-                viewModel.requestHint()
+                if viewModel.canReviewCurrentPuzzle {
+                    onReviewCurrentPuzzle()
+                } else {
+                    viewModel.requestHint()
+                }
             } label: {
                 Image(systemName: "lightbulb")
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
-            .disabled(!viewModel.hintEnabled)
+            .disabled(!viewModel.hintEnabled && !viewModel.canReviewCurrentPuzzle)
             .accessibilityLabel(String(localized: "tactics.hint"))
         }
         .padding(.horizontal, 20)

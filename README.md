@@ -24,9 +24,9 @@ line at a time, and stores progress locally.
   start); a new round unlocks every 8 hours (5 minutes in Debug builds), and
   the difficulty setting
   (Easy/Medium/Hard) filters new rounds relative to the user's Rating
-- Settings offers a manual “Download more puzzles” action when fewer than 50
-  untried puzzles remain; normal round creation still downloads automatically
-  once fewer than 5 remain
+- Settings keeps “Download more puzzles” tappable: it downloads below 50
+  untried puzzles and otherwise explains the threshold; normal round creation
+  still downloads automatically once fewer than 5 remain
 - Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
 - The first move in every Lichess line is the machine's setup move; user and
   machine then alternate through the remaining UCI moves
@@ -39,7 +39,8 @@ line at a time, and stores progress locally.
   castling rook), a freshly loaded board fades in, wrong-move previews
   slide out and back; board flips render instantly. Debug builds expose
   two toggles to disable either animation
-- Hint button highlights the expected move without auto-playing it
+- During an active puzzle, Hint highlights the expected move without
+  auto-playing it; after completion, it opens a read-only replay of that puzzle
 - Review mode keeps Hint, board flipping, move interaction, and progress available;
   it never changes the user's Rating
 - Board orientation follows the player's color and can be flipped manually
