@@ -59,6 +59,8 @@
 "tactics.puzzle_progress" = "PUZZLE %ld OF %ld";
 "tactics.next_puzzle" = "Next";
 "tactics.next_round" = "Next round";
+"tactics.next_round_ready_hint" = "Starts a fresh round of puzzles";
+"tactics.next_round_wait_hint" = "Unlocks when the current round's time window ends";
 /* review */
 "review.title" = "Review";
 "review.label" = "REVIEW";
