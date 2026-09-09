@@ -59,10 +59,14 @@ extension TacticsViewModel {
         }
     }
 
-    /// Starts a fresh round. The window is no longer checked here: the button
-    /// is only enabled while the window is open, so reaching this point means
-    /// the tracker (refreshed on launch/foreground/entry) says it's time.
+    /// Starts a fresh round once the current window has expired. This guard is
+    /// deliberately in the view model as well as the UI so another caller
+    /// cannot bypass the cadence rule.
     func startNextRound() {
+        guard isNewRoundAvailable else {
+            roundCooldownMessage = nextRoundCooldownMessage
+            return
+        }
         roundCooldownMessage = nil
         mode = .play
         // Top up the library before selecting, in case the unattempted pool
@@ -71,6 +75,17 @@ extension TacticsViewModel {
             _ = await provisioner?.ensureRoundAvailable(minimum: dailyPuzzleCount)
             loadNextRound()
         }
+    }
+
+    private var nextRoundCooldownMessage: String {
+        guard let seconds = roundTracker?.secondsRemaining, seconds > 0 else {
+            return String(localized: "tactics.next_round_wait")
+        }
+        let minutes = max(1, Int(ceil(seconds / 60)))
+        return String(
+            format: NSLocalizedString("tactics.next_round_wait_minutes", comment: "Remaining minutes before a new round can start"),
+            minutes
+        )
     }
 
     private func loadNextRound() {

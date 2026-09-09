@@ -155,13 +155,9 @@ struct FeedbackView: View {
             VStack(spacing: 12) {
                 HStack {
                     if viewModel.mode == .reviewRound || viewModel.isRoundComplete {
-                        // Disabled — not just gray-tinted — while the window is
-                        // closed: the tap handler no longer carries its own
-                        // window check, so this is the guard.
                         Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
                             .buttonStyle(.borderedProminent)
                             .tint(viewModel.isNewRoundAvailable ? .accentColor : Color.gray)
-                            .disabled(!viewModel.isNewRoundAvailable)
                             .accessibilityHint(viewModel.isNewRoundAvailable
                                 ? String(localized: "tactics.next_round_ready_hint")
                                 : String(localized: "tactics.next_round_wait_hint"))

@@ -106,7 +106,8 @@ wake-up — no polling timers anywhere.
 - A pawn reaching the last rank opens a promotion picker
   (queen/rook/bishop/knight); the move is submitted only after a choice.
 - A new round unlocks after the round window (8 hours; 5 minutes in Debug builds); tapping
-  `Next round` inside the window shows a wait message and stays in Review.
+  `Next round` remains tappable inside the window, shows the remaining wait
+  time, and stays in Review; the view model enforces the same guard.
 - Settings keeps manual next-chunk download tappable. At 50 or more untried
   puzzles it explains the threshold; below 50 it downloads and shows a local,
   semi-transparent spinner instead of a full-screen loading state.

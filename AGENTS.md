@@ -41,6 +41,8 @@ feature and preserve the existing offline iOS SwiftUI product direction.
   read-only review of that puzzle.
 - Round review navigation is not undo. After a Play round is complete, `Next
   puzzle` enters Review mode and loops through the current round.
+- `Next round` remains tappable during its cooldown: it shows the remaining
+  wait time, and the view model must reject an early start.
 - Review may record puzzle progress, but must never update the user's Rating.
 - Keep the normal training screen usable on iPhone SE without scrolling;
   retain `ScrollView` only as a Dynamic Type/accessibility fallback.

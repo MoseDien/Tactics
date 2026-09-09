@@ -198,6 +198,24 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
+    func testStartNextRoundStaysInCurrentRoundDuringCooldown() {
+        let clock = MutableClock()
+        let state = InMemoryRoundState()
+        let tracker = RoundTracker(state: state, now: { clock.now })
+        let puzzles = Array(Puzzle.samples.prefix(2))
+        tracker.begin(puzzles)
+
+        let vm = TacticsViewModel(dataset: puzzles, dailyPuzzleCount: 2, mode: .reviewRound)
+        vm.roundTracker = tracker
+        vm.startNextRound()
+
+        XCTAssertEqual(vm.mode, .reviewRound)
+        XCTAssertEqual(vm.puzzles.map(\.id), puzzles.map(\.id))
+        XCTAssertNotNil(vm.roundCooldownMessage)
+        XCTAssertEqual(state.activePuzzleIDs(), puzzles.map(\.id))
+    }
+
+    @MainActor
     func testFavoritePersistsAfterSolvingAndIgnoredBeforeCompletion() async throws {
         let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
         let puzzle = Puzzle.samples[0]

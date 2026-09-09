@@ -61,6 +61,8 @@
 "tactics.next_round" = "Next round";
 "tactics.next_round_ready_hint" = "Starts a fresh round of puzzles";
 "tactics.next_round_wait_hint" = "Unlocks when the current round's time window ends";
+"tactics.next_round_wait" = "The next round is not available yet.";
+"tactics.next_round_wait_minutes" = "Next round unlocks in %ld min.";
 /* review */
 "review.title" = "Review";
 "review.label" = "REVIEW";

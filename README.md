@@ -22,7 +22,7 @@ line at a time, and stores progress locally.
   looping through the current round without changing Rating
 - Each round draws 5 random not-yet-attempted puzzles (queried only at round
   start); a new round unlocks every 8 hours (5 minutes in Debug builds), and
-  the difficulty setting
+  `Next round` reports the remaining cooldown when tapped early; the difficulty setting
   (Easy/Medium/Hard) filters new rounds relative to the user's Rating
 - Settings keeps “Download more puzzles” tappable: it downloads below 50
   untried puzzles and otherwise explains the threshold; normal round creation

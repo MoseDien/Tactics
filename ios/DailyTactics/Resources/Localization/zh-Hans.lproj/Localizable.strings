@@ -54,6 +54,10 @@
 "tactics.puzzle_progress" = "第 %ld 题，共 %ld 题";
 "tactics.next_puzzle" = "下一题";
 "tactics.next_round" = "下一轮题目";
+"tactics.next_round_ready_hint" = "开始新一轮题目";
+"tactics.next_round_wait_hint" = "当前轮次结束后解锁";
+"tactics.next_round_wait" = "下一轮题目暂未开放。";
+"tactics.next_round_wait_minutes" = "距离下一轮解锁还有 %ld 分钟。";
 "review.title" = "复盘";
 "review.label" = "复盘";
 "review.previous_move" = "上一步";
