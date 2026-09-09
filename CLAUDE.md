@@ -106,6 +106,9 @@ wake-up — no polling timers anywhere.
   (queen/rook/bishop/knight); the move is submitted only after a choice.
 - A new round unlocks after the round window (8 hours; 5 minutes in Debug builds); tapping
   `Next round` inside the window shows a wait message and stays in Review.
+- Settings enables manual next-chunk download only when fewer than 50
+  untried puzzles remain; show a local, semi-transparent spinner during the
+  request instead of a full-screen loading state.
 - Round history (`RoundHistory`) is written exactly once per round: neither a
   hint on the final puzzle nor re-solving the round in review may skip or
   duplicate the row.

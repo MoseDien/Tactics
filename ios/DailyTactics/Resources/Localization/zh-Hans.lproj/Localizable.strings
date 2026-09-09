@@ -13,7 +13,10 @@
 "how_to_play.review" = "经常复盘做过的题目,巩固棋感。";
 "settings.difficulty" = "难度";
 "settings.library_section" = "题库";
-"settings.library_status" = "数据块 %ld · 已载入 %ld 道题。未做题目不足时会自动下载新数据块。";
+"settings.library_status" = "数据块 %ld · 已载入 %ld 道题 · 未尝试 %ld 道。未尝试题目不足时会自动下载新数据块。";
+"settings.download_more_puzzles" = "下载更多题目";
+"settings.download_more_puzzles_unavailable_title" = "暂时无需下载";
+"settings.download_more_puzzles_unavailable_message" = "未尝试题目少于 50 道时，即可使用下载更多题目的功能。";
 "settings.rating_trend" = "Rating 走势";
 "settings.rating_trend_empty" = "完成一组题目后,这里会展示你的 Rating 走势。";
 "settings.rating_trend_delta" = "较第一组 %+ld";

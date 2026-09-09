@@ -96,6 +96,12 @@ struct TacticsView: View {
                     .accessibilityLabel(String(localized: "tactics.settings"))
                 }
             }
+            .onAppear {
+                // Entering the screen: the window may have expired elsewhere
+                // (another screen, or time passing); recompute before the
+                // button state renders.
+                dependencies.round.refresh()
+            }
             .popover(isPresented: $showingHowToPlay) {
                 HowToPlayView()
                     .presentationDetents([.medium, .large])

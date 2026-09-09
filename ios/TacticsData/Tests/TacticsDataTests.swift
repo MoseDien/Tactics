@@ -237,6 +237,41 @@ final class FakeChunkFetcher: PuzzleChunkFetching {
     }
 
     @MainActor
+    func testProvisionerUsesTheRequestedThresholdForManualDownloads() async {
+        let (provisioner, store, fetcher, _) = makeProvisioner()
+        // Settings asks for a larger 50-puzzle buffer. Seed 49 untried
+        // puzzles so it must fetch, even though the normal round threshold
+        // (5) would have been satisfied.
+        for puzzle in FakeChunkFetcher.makePuzzles((5...49).map { "s\($0)" }) {
+            store.context.insert(PuzzleRecord(puzzle: puzzle))
+        }
+        try? store.context.save()
+        store.invalidateLibraryCache()
+        fetcher.programmed[1] = .chunk(FakeChunkFetcher.makePuzzles(["downloaded"]))
+
+        let outcome = await provisioner.ensureRoundAvailable(minimum: 50)
+
+        XCTAssertEqual(outcome, .added(count: 1))
+        XCTAssertEqual(fetcher.requested, [1])
+    }
+
+    @MainActor
+    func testProvisionerSkipsManualDownloadAtFiftyUntriedPuzzles() async {
+        let (provisioner, store, fetcher, _) = makeProvisioner()
+        // The helper already seeds four untried puzzles; add 46 to reach 50.
+        for puzzle in FakeChunkFetcher.makePuzzles((5...50).map { "s\($0)" }) {
+            store.context.insert(PuzzleRecord(puzzle: puzzle))
+        }
+        try? store.context.save()
+        store.invalidateLibraryCache()
+
+        let outcome = await provisioner.ensureRoundAvailable(minimum: 50)
+
+        XCTAssertEqual(outcome, .skipped)
+        XCTAssertTrue(fetcher.requested.isEmpty)
+    }
+
+    @MainActor
     func testProvisionerLatchesNoMoreChunksOn404() async {
         let (provisioner, _, fetcher, sequence) = makeProvisioner()
         // Nothing programmed → 404.

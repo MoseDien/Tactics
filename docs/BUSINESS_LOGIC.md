@@ -24,6 +24,7 @@ App 第一次启动（或题库未导入时），先进行一次性批量导入�
 - 题库以块为单位交付：每块 1000 题，一个 `puzzle-NNNN.json`；App 内置第 0 块，其余部署在远端目录。
 - App 在本地记录「当前数据序号」（UserDefaults `dailytactics.puzzleSequence`，内置块 = 0）。
 - 当未尝试题目不足以组成一个 round（< `RoundPolicy.puzzleCount`）时，自动下载下一块并导入：启动选题前与每次开始新 round 时各检查一次。
+- Settings 提供始终可点的「下载更多题目」按钮：未尝试题目少于 50 道时，使用相同的分块交付流程下载下一块；达到 50 道时点击会说明该门槛。下载中按钮内显示半透明 spinner 防止重复操作。
 - 下载失败（断网/超时/坏数据/404）静默跳过，选题回退到既有链条（未尝试不足 → 全库随机）；404 表示块未发布，本次会话不再重试。
 - 导入按 puzzleId 去重，重复下载同一块无副作用。
 - Settings 中展示当前块序号与已载入题目数。
@@ -62,7 +63,8 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 - 新 round 开始时记录 `dailytactics.roundStartTime` 到 UserDefaults，并持久化当前题目 ID。
 - 只有当 `当前时间 - roundStartTime >= RoundPolicy.roundDuration` 时，才能开始下一个 round；正式版 `roundDuration = 8 小时`，Debug 构建缩短为 1 小时以便手工测试完整周期。
 - 冷却期间重新打开 App 不会随机生成新题，只进入当前 round 的 Review mode。
-- 冷却结束后 `Next round` 解锁；用户点击后才创建下一组题目并更新开始时间。
+- 窗口状态在**生命周期事件**上重查:App 启动(restore)、切回前台(scenePhase .active)、每次进入棋盘页(onAppear)各 refresh 一次;`RoundTracker` 自带的到期唤醒兜底进程内计时。
+- 冷却结束后 `Next round` 解锁(按钮 enable 即代表窗口已开,点击时不再二次检查)；用户点击后才创建下一组题目并更新开始时间。
 - Review mode 下 `Next puzzle` 只循环当前 round；`Next round` 与其分离，只有用户主动点击才会尝试创建新 round。时间未到时点击会显示等待提示（剩余冷却说明），仍停留在 Review mode。
 - Play mode 完成 round 后，`Next puzzle` 仍保持可用；用户点击后进入 Review mode，并从当前 round 循环查看题目。
 

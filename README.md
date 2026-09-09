@@ -24,6 +24,9 @@ line at a time, and stores progress locally.
   start); a new round unlocks every 8 hours (5 minutes in Debug builds), and
   the difficulty setting
   (Easy/Medium/Hard) filters new rounds relative to the user's Rating
+- Settings offers a manual “Download more puzzles” action when fewer than 50
+  untried puzzles remain; normal round creation still downloads automatically
+  once fewer than 5 remain
 - Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
 - The first move in every Lichess line is the machine's setup move; user and
   machine then alternate through the remaining UCI moves

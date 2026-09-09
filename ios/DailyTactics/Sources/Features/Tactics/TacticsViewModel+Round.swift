@@ -59,15 +59,10 @@ extension TacticsViewModel {
         }
     }
 
-    /// Starts a fresh round only after the user explicitly taps Next round.
-    /// Expiry alone never changes Review mode.
+    /// Starts a fresh round. The window is no longer checked here: the button
+    /// is only enabled while the window is open, so reaching this point means
+    /// the tracker (refreshed on launch/foreground/entry) says it's time.
     func startNextRound() {
-        if roundTracker?.isWithinWindow == true {
-            // The current round is still inside its time window: surface why
-            // nothing new is coming and stay on the round being reviewed.
-            roundCooldownMessage = String(localized: "tactics.round_cooldown")
-            return
-        }
         roundCooldownMessage = nil
         mode = .play
         // Top up the library before selecting, in case the unattempted pool

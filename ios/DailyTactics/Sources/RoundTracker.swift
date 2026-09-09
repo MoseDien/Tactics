@@ -42,7 +42,10 @@ final class RoundTracker {
         RoundLookup.puzzles(withIDs: state.activePuzzleIDs(), in: library)
     }
 
-    private func refresh() {
+    /// Recomputes the window from the persisted start time. Public so the app
+    /// can re-check on lifecycle events (foreground, screen entry) — the
+    /// scheduled expiry watch alone misses time passed while suspended.
+    func refresh() {
         guard let start = state.startTime() else {
             isWithinWindow = false
             return

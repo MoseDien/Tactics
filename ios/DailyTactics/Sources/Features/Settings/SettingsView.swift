@@ -11,6 +11,9 @@ struct SettingsView: View {
     @State private var snapshots: [RatingSample] = []
     @State private var libraryChunk = 0
     @State private var libraryCount = 0
+    @State private var untriedPuzzleCount = 0
+    @State private var isDownloadingMorePuzzles = false
+    @State private var downloadMorePuzzlesNotice: String?
     #if DEBUG
     @State private var debugNotice: String?
     @State private var showingResetAllConfirm = false
@@ -42,12 +45,48 @@ struct SettingsView: View {
                     } label: {
                         Label(String(localized: "settings.favorites"), systemImage: "heart")
                     }
+
+                    Button {
+                        downloadMorePuzzlesTapped()
+                    } label: {
+                        Label {
+                            HStack(spacing: 8) {
+                                Text(String(localized: "settings.download_more_puzzles"))
+                                if isDownloadingMorePuzzles {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                        .tint(.secondary)
+                                        .opacity(0.65)
+                                }
+                            }
+                        } icon: {
+                            Image(systemName: "arrow.down.circle")
+                        }
+                    }
+                    .popover(
+                        isPresented: Binding(
+                            get: { downloadMorePuzzlesNotice != nil },
+                            set: { if !$0 { downloadMorePuzzlesNotice = nil } }
+                        ),
+                        arrowEdge: .top
+                    ) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(String(localized: "settings.download_more_puzzles_unavailable_title"))
+                                .font(.headline)
+                            Text(downloadMorePuzzlesNotice ?? "")
+                                .fixedSize(horizontal: false, vertical: true)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding()
+                        .presentationCompactAdaptation(.popover)
+                    }
                 } header: {
                     Text(String(localized: "settings.library_section"))
                 } footer: {
                     Text(String(
                         format: NSLocalizedString("settings.library_status", comment: "Library chunk and puzzle count"),
-                        libraryChunk, libraryCount
+                        libraryChunk, libraryCount, untriedPuzzleCount
                     ))
                 }
 
@@ -105,12 +144,39 @@ struct SettingsView: View {
             .task {
                 snapshots = dependencies.data.ratingHistory()
                 difficulty = dependencies.difficulty.current
-                libraryChunk = dependencies.sequenceStore.current
-                libraryCount = dependencies.data.allPuzzles().count
+                refreshLibraryStatus()
                 pieceAnimation = dependencies.pieceAnimation.isEnabled
                 setupAnimation = dependencies.pieceAnimation.isSetupEnabled
             }
         }
+    }
+
+    private var isEligibleForManualDownload: Bool {
+        untriedPuzzleCount < 50
+    }
+
+    private func downloadMorePuzzlesTapped() {
+        guard !isDownloadingMorePuzzles else { return }
+        guard isEligibleForManualDownload else {
+            downloadMorePuzzlesNotice = String(localized: "settings.download_more_puzzles_unavailable_message")
+            return
+        }
+        Task { await downloadMorePuzzles() }
+    }
+
+    private func downloadMorePuzzles() async {
+        guard !isDownloadingMorePuzzles, isEligibleForManualDownload else { return }
+        isDownloadingMorePuzzles = true
+        _ = await dependencies.provisioner.ensureRoundAvailable(minimum: 50)
+        refreshLibraryStatus()
+        isDownloadingMorePuzzles = false
+    }
+
+    private func refreshLibraryStatus() {
+        let library = dependencies.data.allPuzzles()
+        libraryChunk = dependencies.sequenceStore.current
+        libraryCount = library.count
+        untriedPuzzleCount = library.count - dependencies.data.attemptedIDs().count
     }
 
     #if DEBUG

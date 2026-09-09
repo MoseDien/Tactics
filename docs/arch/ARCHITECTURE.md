@@ -296,7 +296,7 @@ flowchart LR
 
 ## 9. 题库交付与离线策略
 
-App 内置一个 `puzzle-0000.json`，首次启动时导入 SwiftData。后续只在未尝试题目不足一个 Round 时访问网络：
+App 内置一个 `puzzle-0000.json`，首次启动时导入 SwiftData。后续只在未尝试题目不足一个 Round 时访问网络；Settings 的手动下载按钮始终可点，未尝试题少于 50 道时才请求下一块，否则说明该门槛：
 
 ```mermaid
 flowchart TD

@@ -5,11 +5,19 @@ import TacticsData
 @main
 struct DailyTacticsApp: App {
     @State private var dependencies = AppDependencies.live()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(dependencies)
+                .onChange(of: scenePhase) { _, phase in
+                    // Time passes while suspended; recompute the round window
+                    // on activation so Next round reflects reality.
+                    if phase == .active {
+                        dependencies.round.refresh()
+                    }
+                }
         }
     }
 }
