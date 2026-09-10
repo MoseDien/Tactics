@@ -49,6 +49,15 @@ final class RoundTracker {
         return RoundWindow(startedAt: start).secondsRemaining(at: now())
     }
 
+    /// When the current window ends (the next round unlocks), if a round is
+    /// persisted and still running. The UI shows this instant as a clock
+    /// time rather than a countdown, so it stays truthful without ticking.
+    var nextRoundUnlocksAt: Date? {
+        guard let start = state.startTime() else { return nil }
+        let end = RoundWindow(startedAt: start).expiresAt
+        return end > now() ? end : nil
+    }
+
     /// Recomputes the window from the persisted start time. Public so the app
     /// can re-check on lifecycle events (foreground, screen entry) — the
     /// scheduled expiry watch alone misses time passed while suspended.

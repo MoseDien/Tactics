@@ -24,6 +24,16 @@ extension TacticsViewModel {
     /// Whether the round window has expired — a new round can start right now.
     /// Purely time-based; `canStartNewRound` additionally requires review mode.
     var isNewRoundAvailable: Bool { roundTracker?.isWithinWindow == false }
+
+    /// "Unlocks at 3:10 PM" for the disabled button's hint and label; nil
+    /// when there is nothing running to wait for.
+    var nextRoundUnlockDescription: String? {
+        guard let unlocksAt = roundTracker?.nextRoundUnlocksAt else { return nil }
+        return String(
+            format: NSLocalizedString("tactics.next_round_wait_until", comment: "Clock time when the next round unlocks"),
+            unlocksAt.formatted(date: .omitted, time: .shortened)
+        )
+    }
     var canUpdateRating: Bool { mode == .play }
     var canInteractWithPuzzle: Bool { !inReview && (state == .waitingForMove || state == .incorrectMove) }
 
@@ -78,13 +88,12 @@ extension TacticsViewModel {
     }
 
     private var nextRoundCooldownMessage: String {
-        guard let seconds = roundTracker?.secondsRemaining, seconds > 0 else {
+        guard let unlocksAt = roundTracker?.nextRoundUnlocksAt else {
             return String(localized: "tactics.next_round_wait")
         }
-        let minutes = max(1, Int(ceil(seconds / 60)))
         return String(
-            format: NSLocalizedString("tactics.next_round_wait_minutes", comment: "Remaining minutes before a new round can start"),
-            minutes
+            format: NSLocalizedString("tactics.next_round_wait_until", comment: "Clock time when the next round unlocks"),
+            unlocksAt.formatted(date: .omitted, time: .shortened)
         )
     }
 

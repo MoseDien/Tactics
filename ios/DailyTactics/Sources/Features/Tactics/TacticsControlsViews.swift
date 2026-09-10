@@ -166,8 +166,8 @@ struct FeedbackView: View {
                     Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
                         .buttonStyle(.borderedProminent)
                 }
-                if let cooldown = viewModel.roundCooldownMessage {
-                    Label(cooldown, systemImage: "clock")
+                if !viewModel.isNewRoundAvailable, let unlocks = viewModel.nextRoundUnlockDescription {
+                    Label(unlocks, systemImage: "clock")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
