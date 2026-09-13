@@ -75,7 +75,7 @@ implementing the data ports, `ModelContainerFactory`, `BundledPuzzleSource`
 `PuzzleLibraryImporter`,
 `RemotePuzzleFetcher`/`ChunkSequenceStore`/`LibraryProvisioner` for chunked
 delivery, and the UserDefaults-backed stores as injectable instances (`UserRatingStore`
-— the Rating starts at 1500, `DifficultyModeStore`, `PieceAnimationStore`,
+— the Rating starts at 1000, `DifficultyModeStore`, `PieceAnimationStore`,
 `UserDefaultsBatchStateStore`,
 `LibraryStateStore`). Nothing above this module imports SwiftData; SwiftData
 models never leak out of it.

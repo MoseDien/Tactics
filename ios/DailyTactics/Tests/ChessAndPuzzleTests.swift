@@ -35,7 +35,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertEqual(store.rating, 400, "rating clamps at the floor")
 
         store.reset()
-        XCTAssertEqual(store.rating, 1500, "a fresh store starts at 1500")
+        XCTAssertEqual(store.rating, 1000, "a fresh store starts at 1000")
     }
     func testDifficultyModeFilteringUsesRatingBounds() {
         let puzzles = [

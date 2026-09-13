@@ -33,7 +33,7 @@ public enum AppPreferences {
 public final class UserRatingStore {
     private let defaults: UserDefaults
     private let key = AppPreferences.userRating
-    private let initialRating = 1500
+    private let initialRating = 1000
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults

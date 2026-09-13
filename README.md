@@ -46,7 +46,7 @@ line at a time, and stores progress locally.
 - Review mode keeps Hint, board flipping, move interaction, and progress available;
   it never changes the user's Rating
 - Board orientation follows the player's color and can be flipped manually
-- A local Elo-like puzzle Rating starts at 1500 and is persisted with
+- A local Elo-like puzzle Rating starts at 1000 and is persisted with
   `UserDefaults`; one snapshot per completed round feeds a Rating trend
   chart in Settings
 - SwiftData stores completion/failure history plus per-round round history

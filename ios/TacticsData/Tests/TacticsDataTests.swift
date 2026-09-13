@@ -345,7 +345,7 @@ final class FakeChunkFetcher: PuzzleChunkFetching {
 
         AppPreferences.wipeAll(defaults: defaults)
 
-        XCTAssertEqual(UserRatingStore(defaults: defaults).rating, 1500)
+        XCTAssertEqual(UserRatingStore(defaults: defaults).rating, 1000)
         XCTAssertEqual(DifficultyModeStore(defaults: defaults).current, .medium)
         XCTAssertNil(UserDefaultsRoundStateStore(defaults: defaults).startTime())
         XCTAssertEqual(ChunkSequenceStore(defaults: defaults).current, 0)
