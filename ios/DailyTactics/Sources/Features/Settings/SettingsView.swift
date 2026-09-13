@@ -63,7 +63,7 @@ struct SettingsView: View {
                         }
                     }
                     .disabled(!isEligibleForManualDownload)
-                    
+                    .foregroundStyle(isEligibleForManualDownload ? Color.primary : Color.secondary)
                     .popover(
                         isPresented: Binding(
                             get: { downloadMorePuzzlesNotice != nil },
@@ -157,8 +157,11 @@ struct SettingsView: View {
         }
     }
 
+    /// Download conditions: the untried pool must be low AND the remote must
+    /// still have unpublished chunks left (a 404 latch kills it for the
+    /// session). Anything else grays the button out.
     private var isEligibleForManualDownload: Bool {
-        untriedPuzzleCount < 50
+        untriedPuzzleCount < 50 && !dependencies.sequenceStore.noMoreChunks
     }
 
     /// Debug round-length options: 5 minutes through 8 hours.
