@@ -30,8 +30,8 @@
 /* tactics */
 "tactics.your_turn" = "Your turn";
 "tactics.puzzle_complete" = "Puzzle complete!";
-"tactics.find_best_white" = "Find the best move for White.";
-"tactics.find_best_black" = "Find the best move for Black.";
+"tactics.find_best_white" = "White to move";
+"tactics.find_best_black" = "Black to move";
 "tactics.hint_instruction" = "Move the highlighted piece to the marked square";
 "tactics.hint" = "Hint";
 "tactics.favorite" = "Favorite";

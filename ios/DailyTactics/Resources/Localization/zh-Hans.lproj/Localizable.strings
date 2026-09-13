@@ -23,10 +23,10 @@
 "settings.difficulty_easy" = "简单";
 "settings.difficulty_medium" = "中等";
 "settings.difficulty_hard" = "困难";
-"tactics.your_turn" = "轮到你了";
+"tactics.your_turn" = "轮到你";
 "tactics.puzzle_complete" = "题目完成！";
-"tactics.find_best_white" = "为白方找出最佳着法。";
-"tactics.find_best_black" = "为黑方找出最佳着法。";
+"tactics.find_best_white" = "白方走";
+"tactics.find_best_black" = "黑方走";
 "tactics.hint_instruction" = "将高亮的棋子移动到标记的格子";
 "tactics.hint" = "提示";
 "tactics.favorite" = "收藏";
