@@ -1,0 +1,104 @@
+import Foundation
+import Observation
+import PuzzleKit
+import TacticsData
+
+/// Owns persisted puzzle progress, per-round outcomes, and rating changes.
+/// Session and round code report events to this store; neither duplicates its
+/// scoring or history-writing rules.
+@MainActor
+@Observable
+final class TacticsProgressStore {
+    private let repositories: (any PuzzleDataRepositories)?
+    private let ratingStore: UserRatingStore
+    private let ratingCalculator = PuzzleRatingCalculator()
+
+    private(set) var userRating: Int
+    private(set) var lastRatingDelta: Int?
+    private(set) var outcomes: [PuzzleOutcome?]
+    private var hadMistake = false
+    private var ratingAppliedForPuzzle = false
+    private var firstAttemptWasCorrect = false
+    private var roundRecorded = false
+
+    init(
+        repositories: (any PuzzleDataRepositories)?,
+        ratingStore: UserRatingStore,
+        puzzleCount: Int
+    ) {
+        self.repositories = repositories
+        self.ratingStore = ratingStore
+        userRating = ratingStore.rating
+        outcomes = Array(repeating: nil, count: puzzleCount)
+    }
+
+    func beginRound(puzzleCount: Int) {
+        outcomes = Array(repeating: nil, count: puzzleCount)
+        roundRecorded = false
+    }
+
+    func beginPuzzle() {
+        hadMistake = false
+        firstAttemptWasCorrect = false
+        ratingAppliedForPuzzle = false
+        lastRatingDelta = nil
+    }
+
+    func recordFirstAttempt(for puzzle: Puzzle, correct: Bool) {
+        guard !(repositories?.hasAttempted(puzzle.id) ?? false) else { return }
+        firstAttemptWasCorrect = correct
+        repositories?.markAttempted(puzzle.id)
+    }
+
+    func settleFailure(for puzzle: Puzzle, at index: Int, ratingEnabled: Bool) {
+        hadMistake = true
+        recordOutcome(.wrong, at: index)
+        repositories?.markFailed(puzzle.id)
+        repositories?.markAttempted(puzzle.id)
+        guard !ratingAppliedForPuzzle else { return }
+        ratingAppliedForPuzzle = true
+        applyRating(for: puzzle, solved: false, enabled: ratingEnabled)
+    }
+
+    func complete(
+        puzzle: Puzzle,
+        at index: Int,
+        round: [Puzzle],
+        isRoundEnding: Bool,
+        ratingEnabled: Bool,
+        usedHint: Bool
+    ) {
+        repositories?.markCompleted(puzzle.id)
+        if !ratingAppliedForPuzzle {
+            ratingAppliedForPuzzle = true
+            recordOutcome(.correct, at: index)
+        }
+        if isRoundEnding, !roundRecorded {
+            roundRecorded = true
+            repositories?.recordRound(puzzles: round, outcomes: outcomes)
+        }
+        guard ratingEnabled, firstAttemptWasCorrect else {
+            if isRoundEnding { repositories?.recordRatingSnapshot(value: userRating) }
+            return
+        }
+        applyRating(for: puzzle, solved: !hadMistake && !usedHint, enabled: true)
+        if isRoundEnding { repositories?.recordRatingSnapshot(value: userRating) }
+    }
+
+    private func applyRating(for puzzle: Puzzle, solved: Bool, enabled: Bool) {
+        guard enabled else { return }
+        let puzzleRating = puzzle.rating ?? userRating
+        let delta = ratingCalculator.change(
+            userRating: userRating,
+            puzzleRating: puzzleRating,
+            solved: solved
+        )
+        userRating = ratingStore.apply(delta: delta)
+        lastRatingDelta = delta
+    }
+
+    private func recordOutcome(_ outcome: PuzzleOutcome, at index: Int) {
+        guard outcomes.indices.contains(index), outcomes[index] == nil else { return }
+        outcomes[index] = outcome
+    }
+}

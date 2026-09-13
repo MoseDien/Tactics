@@ -6,7 +6,7 @@ import TacticsData
 /// Round navigation: moving between the puzzles of the current round, looping
 /// the finished round in review, and starting the next round once its window
 /// opens.
-extension TacticsViewModel {
+extension TacticsTrainingStore {
     var puzzleCount: Int { puzzles.count }
     var puzzleNumber: Int { currentIndex + 1 }
     var isLastPuzzle: Bool { currentIndex >= puzzles.count - 1 }
@@ -56,25 +56,11 @@ extension TacticsViewModel {
     }
 
     func nextPuzzle() {
-        guard !isAdvancing, (mode == .reviewRound || canAdvanceToNextPuzzle) else { return }
-        isAdvancing = true
-        // Reaching the end of a Play round and choosing Next puzzle means the
-        // user is reviewing that completed round. Keep the mode indicator and
-        // rating rules aligned with this transition.
-        if mode == .play && isRoundComplete {
-            mode = .reviewRound
-        }
-        let shouldLoopRound = mode == .reviewRound || isRoundComplete
-        let target = shouldLoopRound ? (currentIndex + 1) % puzzles.count : currentIndex + 1
-        // A brief beat before the next puzzle appears so the transition reads
-        // as deliberate rather than an instant snap. Re-entry is blocked until
-        // the load completes so repeated taps can't skip puzzles.
-        Task {
-            try? await Task.sleep(for: pacing.nextPuzzleDelay)
-            currentIndex = target
-            loadPuzzle(at: target)
-            isAdvancing = false
-        }
+        roundState.advance(
+            currentPuzzleFinished: currentPuzzleFinished,
+            pacing: pacing,
+            loadPuzzle: { [weak self] index in self?.loadPuzzle(at: index) }
+        )
     }
 
     /// Starts a fresh round once the current window has expired. This guard is
@@ -92,23 +78,9 @@ extension TacticsViewModel {
     }
 
     private func loadNextRound() {
-        guard let progress else { return }
-        var selector = RoundSelector()
-        let previousBatchIDs = Set(roundTracker?.activePuzzleIDs() ?? [])
-        let picked = selector.select(
-            library: progress.allPuzzles(),
-            attempted: progress.attemptedIDs(),
-            difficulty: difficultyStore?.current ?? .medium,
-            userRating: userRating,
-            count: dailyPuzzleCount,
-            excluding: previousBatchIDs
-        )
+        let picked = roundState.selectNextRound(userRating: userRating)
         guard !picked.isEmpty else { return }
-        puzzles = picked
-        roundTracker?.begin(picked)
-        results = Array(repeating: nil, count: picked.count)
-        roundRecorded = false
-        currentIndex = 0
+        progressState.beginRound(puzzleCount: picked.count)
         loadPuzzle(at: 0)
     }
 }

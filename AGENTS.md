@@ -24,6 +24,12 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 - `DailyTactics` (app): SwiftUI features (Tactics/Settings/Onboarding), the
   `AppDependencies` composition root, `RoundTracker`, `TacticsPacing`.
   Animation timing lives in the board view, never in the domain.
+- Tactics uses `TacticsTrainingStore` as the training-flow coordinator,
+  `TacticsSessionStore` for the current puzzle's board interaction state, and
+  `TacticsRoundStore` for batch state, selection and navigation, plus
+  `TacticsProgressStore` for rating, outcomes, and persisted progress; each
+  training View receives its own presentation ViewModel rather than a broad
+  feature store directly.
 
 ## Product rules
 

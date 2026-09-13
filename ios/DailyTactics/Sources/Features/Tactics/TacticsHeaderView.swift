@@ -5,7 +5,7 @@ import ChessCore
 /// The board header: puzzle progress, the player's side, and the difficulty
 /// stars (tapping them reveals the rating and play count).
 struct TacticsHeaderView: View {
-    let viewModel: TacticsViewModel
+    let viewModel: TacticsHeaderViewModel
     @State private var showingPuzzleDetails = false
 
     var body: some View {
@@ -27,9 +27,9 @@ struct TacticsHeaderView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10))
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(viewModel.headerTitle)
+                        Text(viewModel.title)
                             .lineLimit(1)
-                        Text(viewModel.headerSubtitle)
+                        Text(viewModel.subtitle)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -45,16 +45,16 @@ struct TacticsHeaderView: View {
                     VStack(alignment: .trailing, spacing: 6) {
                         HStack(spacing: 2) {
                             ForEach(1...5, id: \.self) { level in
-                                Image(systemName: level <= difficultyLevel(for: viewModel.currentPuzzleRating) ? "star.fill" : "star")
-                                    .foregroundStyle(level <= difficultyLevel(for: viewModel.currentPuzzleRating) ? Color.primary : Color.secondary.opacity(0.45))
+                                Image(systemName: level <= difficultyLevel(for: viewModel.rating) ? "star.fill" : "star")
+                                    .foregroundStyle(level <= difficultyLevel(for: viewModel.rating) ? Color.primary : Color.secondary.opacity(0.45))
                             }
                         }
                         if showingPuzzleDetails {
                             HStack(spacing: 8) {
-                                if let rating = viewModel.currentPuzzleRating {
+                                if let rating = viewModel.rating {
                                     Label("\(rating)", systemImage: "gauge.medium")
                                 }
-                                if let plays = viewModel.currentPuzzlePlayCount {
+                                if let plays = viewModel.playCount {
                                     Label(plays.formatted(), systemImage: "play.circle")
                                 }
                             }

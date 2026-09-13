@@ -9,7 +9,7 @@ final class ChessAndPuzzleTests: XCTestCase {
     func testBoardAutoOrientsToPlayerColor() async throws {
         // A single-puzzle dataset makes the "which puzzle loaded" variable
         // deterministic, so the orientation invariant is actually exercised.
-        let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)))
+        let vm = TacticsTrainingStore(dataset: Array(Puzzle.samples.prefix(1)))
         XCTAssertEqual(vm.isBoardFlipped, vm.playerColor == .black)
 
         // After the machine's opening move the orientation must still hold.
@@ -55,7 +55,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "hint-penalty-\(UUID().uuidString)")!
         let store = UserRatingStore(defaults: defaults)
         let progress = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
-        let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)), progress: progress, ratingStore: store)
+        let vm = TacticsTrainingStore(dataset: Array(Puzzle.samples.prefix(1)), progress: progress, ratingStore: store)
 
         // Wait for the opening machine move so a hint is enabled. Generous
         // bound keeps this stable under CI load; it waits only as long as needed.
@@ -95,7 +95,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "wrong-move-penalty-\(UUID().uuidString)")!
         let ratingStore = UserRatingStore(defaults: defaults)
         let progress = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
-        let vm = TacticsViewModel(dataset: [puzzle], progress: progress, ratingStore: ratingStore, dailyPuzzleCount: 1)
+        let vm = TacticsTrainingStore(dataset: [puzzle], progress: progress, ratingStore: ratingStore, dailyPuzzleCount: 1)
 
         vm.start()
         try await waitForWaitingForMove(on: vm)
@@ -129,7 +129,7 @@ final class ChessAndPuzzleTests: XCTestCase {
             rating: 1500,
             themes: []
         )
-        let vm = TacticsViewModel(dataset: [puzzle], dailyPuzzleCount: 1)
+        let vm = TacticsTrainingStore(dataset: [puzzle], dailyPuzzleCount: 1)
         vm.pacing = TacticsPacing(
             nextPuzzleDelay: .milliseconds(1),
             wrongMoveDisplay: .milliseconds(20),
@@ -171,7 +171,7 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         // One puzzle in the dataset so it is also the last puzzle of the round.
         let puzzle = Puzzle.samples[0]
-        let vm = TacticsViewModel(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
+        let vm = TacticsTrainingStore(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
 
         vm.start()
         var waited = 0
@@ -205,7 +205,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         let puzzles = Array(Puzzle.samples.prefix(2))
         tracker.begin(puzzles)
 
-        let vm = TacticsViewModel(dataset: puzzles, dailyPuzzleCount: 2, mode: .reviewRound)
+        let vm = TacticsTrainingStore(dataset: puzzles, dailyPuzzleCount: 2, mode: .reviewRound)
         vm.roundTracker = tracker
         vm.startNextRound()
 
@@ -221,7 +221,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         let puzzles = Array(Puzzle.samples.prefix(2))
         tracker.begin(puzzles)
 
-        let vm = TacticsViewModel(dataset: puzzles, dailyPuzzleCount: 2, mode: .reviewRound)
+        let vm = TacticsTrainingStore(dataset: puzzles, dailyPuzzleCount: 2, mode: .reviewRound)
         vm.roundTracker = tracker
         XCTAssertFalse(vm.isNewRoundAvailable)
         XCTAssertFalse(vm.shouldShowNewRoundAction)
@@ -238,7 +238,7 @@ final class ChessAndPuzzleTests: XCTestCase {
     func testFavoritePersistsAfterSolvingAndIgnoredBeforeCompletion() async throws {
         let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
         let puzzle = Puzzle.samples[0]
-        let vm = TacticsViewModel(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
+        let vm = TacticsTrainingStore(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
 
         // Before the puzzle is finished the heart is unavailable.
         vm.toggleFavorite()
@@ -273,7 +273,7 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         // Single-puzzle round solved cleanly: the snapshot must capture the
         // rating AFTER the last puzzle's delta landed, not before.
-        let vm = TacticsViewModel(dataset: Array(Puzzle.samples.prefix(1)), progress: store, ratingStore: ratingStore, dailyPuzzleCount: 1)
+        let vm = TacticsTrainingStore(dataset: Array(Puzzle.samples.prefix(1)), progress: store, ratingStore: ratingStore, dailyPuzzleCount: 1)
         let ratingBefore = vm.userRating
 
         vm.start()
@@ -298,7 +298,7 @@ final class ChessAndPuzzleTests: XCTestCase {
     /// until solved, waiting out the opponent-reply delays.
     /// Waits (bounded) for the machine's opening move so user input is accepted.
     @MainActor
-    private func waitForWaitingForMove(on vm: TacticsViewModel) async throws {
+    private func waitForWaitingForMove(on vm: TacticsTrainingStore) async throws {
         var waited = 0
         while vm.state != .waitingForMove && waited < 100 {
             try await Task.sleep(for: .milliseconds(50))
@@ -308,7 +308,7 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
-    private func solveActivePuzzle(on vm: TacticsViewModel) async throws {
+    private func solveActivePuzzle(on vm: TacticsTrainingStore) async throws {
         var guardCount = 0
         while vm.state != .solved && guardCount < 150 {
             if vm.state == .waitingForMove, let expected = vm.sessionForTest().expectedMove {

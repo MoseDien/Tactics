@@ -5,16 +5,16 @@ import TacticsData
 
 /// The user's rating with the latest delta, shown above the move controls.
 struct RatingPanelView: View {
-    let viewModel: TacticsViewModel
+    let viewModel: TacticsRatingViewModel
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(String(localized: "tactics.rating"))
                 .font(.title3)
                 .lineLimit(1)
-            Text("\(viewModel.userRating)")
+            Text("\(viewModel.rating)")
                 .lineLimit(1)
-            if let delta = viewModel.lastRatingDelta {
+            if let delta = viewModel.latestDelta {
                 Text(delta >= 0 ? "+\(delta)" : "\(delta)")
                     .font(.subheadline.bold().monospacedDigit())
                     .foregroundStyle(delta >= 0 ? Color.accentColor : .red)
@@ -30,10 +30,10 @@ struct RatingPanelView: View {
 
 /// One row of dots: the per-puzzle outcomes of the current round.
 struct RoundProgressView: View {
-    let viewModel: TacticsViewModel
+    let viewModel: TacticsProgressViewModel
 
     var body: some View {
-        PuzzleResultRow(outcomes: viewModel.results, currentIndex: viewModel.currentIndex)
+        PuzzleResultRow(outcomes: viewModel.outcomes, currentIndex: viewModel.currentIndex)
             .padding(.top, 8)
     }
 }
@@ -43,13 +43,13 @@ struct RoundProgressView: View {
 /// hold different content widths (flip + favorite vs. hint), so flow layout
 /// with two spacers would push it off-center.
 struct MoveControlsView: View {
-    let viewModel: TacticsViewModel
+    let viewModel: TacticsControlsViewModel
     let onReviewCurrentPuzzle: () -> Void
 
     var body: some View {
         HStack {
             Button {
-                viewModel.toggleBoardFlip()
+                viewModel.flipBoard()
             } label: {
                 Image(systemName: "arrow.up.arrow.down")
                     .foregroundStyle(Color.accentColor)
@@ -63,7 +63,7 @@ struct MoveControlsView: View {
             Spacer()
 
             Button {
-                if viewModel.canReviewCurrentPuzzle {
+                if viewModel.canReviewPuzzle {
                     onReviewCurrentPuzzle()
                 } else {
                     viewModel.requestHint()
@@ -74,7 +74,7 @@ struct MoveControlsView: View {
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
-            .disabled(!viewModel.hintEnabled && !viewModel.canReviewCurrentPuzzle)
+            .disabled(!viewModel.canUseHint && !viewModel.canReviewPuzzle)
             .accessibilityLabel(String(localized: "tactics.hint"))
         }
         .padding(.horizontal, 20)
@@ -110,21 +110,21 @@ struct MoveControlsView: View {
             viewModel.toggleFavorite()
         } label: {
             Image(systemName: "heart")
-                .foregroundStyle(viewModel.isCurrentFavorite ? Color.pink : Color.secondary)
+                .foregroundStyle(viewModel.isFavorite ? Color.pink : Color.secondary)
                 .frame(width: 38, height: 38)
                 .background(Circle().fill(Color(.secondarySystemBackground)))
         }
-        .opacity(viewModel.currentPuzzleFinished ? 1 : 0)
-        .allowsHitTesting(viewModel.currentPuzzleFinished)
-        .accessibilityLabel(String(localized: viewModel.isCurrentFavorite ? "tactics.unfavorite" : "tactics.favorite"))
-        .accessibilityHidden(!viewModel.currentPuzzleFinished)
+        .opacity(viewModel.isFinished ? 1 : 0)
+        .allowsHitTesting(viewModel.isFinished)
+        .accessibilityLabel(String(localized: viewModel.isFavorite ? "tactics.unfavorite" : "tactics.favorite"))
+        .accessibilityHidden(!viewModel.isFinished)
     }
 }
 
 /// Result actions shown once a puzzle is complete, plus the available-next-
 /// round action surfaced after a foreground refresh.
 struct RoundActionsView: View {
-    let viewModel: TacticsViewModel
+    let viewModel: TacticsRoundActionsViewModel
 
     var body: some View {
         VStack(spacing: 12) {
@@ -151,7 +151,7 @@ struct RoundActionsView: View {
     private var completedPuzzleActions: some View {
         VStack(spacing: 12) {
             HStack {
-                if viewModel.mode == .reviewRound || viewModel.isRoundComplete {
+                if viewModel.showsCompletedRoundAction {
                     NextRoundButton(viewModel: viewModel)
                 }
                 Spacer()
@@ -167,7 +167,7 @@ struct RoundActionsView: View {
 /// The bottom-of-screen, transient message area. It keeps move-state
 /// feedback separate from result/navigation controls above it.
 struct TacticsMessageArea: View {
-    let viewModel: TacticsViewModel
+    let viewModel: TacticsMessageAreaViewModel
 
     var hasMessage: Bool {
         let hasStateMessage = switch viewModel.feedbackState {
@@ -216,9 +216,7 @@ struct TacticsMessageArea: View {
     }
 
     private var nextRoundUnlockMessage: String? {
-        let showsNextRoundButton = viewModel.currentPuzzleFinished
-            && (viewModel.mode == .reviewRound || viewModel.isRoundComplete)
-        guard showsNextRoundButton, !viewModel.isNewRoundAvailable else { return nil }
+        guard viewModel.showsNextRoundUnlock else { return nil }
         return viewModel.nextRoundUnlockDescription
     }
 
@@ -241,7 +239,7 @@ private extension View {
 /// One control shared by the completed-round action row and the foreground
 /// availability prompt.
 struct NextRoundButton: View {
-    let viewModel: TacticsViewModel
+    let viewModel: TacticsRoundActionsViewModel
 
     var body: some View {
         Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
@@ -257,7 +255,7 @@ struct NextRoundButton: View {
 /// The four promotion choices shown over the board when a pawn reaches the
 /// last rank. The move itself is only submitted once a piece is picked.
 struct PromotionPickerView: View {
-    let viewModel: TacticsViewModel
+    let viewModel: TacticsPromotionViewModel
     let promotion: (from: Square, to: Square)
 
     var body: some View {
@@ -269,7 +267,7 @@ struct PromotionPickerView: View {
                 HStack(spacing: 18) {
                     ForEach([PieceKind.queen, .rook, .bishop, .knight], id: \.self) { kind in
                         Button {
-                            viewModel.choosePromotion(kind)
+                            viewModel.choose(kind)
                         } label: {
                             Image(Piece(color: viewModel.playerColor, kind: kind).assetName)
                                 .resizable()

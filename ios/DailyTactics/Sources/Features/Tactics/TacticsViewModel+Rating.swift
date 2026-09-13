@@ -5,7 +5,7 @@ import TacticsData
 
 /// Review stepping, hints, and the scoring pipeline: rating changes, round
 /// outcomes, and history rows.
-extension TacticsViewModel {
+extension TacticsTrainingStore {
     /// `<`/`>` are review-only: available once the puzzle is solved (or while
     /// scrubbing the line afterwards). Disabled during active play.
     var inReview: Bool { session.state == .solved || session.isReviewing }
@@ -24,96 +24,40 @@ extension TacticsViewModel {
     /// The penalty already settled on the first tap, so the auto-play itself
     /// costs nothing further.
     func requestHint() {
-        guard hintEnabled, let expected = session.expectedMove else { return }
-        hadMistake = true
-        if hintMove == nil {
-            // First tap: reveal.
-            hintMove = expected
-            applyHintPenalty()
-        } else {
-            // Second tap: play it. Clear the highlight so it reads as a real
-            // move; the promotion piece defaults to the puzzle line's choice.
-            hintMove = nil
-            attemptMove(
-                from: expected.from,
-                to: expected.to,
-                promotion: expected.promotion
-            )
-        }
+        handleHintEvent(sessionState.requestHint())
     }
 
     /// Charge the rating for using a hint, once per puzzle. Idempotent so
     /// repeated taps don't stack penalties.
-    func applyHintPenalty() {
-        settlePuzzleAsFailed()
+    private func handleHintEvent(_ event: TacticsSessionEvent) {
+        if case .hintRevealed = event {
+            settlePuzzleAsFailed()
+        } else {
+            handle(event)
+        }
     }
 
     /// A wrong move or hint fixes the puzzle outcome as failed and applies the
     /// rating loss once. The player can still finish the line, but retries and
     /// additional hints cannot stack another penalty.
     func settlePuzzleAsFailed() {
-        recordOutcome(.wrong, for: currentIndex)
-        recordFailure()
-        progress?.markAttempted(puzzles[currentIndex].id)
-        guard !ratingAppliedForPuzzle else { return }
-        ratingAppliedForPuzzle = true
-        applySolveRating(solved: false)
+        progressState.settleFailure(
+            for: puzzles[currentIndex],
+            at: currentIndex,
+            ratingEnabled: canUpdateRating
+        )
     }
 
     func markCurrentSolved() {
         currentPuzzleFinished = true
-        // Completion is recorded once regardless of the rating outcome: a hint
-        // may have already adjusted the rating before the line is finished.
-        progress?.markCompleted(puzzles[currentIndex].id)
-        if !ratingAppliedForPuzzle {
-            ratingAppliedForPuzzle = true
-            recordOutcome(.correct, for: currentIndex)
-        }
-        // The round history is independent of the rating flow: a hint on the
-        // final puzzle must not lose the whole round's history, and re-solving
-        // the round in review must not insert it a second time.
-        let isRoundEnding = isLastPuzzle && !roundRecorded
-        if isRoundEnding {
-            roundRecorded = true
-            progress?.recordRound(puzzles: puzzles, outcomes: results)
-        }
-        guard canUpdateRating, firstAttemptWasCorrect else {
-            // The rating was already settled (hint) or never applied; either
-            // way a finishing round still gets its snapshot.
-            if isRoundEnding { progress?.recordRatingSnapshot(value: userRating) }
-            return
-        }
-        let cleanSolve = !hadMistake && hintMove == nil
-        applySolveRating(solved: cleanSolve)
-        // Snapshot only after this puzzle's delta landed, so the sample is the
-        // round's final rating.
-        if isRoundEnding { progress?.recordRatingSnapshot(value: userRating) }
-    }
-
-    /// Applies an Elo-style rating change for the current puzzle and persists it.
-    func applySolveRating(solved: Bool) {
-        guard canUpdateRating else { return }
-        let puzzleRating = puzzles[currentIndex].rating ?? userRating
-        let delta = ratingCalculator.change(
-            userRating: userRating,
-            puzzleRating: puzzleRating,
-            solved: solved
+        progressState.complete(
+            puzzle: puzzles[currentIndex],
+            at: currentIndex,
+            round: puzzles,
+            isRoundEnding: isLastPuzzle,
+            ratingEnabled: canUpdateRating,
+            usedHint: hintMove != nil
         )
-        userRating = ratingStore.apply(delta: delta)
-        lastRatingDelta = delta
-    }
-
-    func recordFailure() {
-        guard let progress else { return }
-        progress.markFailed(puzzles[currentIndex].id)
-    }
-
-    /// Mark a round outcome for the puzzle at `index`. Idempotent: the first
-    /// recorded result (e.g. a wrong move) wins, so a later clean solve can't
-    /// overwrite an earlier mistake.
-    func recordOutcome(_ outcome: PuzzleOutcome, for index: Int) {
-        guard results.indices.contains(index), results[index] == nil else { return }
-        results[index] = outcome
     }
 }
 

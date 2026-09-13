@@ -83,14 +83,18 @@ models never leak out of it.
 ### Features (app target)
 
 Views receive `AppDependencies` from the environment; they never construct
-stores or read global statics. `TacticsViewModel` keeps a plain-dataset test
-initializer. `RoundTracker` owns an injectable clock and schedules one expiry
+stores or read global statics. `TacticsTrainingStore` keeps a plain-dataset
+test initializer and coordinates the training flow, while `TacticsSessionStore`
+owns current-puzzle interaction state, `TacticsRoundStore` owns batch selection
+and navigation, and `TacticsProgressStore` owns rating, outcomes, and persisted
+progress. `TacticsScreenViewModel` composes
+view-specific presentation ViewModels over the training flow. `RoundTracker` owns an injectable clock and schedules one expiry
 wake-up — no polling timers anywhere.
 
 ## Interaction rules
 
 - The machine's opening move is automatically played after a short transition.
-- Piece travel animates through one derived value: `TacticsViewModel.animatedArrival`
+- Piece travel animates through one derived value: `TacticsTrainingStore.animatedArrival`
   maps each square that just gained a piece to the square it arrived from; an
   empty map means no move is attached (a puzzle load) and nothing slides. The
   board takes a `BoardAnimation` value (arrival map, debug toggles, load

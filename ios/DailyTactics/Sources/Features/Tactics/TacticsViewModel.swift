@@ -20,54 +20,46 @@ enum TacticsMode { case play, reviewRound }
 
 @MainActor
 @Observable
-final class TacticsViewModel {
-    /// Queries SwiftData at each round boundary.
-    let dailyPuzzleCount: Int
-    var mode: TacticsMode
-    var puzzles: [Puzzle]
-    var currentIndex: Int
-    var session: PuzzleSession
-    var selectedSquare: Square?
-    var attemptedMove: ChessMove?
+final class TacticsTrainingStore {
+    let roundState: TacticsRoundStore
+    var dailyPuzzleCount: Int { roundState.dailyPuzzleCount }
+    var mode: TacticsMode { get { roundState.mode } set { roundState.mode = newValue } }
+    var puzzles: [Puzzle] { get { roundState.puzzles } set { roundState.puzzles = newValue } }
+    var currentIndex: Int { get { roundState.currentIndex } set { roundState.currentIndex = newValue } }
+    let sessionState: TacticsSessionStore
+    var session: PuzzleSession { get { sessionState.session } set { sessionState.session = newValue } }
+    var selectedSquare: Square? { get { sessionState.selectedSquare } set { sessionState.selectedSquare = newValue } }
+    var attemptedMove: ChessMove? { get { sessionState.attemptedMove } set { sessionState.attemptedMove = newValue } }
     /// The wrong move whose preview is being reverted in this render, so the
     /// board can slide the piece back to its origin instead of teleporting it.
-    var snapbackMove: ChessMove?
-    var hintMove: ChessMove?
-    var errorMessage: String?
+    var snapbackMove: ChessMove? { get { sessionState.snapbackMove } set { sessionState.snapbackMove = newValue } }
+    var hintMove: ChessMove? { get { sessionState.hintMove } set { sessionState.hintMove = newValue } }
+    var errorMessage: String? { get { sessionState.errorMessage } set { sessionState.errorMessage = newValue } }
     /// Pending promotion: set when a pawn move reaches the last rank, cleared
     /// once the player picks a piece (or the move is cancelled by re-selection).
-    var pendingPromotion: (from: Square, to: Square)?
-    var progress: (any PuzzleDataRepositories)?
+    var pendingPromotion: (from: Square, to: Square)? { get { sessionState.pendingPromotion } set { sessionState.pendingPromotion = newValue } }
+    var progress: (any PuzzleDataRepositories)? { get { roundState.repositories } set { roundState.repositories = newValue } }
     /// The tracker is app-scoped and does not retain the view model, so keep a
     /// strong reference. The availability CTA must continue observing it after
     /// foregrounding rather than silently treating a released weak reference
     /// as a closed window.
-    var roundTracker: RoundTracker?
-    var difficultyStore: DifficultyModeStore?
-    var provisioner: (any PuzzleProvisioning)?
+    var roundTracker: RoundTracker? { get { roundState.tracker } set { roundState.tracker = newValue } }
+    var difficultyStore: DifficultyModeStore? { get { roundState.difficultyStore } set { roundState.difficultyStore = newValue } }
+    var provisioner: (any PuzzleProvisioning)? { get { roundState.provisioner } set { roundState.provisioner = newValue } }
     var pacing: TacticsPacing = TacticsPacing()
-    let ratingStore: UserRatingStore
-    let ratingCalculator = PuzzleRatingCalculator()
-    var hadMistake = false
-    var ratingAppliedForPuzzle = false
-    var firstAttemptWasCorrect = false
-    var isAdvancing = false
-    /// Whether this round has already been written to `RoundHistory`. The
-    /// round is recorded exactly once per round — re-solving puzzles in review
-    /// (or solving the last one after a hint) must not insert or skip a row.
-    var roundRecorded = false
+    let progressState: TacticsProgressStore
+    var isAdvancing: Bool { get { roundState.isAdvancing } set { roundState.isAdvancing = newValue } }
     /// Remains true after the puzzle is solved, even while the user scrubs
     /// backward through the solution during review.
-    var currentPuzzleFinished = false
-    var userRating: Int
-    var lastRatingDelta: Int?
-    var isBoardFlipped: Bool = false
+    var currentPuzzleFinished: Bool { get { sessionState.currentPuzzleFinished } set { sessionState.currentPuzzleFinished = newValue } }
+    var isBoardFlipped: Bool { get { sessionState.isBoardFlipped } set { sessionState.isBoardFlipped = newValue } }
     /// Whether the current puzzle is favorited. Refreshed on every puzzle
     /// load; the heart button appears once the puzzle is finished.
-    var isCurrentFavorite = false
+    var isCurrentFavorite: Bool { get { sessionState.isCurrentFavorite } set { sessionState.isCurrentFavorite = newValue } }
 
-    /// Per-puzzle outcome for the current round. `nil` = not yet attempted.
-    var results: [PuzzleOutcome?] = []
+    var userRating: Int { progressState.userRating }
+    var lastRatingDelta: Int? { progressState.lastRatingDelta }
+    var results: [PuzzleOutcome?] { progressState.outcomes }
 
     /// Production initializer: selects the opening round through the
     /// repositories (falling back to the bundled samples on an empty library)
@@ -98,25 +90,27 @@ final class TacticsViewModel {
 
     init(dataset: [Puzzle], progress: (any PuzzleDataRepositories)? = nil, ratingStore: UserRatingStore = UserRatingStore(), dailyPuzzleCount: Int = 5, mode: TacticsMode = .play) {
         let round = dataset.isEmpty ? Puzzle.samples : dataset
-        self.dailyPuzzleCount = dailyPuzzleCount
-        self.mode = mode
-        self.progress = progress
-        self.ratingStore = ratingStore
-        userRating = ratingStore.rating
-        self.puzzles = round
-        results = Array(repeating: nil, count: round.count)
-        roundRecorded = false
-        currentIndex = 0
+        roundState = TacticsRoundStore(
+            puzzles: round,
+            repositories: progress,
+            dailyPuzzleCount: dailyPuzzleCount,
+            mode: mode
+        )
+        progressState = TacticsProgressStore(
+            repositories: progress,
+            ratingStore: ratingStore,
+            puzzleCount: round.count
+        )
         do {
-            session = try PuzzleSession(puzzle: round[0])
+            sessionState = TacticsSessionStore(session: try PuzzleSession(puzzle: round[0]))
         } catch {
             // A puzzle that cannot build a session is unusable, but crashing
             // the app over one data row is worse: fall back to the samples,
             // which are hand-verified.
-            session = (try? PuzzleSession(puzzle: Puzzle.samples[0])) ?? PuzzleSession.empty()
+            sessionState = TacticsSessionStore(session: (try? PuzzleSession(puzzle: Puzzle.samples[0])) ?? PuzzleSession.empty())
             errorMessage = String(localized: "tactics.error_load")
         }
-        boardGenerationValue += 1
+        sessionState.boardGeneration += 1
         orientBoardToPlayer()
     }
 
@@ -144,20 +138,14 @@ final class TacticsViewModel {
 
     // MARK: - Board state
 
-    var position: [Square: Piece] { session.board.pieces }
-    var lastMove: ChessMove? { session.lastMove }
+    var position: [Square: Piece] { sessionState.position }
+    var lastMove: ChessMove? { sessionState.lastMove }
 
     /// Position shown on the board. While a wrong move is being demonstrated, the
     /// moved piece is shown on its target square; clearing `attemptedMove` slides
     /// it back (see `animatedArrival`).
     var displayedPosition: [Square: Piece] {
-        guard let attempt = attemptedMove, let piece = position[attempt.from] else {
-            return position
-        }
-        var preview = position
-        preview.removeValue(forKey: attempt.from)
-        preview[attempt.to] = piece
-        return preview
+        sessionState.displayedPosition
     }
 
     /// The single source of truth for piece travel: for each square that just
@@ -167,37 +155,21 @@ final class TacticsViewModel {
     /// attached — the board presents a ready position) and the opening move's
     /// landing (part of the puzzle's initialization).
     var animatedArrival: [Square: Square] {
-        if let attempt = attemptedMove {
-            // Wrong move being demonstrated: its piece slides to the target.
-            return [attempt.to: attempt.from]
-        }
-        if let snap = snapbackMove {
-            // The preview is reverting: the piece slides back to its origin.
-            return [snap.from: snap.to]
-        }
-        // Every committed move slides, the machine's opening move included —
-        // a load (lastMove == nil) presents the setup position in place, then
-        // the opening move slides in like any other.
-        guard let move = session.lastMove else { return [:] }
-        var arrivals: [Square: Square] = [move.to: move.from]
-        if let rook = session.castlingRookMove() {
-            arrivals[rook.to] = rook.from
-        }
-        return arrivals
+        sessionState.animatedArrival
     }
 
     /// True while this render's arrivals are revert slides (the wrong-move
     /// snap-back): the board plays them one-third faster than forward moves.
-    var isSnapbackRender: Bool { attemptedMove == nil && snapbackMove != nil }
+    var isSnapbackRender: Bool { sessionState.isSnapbackRender }
 
     /// Increments on every puzzle load. The board bakes it into every piece id
     /// so a load presents brand-new views (fade-in transition; no carried-over
     /// views that could interpolate offsets across the load). Monotonic and
     /// never cleared, so unlike a one-render signal it has no lifecycle.
-    var boardGenerationValue = 0
-    var boardMoveRevisionValue = 0
-    var boardGeneration: Int { boardGenerationValue }
-    var boardMoveRevision: Int { boardMoveRevisionValue }
+    var boardGenerationValue: Int { get { sessionState.boardGeneration } set { sessionState.boardGeneration = newValue } }
+    var boardMoveRevisionValue: Int { get { sessionState.boardMoveRevision } set { sessionState.boardMoveRevision = newValue } }
+    var boardGeneration: Int { sessionState.boardGeneration }
+    var boardMoveRevision: Int { sessionState.boardMoveRevision }
 
     var state: PuzzleSessionState { session.state }
     var playerColor: PieceColor { session.userColor }
@@ -244,38 +216,4 @@ final class TacticsViewModel {
         Task { await playOpponentMove() }
     }
 
-    func select(_ square: Square) {
-        guard canInteractWithPuzzle else { return }
-        if attemptedMove != nil {
-            snapbackMove = attemptedMove
-        }
-        attemptedMove = nil
-        hintMove = nil
-
-        if state == .incorrectMove {
-            session.resumeAfterIncorrectMove()
-        }
-
-        if let selectedSquare {
-            if selectedSquare == square {
-                self.selectedSquare = nil
-                pendingPromotion = nil
-            } else if position[square]?.color == session.userColor {
-                self.selectedSquare = square
-                pendingPromotion = nil
-            } else {
-                attemptMove(from: selectedSquare, to: square)
-            }
-        } else if position[square]?.color == session.userColor {
-            selectedSquare = square
-        }
-    }
-
-    /// The player picked a promotion piece for the pending pawn move.
-    func choosePromotion(_ kind: PieceKind) {
-        guard let pending = pendingPromotion else { return }
-        pendingPromotion = nil
-        selectedSquare = nil
-        attemptMove(from: pending.from, to: pending.to, promotion: kind)
-    }
 }

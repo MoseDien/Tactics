@@ -6,7 +6,7 @@ import TacticsData
 struct TacticsView: View {
     let mode: TacticsMode
     @Environment(AppDependencies.self) private var dependencies
-    @State private var viewModel: TacticsViewModel?
+    @State private var screen: TacticsScreenViewModel?
     @State private var showingSettings = false
     @State private var showingHowToPlay = false
     @State private var reviewingPuzzle: Puzzle?
@@ -15,8 +15,8 @@ struct TacticsView: View {
 
     var body: some View {
         Group {
-            if let viewModel {
-                content(for: viewModel)
+            if let screen {
+                content(for: screen)
             } else {
                 ProgressView("Loading…")
             }
@@ -25,53 +25,54 @@ struct TacticsView: View {
             // Top up the library first: if the unattempted pool can't fill a
             // round, fetch the next remote chunk (silently skipped offline).
             _ = await dependencies.provisioner.ensureRoundAvailable(minimum: RoundPolicy.puzzleCount)
-            let vm = TacticsViewModel(
+            let training = TacticsTrainingStore(
                 dependencies: dependencies,
                 dailyPuzzleCount: RoundPolicy.puzzleCount,
                 mode: mode
             )
-            vm.start()
-            viewModel = vm
+            let screen = TacticsScreenViewModel(training: training)
+            screen.start()
+            self.screen = screen
         }
     }
 
     @ViewBuilder
-    private func content(for viewModel: TacticsViewModel) -> some View {
+    private func content(for screen: TacticsScreenViewModel) -> some View {
         NavigationStack {
             GeometryReader { viewport in
                 ScrollView {
                     VStack(spacing: 0) {
-                    TacticsHeaderView(viewModel: viewModel)
+                    TacticsHeaderView(viewModel: screen.header)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
 
                     ChessBoardView(
-                        position: viewModel.displayedPosition,
-                        selectedSquare: viewModel.selectedSquare,
-                        hintMove: viewModel.hintMove,
-                        lastMove: viewModel.lastMove,
-                        isFlipped: viewModel.isBoardFlipped,
-                        animation: boardAnimation(for: viewModel),
-                        onSelect: viewModel.select
+                        position: screen.board.position,
+                        selectedSquare: screen.board.selectedSquare,
+                        hintMove: screen.board.hintMove,
+                        lastMove: screen.board.lastMove,
+                        isFlipped: screen.board.isFlipped,
+                        animation: screen.board.animation,
+                        onSelect: screen.board.select
                     )
                     .frame(width: min(viewport.size.width, max(280, viewport.size.height - 238)))
 
                     HStack(alignment: .center, spacing: 12) {
-                        RatingPanelView(viewModel: viewModel)
+                        RatingPanelView(viewModel: screen.rating)
                         Spacer(minLength: 8)
-                        RoundProgressView(viewModel: viewModel)
+                        RoundProgressView(viewModel: screen.progress)
                     }
                     .padding(.horizontal, 4)
 
-                    MoveControlsView(viewModel: viewModel) {
-                        reviewingPuzzle = viewModel.puzzles[viewModel.currentIndex]
+                    MoveControlsView(viewModel: screen.controls) {
+                        reviewingPuzzle = screen.currentPuzzle
                     }
 
-                    RoundActionsView(viewModel: viewModel)
+                    RoundActionsView(viewModel: screen.roundActions)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 12)
 
-                    let messageView = TacticsMessageArea(viewModel: viewModel)
+                    let messageView = TacticsMessageArea(viewModel: screen.messages)
                     if messageView.hasMessage {
                         messageView
                             .padding(.horizontal, 20)
@@ -81,8 +82,8 @@ struct TacticsView: View {
                 }
             }
             .overlay {
-                if let promotion = viewModel.pendingPromotion {
-                    PromotionPickerView(viewModel: viewModel, promotion: promotion)
+                if let promotion = screen.promotion.pendingPromotion {
+                    PromotionPickerView(viewModel: screen.promotion, promotion: promotion)
                 }
             }
             .background(Color(.systemBackground))
@@ -122,15 +123,6 @@ struct TacticsView: View {
         }
     }
 
-    /// Collects the board's animation inputs from their sources.
-    private func boardAnimation(for viewModel: TacticsViewModel) -> BoardAnimation {
-        BoardAnimation(
-            arrival: viewModel.animatedArrival,
-            boardGeneration: viewModel.boardGeneration,
-            moveRevision: viewModel.boardMoveRevision,
-            isSnapback: viewModel.isSnapbackRender
-        )
-    }
 }
 
 #Preview {

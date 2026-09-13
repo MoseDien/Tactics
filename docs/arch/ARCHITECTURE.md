@@ -161,28 +161,48 @@ Lichess 解法数组采用机器先走：
 
 ### 6.1 View 与 ViewModel 分工
 
-`TacticsView` 负责布局、导航和将用户操作转发给 `TacticsViewModel`。棋盘由 `ChessBoardView` 独立渲染。
+`TacticsView` 负责布局、导航和装配 `TacticsScreenViewModel`。它持有唯一的
+`TacticsTrainingStore`（训练状态源），再将对应的 presentation ViewModel 注入每个
+可视区域；子 View 不直接依赖整个训练状态源。
 
-`TacticsViewModel` 使用扩展按职责拆分：
+| View 区域 | 专属 ViewModel | 责任 |
+|---|---|---|
+| 训练页 | `TacticsScreenViewModel` | 创建训练状态与各子 VM |
+| 棋盘 | `TacticsBoardViewModel` | 棋盘位置、动画、选格 |
+| 头部 | `TacticsHeaderViewModel` | 题号、阵营、难度元信息 |
+| 控制条 | `TacticsControlsViewModel` | 翻转、Hint、收藏、步数 |
+| 评分/进度 | `TacticsRatingViewModel`、`TacticsProgressViewModel` | Rating 与 round 结果 |
+| Round 操作 | `TacticsRoundActionsViewModel` | 下一题、下一轮与可用状态 |
+| 消息区 | `TacticsMessageAreaViewModel` | 会话状态到提示文案的映射 |
+| 升变弹层 | `TacticsPromotionViewModel` | 升变状态与选择 |
+
+`TacticsTrainingStore` 是训练流程协调器：它将单题 Session、Round 导航和持久化进度事件串联起来，但不再自行保存棋盘交互状态、Round 状态、Rating、单题结果或历史写入的判定。单题棋盘状态由 `TacticsSessionStore` 管理，Round 状态及选题/导航由 `TacticsRoundStore` 管理，进度与评分由 `TacticsProgressStore` 负责。
+
+`TacticsTrainingStore` 使用扩展按训练业务拆分：
 
 | 文件 | 职责 |
 |---|---|
 | `TacticsViewModel.swift` | 主状态、棋盘派生值、选中与翻转 |
 | `TacticsViewModel+Session.swift` | 用户落子、错着演示、机器回复、加载题目 |
-| `TacticsViewModel+Rating.swift` | Hint、结果、Rating、历史和复盘步进 |
+| `TacticsViewModel+Rating.swift` | Hint、完成事件与复盘步进 |
 | `TacticsViewModel+Round.swift` | 下一题、Review 循环、新 Round |
+| `TacticsSessionStore.swift` | 当前棋局、选格、Hint、升变、用户落子、错着预览/回退、机器回复、收藏与棋盘动画版本 |
+| `TacticsRoundStore.swift` | Round 题目、模式、索引、时窗、下一题导航与下一轮选题 |
+| `TacticsProgressStore.swift` | 首次尝试、失败/完成、Rating delta、Round 结果与历史快照 |
 
-ViewModel 标记为 `@MainActor` 和 `@Observable`。所有会驱动 SwiftUI 的状态都在主 Actor 上更新。
+Store 与所有 presentation ViewModel 都标记为 `@MainActor` 和 `@Observable`。所有会驱动 SwiftUI 的状态都在主 Actor 上更新。
+
+跨 Store 的边界以事件表达，而不是让单题交互直接写数据库：`TacticsSessionStore` 返回 `TacticsSessionEvent`（错着、完成、等待机器回复、提示展示等），`TacticsTrainingStore` 只将事件转交给 `TacticsProgressStore` 或 `TacticsRoundStore`。因此，棋局交互、Round 导航和评分持久化可以分别阅读和测试。
 
 ### 6.2 正确着法路径
 
 ```mermaid
 sequenceDiagram
     participant U as 用户
-    participant VM as TacticsViewModel
+    participant VM as TacticsTrainingStore
     participant S as PuzzleSession
     participant B as ChessBoardView
-    participant D as Repository
+    participant P as TacticsProgressStore
 
     U->>VM: 选择起点和终点
     VM->>S: isLegalUserMove / submitUserMove
@@ -193,7 +213,8 @@ sequenceDiagram
         VM->>S: applyOpponentMove()
         VM->>B: 更新棋盘
     else 题目完成
-        VM->>D: 保存进度、结果和可能的 Rating
+        VM->>P: 结算完成事件
+        P->>P: 保存进度、结果和可能的 Rating
     end
 ```
 

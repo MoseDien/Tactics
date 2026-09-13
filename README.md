@@ -90,7 +90,7 @@ ios/
       AppDependencies.swift    composition root (injected via environment)
       RoundTracker.swift       observable round window, injectable clock
       TacticsPacing.swift      injectable interaction timing
-      Features/Tactics/        training view, board, view model, round history UI
+      Features/Tactics/        training-flow + progress stores, per-view presentation VMs, board, round history UI
       Features/Settings/       difficulty, rating trend chart, history entry
       Features/Onboarding/     first-launch library import screen
       DailyTacticsApp.swift    app entry point
