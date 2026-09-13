@@ -2,15 +2,15 @@ import Foundation
 
 /// Round cadence configuration.
 public enum RoundPolicy {
-    public static let puzzleCount = 5
+    public static let puzzleCount = 3
 
     /// A new round can be started after this window (see docs/BUSINESS_LOGIC.md).
     /// Debug builds use a short window so the round cycle is testable by hand.
     public static var roundDuration: TimeInterval {
         #if DEBUG
-        1 * 60 * 60
+        12 * 60 * 60
         #else
-        8 * 60 * 60
+        12 * 60 * 60
         #endif
     }
 }

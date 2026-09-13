@@ -59,7 +59,7 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 
 ### Round（8 小时节奏）
 
-- 每个 round 默认包含 5 道题，数量由 `RoundPolicy.puzzleCount` 配置。
+- 每个 round 默认包含 3 道题，数量由 `RoundPolicy.puzzleCount` 配置。
 - 新 round 开始时记录 `dailytactics.roundStartTime` 到 UserDefaults，并持久化当前题目 ID。
 - 只有当 `当前时间 - roundStartTime >= RoundPolicy.roundDuration` 时，才能开始下一个 round；正式版 `roundDuration = 8 小时`，Debug 构建缩短为 1 小时以便手工测试完整周期。
 - 冷却期间重新打开 App 不会随机生成新题，只进入当前 round 的 Review mode。
@@ -70,15 +70,15 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 
 ### Round
 
-- 每个 round 默认包含 5 道题。
-- 题目从整个题库中随机选择尚未尝试过的 5 道（按 Difficulty Mode 的相对 rating 规则筛选）。
+- 每个 round 默认包含 3 道题。
+- 题目从整个题库中随机选择尚未尝试过的 3 道（按 Difficulty Mode 的相对 rating 规则筛选）。
 - **查询数据库只在 round 开始时发生一次**。一个 round 进行中不再重新随机选择题目。
-- 当未做过的题目不足 5 道时，回退为从全部题目中随机选择。
+- 当未做过的题目不足 3 道时，回退为从全部题目中随机选择。
 - 一轮完成时恰好写入一条 `RoundHistory`：最后一题用 Hint 不影响历史记录；Review 中重解最后一题也不会重复写入。
 
 ### Review mode
 
-- Review 当前 round 的 5 道题，最后一道之后循环回第一道。
+- Review 当前 round 的 3 道题，最后一道之后循环回第一道。
 - Hint 和 Flip board 保持可用，用户可以继续落子并查看当前题目的进度。
 - Review 可以更新题目的完成/失败进度，但不修改用户 Rating。
 - Review 不会改变实时解题结果，也不会触发对手自动回应。

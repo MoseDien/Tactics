@@ -9,7 +9,7 @@
 "settings.favorites" = "收藏";
 "settings.how_to_play" = "玩法说明";
 "how_to_play.calculate" = "先在脑中算清整条变化线:你的第一手、对手的应手,再找出最佳着法。不要试棋。";
-"how_to_play.rounds" = "每 8 小时解锁一轮,每轮共 5 道题。";
+"how_to_play.rounds" = "每8小时解锁一轮,每轮3道题。";
 "how_to_play.review" = "经常复盘做过的题目,巩固棋感。";
 "settings.difficulty" = "难度";
 "settings.library_section" = "题库";
@@ -38,7 +38,7 @@
 "tactics.puzzle_difficulty_hint" = "点按查看题目难度和游玩次数";
 "tactics.mode_play" = "练习模式";
 "tactics.mode_review" = "复盘模式";
-"tactics.round_cooldown" = "本题组开始 8 小时后解锁下一轮，期间可继续复盘。";
+"tactics.round_cooldown" = "本题组开始8小时后解锁下一轮，期间可继续复盘。";
 "tactics.promotion_title" = "升变为…";
 "tactics.promotion_queen" = "皇后";
 "tactics.promotion_rook" = "车";
