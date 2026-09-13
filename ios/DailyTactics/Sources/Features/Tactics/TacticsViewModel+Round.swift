@@ -20,9 +20,7 @@ extension TacticsViewModel {
     var canAdvanceToNextPuzzle: Bool {
         currentPuzzleFinished && (!isLastPuzzle || isRoundComplete)
     }
-    var canStartNewRound: Bool { mode == .reviewRound && isNewRoundAvailable }
     /// Whether the round window has expired — a new round can start right now.
-    /// Purely time-based; `canStartNewRound` additionally requires review mode.
     var isNewRoundAvailable: Bool {
         guard let roundTracker else { return false }
         return !roundTracker.isWithinWindow
@@ -83,11 +81,7 @@ extension TacticsViewModel {
     /// deliberately in the view model as well as the UI so another caller
     /// cannot bypass the cadence rule.
     func startNextRound() {
-        guard isNewRoundAvailable else {
-            roundCooldownMessage = nextRoundCooldownMessage
-            return
-        }
-        roundCooldownMessage = nil
+        guard isNewRoundAvailable else { return }
         mode = .play
         // Top up the library before selecting, in case the unattempted pool
         // can't fill a round; then reload on the main actor as before.
@@ -95,16 +89,6 @@ extension TacticsViewModel {
             _ = await provisioner?.ensureRoundAvailable(minimum: dailyPuzzleCount)
             loadNextRound()
         }
-    }
-
-    private var nextRoundCooldownMessage: String {
-        guard let unlocksAt = roundTracker?.nextRoundUnlocksAt else {
-            return String(localized: "tactics.next_round_wait")
-        }
-        return String(
-            format: NSLocalizedString("tactics.next_round_wait_until", comment: "Clock time when the next round unlocks"),
-            unlocksAt.formatted(date: .omitted, time: .shortened)
-        )
     }
 
     private func loadNextRound() {

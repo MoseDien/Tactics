@@ -42,13 +42,6 @@ final class RoundTracker {
         RoundLookup.puzzles(withIDs: state.activePuzzleIDs(), in: library)
     }
 
-    /// Remaining time in the current window, if a round has been persisted.
-    /// A non-positive value means the next round is available.
-    var secondsRemaining: TimeInterval? {
-        guard let start = state.startTime() else { return nil }
-        return RoundWindow(startedAt: start).secondsRemaining(at: now())
-    }
-
     /// When the current window ends (the next round unlocks), if a round is
     /// persisted and still running. The UI shows this instant as a clock
     /// time rather than a countdown, so it stays truthful without ticking.

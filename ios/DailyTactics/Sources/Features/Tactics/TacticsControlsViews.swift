@@ -123,7 +123,7 @@ struct MoveControlsView: View {
 
 /// Result actions shown once a puzzle is complete, plus the available-next-
 /// round action surfaced after a foreground refresh.
-struct FeedbackView: View {
+struct RoundActionsView: View {
     let viewModel: TacticsViewModel
 
     var body: some View {
@@ -140,7 +140,7 @@ struct FeedbackView: View {
             // state after a foreground refresh opens a new round.
             if viewModel.shouldShowNewRoundAction {
                 HStack {
-                    NewRoundAvailableView(viewModel: viewModel)
+                    NextRoundButton(viewModel: viewModel)
                     Spacer()
                 }
                 .padding(.bottom, 28)
@@ -152,12 +152,7 @@ struct FeedbackView: View {
         VStack(spacing: 12) {
             HStack {
                 if viewModel.mode == .reviewRound || viewModel.isRoundComplete {
-                    Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
-                        .buttonStyle(.borderedProminent)
-                        .tint(viewModel.isNewRoundAvailable ? .accentColor : Color.gray)
-                        .accessibilityHint(viewModel.isNewRoundAvailable
-                            ? String(localized: "tactics.next_round_ready_hint")
-                            : String(localized: "tactics.next_round_wait_hint"))
+                    NextRoundButton(viewModel: viewModel)
                 }
                 Spacer()
                 Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
@@ -243,15 +238,19 @@ private extension View {
     }
 }
 
-/// Available outside of the completion feedback so a newly opened round can
-/// be started immediately after foregrounding, regardless of board state.
-struct NewRoundAvailableView: View {
+/// One control shared by the completed-round action row and the foreground
+/// availability prompt.
+struct NextRoundButton: View {
     let viewModel: TacticsViewModel
 
     var body: some View {
         Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
             .buttonStyle(.borderedProminent)
-            .accessibilityHint(String(localized: "tactics.next_round_ready_hint"))
+            .tint(viewModel.isNewRoundAvailable ? .accentColor : Color.gray)
+            .disabled(!viewModel.isNewRoundAvailable)
+            .accessibilityHint(viewModel.isNewRoundAvailable
+                ? String(localized: "tactics.next_round_ready_hint")
+                : String(localized: "tactics.next_round_wait_hint"))
     }
 }
 

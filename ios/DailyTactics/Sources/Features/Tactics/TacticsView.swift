@@ -9,7 +9,6 @@ struct TacticsView: View {
     @State private var viewModel: TacticsViewModel?
     @State private var showingSettings = false
     @State private var showingHowToPlay = false
-    @Environment(\.scenePhase) private var scenePhase
     @State private var reviewingPuzzle: Puzzle?
 
     init(mode: TacticsMode = .play) { self.mode = mode }
@@ -68,7 +67,7 @@ struct TacticsView: View {
                         reviewingPuzzle = viewModel.puzzles[viewModel.currentIndex]
                     }
 
-                    FeedbackView(viewModel: viewModel)
+                    RoundActionsView(viewModel: viewModel)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 12)
 
@@ -105,20 +104,6 @@ struct TacticsView: View {
                         Image(systemName: "gearshape")
                     }
                     .accessibilityLabel(String(localized: "tactics.settings"))
-                }
-            }
-            .onAppear {
-                // Entering the screen: the window may have expired elsewhere
-                // (another screen, or time passing); recompute before the
-                // button state renders.
-                dependencies.round.refresh()
-            }
-            .onChange(of: scenePhase) { _, phase in
-                // Returning to the foreground while this screen is showing:
-                // suspended time isn't observed by the in-process expiry
-                // sleep, so recompute the window the moment we're active.
-                if phase == .active {
-                    dependencies.round.refresh()
                 }
             }
             .popover(isPresented: $showingHowToPlay) {

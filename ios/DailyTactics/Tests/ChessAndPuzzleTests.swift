@@ -211,7 +211,6 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         XCTAssertEqual(vm.mode, .reviewRound)
         XCTAssertEqual(vm.puzzles.map(\.id), puzzles.map(\.id))
-        XCTAssertNotNil(vm.roundCooldownMessage)
         XCTAssertEqual(state.activePuzzleIDs(), puzzles.map(\.id))
     }
 

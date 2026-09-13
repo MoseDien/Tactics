@@ -16,7 +16,6 @@ extension TacticsViewModel {
             attemptedMove = nil
             snapbackMove = nil
             errorMessage = nil
-            roundCooldownMessage = nil
             pendingPromotion = nil
             hadMistake = false
             firstAttemptWasCorrect = false

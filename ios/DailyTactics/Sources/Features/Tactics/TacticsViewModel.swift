@@ -62,9 +62,6 @@ final class TacticsViewModel {
     var userRating: Int
     var lastRatingDelta: Int?
     var isBoardFlipped: Bool = false
-    /// Message surfaced when the user taps "Next round" inside the cooldown
-    /// window. Cleared on the next puzzle load.
-    var roundCooldownMessage: String?
     /// Whether the current puzzle is favorited. Refreshed on every puzzle
     /// load; the heart button appears once the puzzle is finished.
     var isCurrentFavorite = false

@@ -41,14 +41,4 @@ final class RoundTrackerTests: XCTestCase {
         XCTAssertEqual(resolved.map(\.id), Array(Puzzle.samples.prefix(2).map(\.id)))
     }
 
-    @MainActor
-    func testSecondsRemainingReflectsThePersistedRoundWindow() {
-        let clock = MutableClock()
-        let tracker = RoundTracker(state: InMemoryRoundState(), now: { clock.now })
-        tracker.begin(Array(Puzzle.samples.prefix(1)))
-
-        XCTAssertEqual(tracker.secondsRemaining ?? -1, RoundPolicy.roundDuration, accuracy: 0.001)
-        clock.advance(90)
-        XCTAssertEqual(tracker.secondsRemaining ?? -1, RoundPolicy.roundDuration - 90, accuracy: 0.001)
-    }
 }
