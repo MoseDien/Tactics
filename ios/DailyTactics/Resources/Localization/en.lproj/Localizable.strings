@@ -112,6 +112,7 @@
 "debug.section" = "Debug tools";
 "debug.piece_animation" = "Piece move animation";
 "debug.setup_animation" = "Board setup animation";
+"debug.round_duration" = "Round duration";
 "debug.drain_pool" = "Drain untried pool";
 "debug.footer" = "Drain marks every puzzle attempted so the next round triggers a real chunk download.";
 "debug.drained" = "Marked %ld puzzles attempted. Start a new round to trigger the download.\nNote: rating updates stay frozen for these puzzles until new chunks arrive.";

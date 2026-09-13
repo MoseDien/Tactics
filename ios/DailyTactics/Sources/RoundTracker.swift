@@ -11,14 +11,22 @@ import PuzzleKit
 final class RoundTracker {
     private let state: any RoundStateRepository
     private let now: @Sendable () -> Date
+    /// Window length, injectable so the debug duration picker can override
+    /// `RoundPolicy.roundDuration` without the domain reading preferences.
+    private let duration: @Sendable () -> TimeInterval
     private var expiryTask: Task<Void, Never>?
 
     /// Recomputed from the persisted start time; observers see it flip.
     private(set) var isWithinWindow: Bool = false
 
-    init(state: any RoundStateRepository, now: @escaping @Sendable () -> Date = { .now }) {
+    init(
+        state: any RoundStateRepository,
+        now: @escaping @Sendable () -> Date = { .now },
+        duration: @escaping @Sendable () -> TimeInterval = { RoundPolicy.roundDuration }
+    ) {
         self.state = state
         self.now = now
+        self.duration = duration
     }
 
     /// Reads persisted state (app launch) and starts the expiry watch.
@@ -47,7 +55,7 @@ final class RoundTracker {
     /// time rather than a countdown, so it stays truthful without ticking.
     var nextRoundUnlocksAt: Date? {
         guard let start = state.startTime() else { return nil }
-        let end = RoundWindow(startedAt: start).expiresAt
+        let end = RoundWindow(startedAt: start, duration: duration()).expiresAt
         return end > now() ? end : nil
     }
 
@@ -63,7 +71,7 @@ final class RoundTracker {
             return
         }
         let now = now()
-        let window = RoundWindow(startedAt: start)
+        let window = RoundWindow(startedAt: start, duration: duration())
         isWithinWindow = window.contains(now)
         #if DEBUG
         let formatter = DateFormatter()
@@ -96,7 +104,7 @@ final class RoundTracker {
     private func watchExpiry() {
         expiryTask?.cancel()
         guard let start = state.startTime() else { return }
-        let remaining = RoundWindow(startedAt: start).secondsRemaining(at: now())
+        let remaining = RoundWindow(startedAt: start, duration: duration()).secondsRemaining(at: now())
         guard remaining > 0 else {
             isWithinWindow = false
             return

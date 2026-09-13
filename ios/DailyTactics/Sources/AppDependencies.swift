@@ -48,7 +48,15 @@ final class AppDependencies {
         return AppDependencies(
             data: repositories,
             importer: PuzzleLibraryImporter(context: repositories.context),
-            round: RoundTracker(state: UserDefaultsRoundStateStore()),
+            round: RoundTracker(
+                state: UserDefaultsRoundStateStore(),
+                duration: {
+                    // Debug picker override; UserDefaults is thread-safe.
+                    UserDefaults.standard.object(forKey: AppPreferences.roundDuration) == nil
+                        ? RoundPolicy.roundDuration
+                        : UserDefaults.standard.double(forKey: AppPreferences.roundDuration)
+                }
+            ),
             difficulty: DifficultyModeStore(),
             userRating: UserRatingStore(),
             pieceAnimation: PieceAnimationStore(),

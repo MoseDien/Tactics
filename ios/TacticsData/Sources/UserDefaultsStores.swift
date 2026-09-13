@@ -12,11 +12,13 @@ public enum AppPreferences {
     public static let libraryImported = "dailytactics.libraryImported"
     public static let pieceAnimation = "dailytactics.pieceAnimation"
     public static let setupAnimation = "dailytactics.setupAnimation"
+    public static let roundDuration = "dailytactics.roundDuration"
 
     /// All of the above.
     public static let allKeys: [String] = [
         userRating, difficultyMode, roundStartTime, activeRoundPuzzleIDs,
         puzzleSequence, libraryImported, pieceAnimation, setupAnimation,
+        roundDuration,
     ]
 
     /// Debug reset: removes every stored preference (rating, round window,

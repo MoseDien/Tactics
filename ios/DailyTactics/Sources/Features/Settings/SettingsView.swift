@@ -19,6 +19,7 @@ struct SettingsView: View {
     @State private var showingResetAllConfirm = false
     @State private var pieceAnimation = true
     @State private var setupAnimation = true
+    @State private var roundDuration: TimeInterval = RoundPolicy.roundDuration
     #endif
 
     var body: some View {
@@ -63,6 +64,11 @@ struct SettingsView: View {
                             Image(systemName: "arrow.down.circle")
                         }
                     }
+                    #if DEBUG
+                    .disabled(false)  // debug builds can always pull a chunk
+                    #else
+                    .disabled(!isEligibleForManualDownload)
+                    #endif
                     .popover(
                         isPresented: Binding(
                             get: { downloadMorePuzzlesNotice != nil },
@@ -100,6 +106,18 @@ struct SettingsView: View {
                         .onChange(of: setupAnimation) { _, value in
                             dependencies.pieceAnimation.setSetupEnabled(value)
                         }
+                    Picker(String(localized: "debug.round_duration"), selection: $roundDuration) {
+                        ForEach(Self.debugRoundDurations, id: \.self) { seconds in
+                            Text(Duration.seconds(seconds).formatted(.units(width: .abbreviated)))
+                                .tag(seconds)
+                        }
+                    }
+                    .onChange(of: roundDuration) { _, value in
+                        UserDefaults.standard.set(value, forKey: AppPreferences.roundDuration)
+                        // restore = refresh + re-watch: the running window's
+                        // expiry recomputes under the new length immediately.
+                        dependencies.round.restore()
+                    }
                     Button(String(localized: "debug.drain_pool")) {
                         drainUntriedPool()
                     }
@@ -147,6 +165,9 @@ struct SettingsView: View {
                 refreshLibraryStatus()
                 pieceAnimation = dependencies.pieceAnimation.isEnabled
                 setupAnimation = dependencies.pieceAnimation.isSetupEnabled
+                roundDuration = UserDefaults.standard.object(forKey: AppPreferences.roundDuration) == nil
+                    ? RoundPolicy.roundDuration
+                    : UserDefaults.standard.double(forKey: AppPreferences.roundDuration)
             }
         }
     }
@@ -154,6 +175,11 @@ struct SettingsView: View {
     private var isEligibleForManualDownload: Bool {
         untriedPuzzleCount < 50
     }
+
+    /// Debug round-length options: 5 minutes through 8 hours.
+    static let debugRoundDurations: [TimeInterval] = [
+        5 * 60, 15 * 60, 30 * 60, 3600, 2 * 3600, 4 * 3600, 8 * 3600,
+    ]
 
     private func downloadMorePuzzlesTapped() {
         guard !isDownloadingMorePuzzles else { return }
