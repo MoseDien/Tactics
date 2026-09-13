@@ -44,6 +44,29 @@ struct SettingsView: View {
                     } label: {
                         Label(String(localized: "settings.favorites"), systemImage: "heart")
                     }
+                    Link(destination: URL(string: "mailto:beldailytactics@gmail.com")!) {
+                        Label {
+                            HStack {
+                                Text(String(localized: "settings.contact"))
+                                Spacer()
+                                Text("beldailytactics@gmail.com")
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        } icon: {
+                            Image(systemName: "envelope")
+                        }
+                    }
+                    .contextMenu {
+                        // Long-press copy for anyone who'd rather not open Mail.
+                        Button {
+                            UIPasteboard.general.string = "beldailytactics@gmail.com"
+                        } label: {
+                            Label(String(localized: "settings.contact_copy"), systemImage: "doc.on.doc")
+                        }
+                    }
 
                     Button {
                         downloadMorePuzzlesTapped()

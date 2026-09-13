@@ -11,6 +11,8 @@
 "settings.title" = "Settings";
 "settings.history" = "History";
 "settings.favorites" = "Favorites";
+"settings.contact" = "Contact the author";
+"settings.contact_copy" = "Copy email address";
 "settings.how_to_play" = "How to play";
 "how_to_play.calculate" = "Find the first move, then think about how your opponent might respond. This will help you find the best move.";
 "how_to_play.rounds" = "You can play up to 3 puzzles every 8 hours.";
