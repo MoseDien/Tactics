@@ -41,9 +41,13 @@ private struct RootView: View {
             ProgressView("Loading…")
                 .task {
                     dependencies.round.restore()
-                    initialMode = dependencies.round.isWithinWindow && !dependencies.round.activePuzzleIDs().isEmpty
-                        ? .reviewRound
-                        : .play
+                    // Any persisted round routes to review — inside its window
+                    // (keep reviewing) or expired (review until the player
+                    // taps Next round). Starting a fresh round is a user
+                    // action, never an automatic one on launch.
+                    initialMode = dependencies.round.activePuzzleIDs().isEmpty
+                        ? .play
+                        : .reviewRound
                 }
         }
     }
