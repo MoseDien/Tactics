@@ -43,6 +43,10 @@ feature and preserve the existing offline iOS SwiftUI product direction.
   puzzle` enters Review mode and loops through the current round.
 - `Next round` remains tappable during its cooldown: it shows the remaining
   wait time, and the view model must reject an early start.
+- When a foreground refresh finds an expired round window, show the Next
+  round CTA regardless of the current board-feedback state.
+- On a cold launch with an expired persisted round, start the newly available
+  Play round directly; the Next round CTA is for foregrounding an existing UI.
 - Review may record puzzle progress, but must never update the user's Rating.
 - Keep the normal training screen usable on iPhone SE without scrolling;
   retain `ScrollView` only as a Dynamic Type/accessibility fallback.

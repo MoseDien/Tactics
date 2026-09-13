@@ -216,6 +216,26 @@ final class ChessAndPuzzleTests: XCTestCase {
     }
 
     @MainActor
+    func testNewRoundActionAppearsAfterTrackerRefreshAtExpiry() {
+        let clock = MutableClock()
+        let tracker = RoundTracker(state: InMemoryRoundState(), now: { clock.now })
+        let puzzles = Array(Puzzle.samples.prefix(2))
+        tracker.begin(puzzles)
+
+        let vm = TacticsViewModel(dataset: puzzles, dailyPuzzleCount: 2, mode: .reviewRound)
+        vm.roundTracker = tracker
+        XCTAssertFalse(vm.isNewRoundAvailable)
+        XCTAssertFalse(vm.shouldShowNewRoundAction)
+
+        // This mirrors the refresh performed when the app becomes active.
+        clock.advance(RoundPolicy.roundDuration)
+        tracker.refresh()
+
+        XCTAssertTrue(vm.isNewRoundAvailable)
+        XCTAssertTrue(vm.shouldShowNewRoundAction)
+    }
+
+    @MainActor
     func testFavoritePersistsAfterSolvingAndIgnoredBeforeCompletion() async throws {
         let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
         let puzzle = Puzzle.samples[0]

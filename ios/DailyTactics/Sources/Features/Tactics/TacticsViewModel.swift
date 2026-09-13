@@ -38,7 +38,11 @@ final class TacticsViewModel {
     /// once the player picks a piece (or the move is cancelled by re-selection).
     var pendingPromotion: (from: Square, to: Square)?
     var progress: (any PuzzleDataRepositories)?
-    weak var roundTracker: RoundTracker?
+    /// The tracker is app-scoped and does not retain the view model, so keep a
+    /// strong reference. The availability CTA must continue observing it after
+    /// foregrounding rather than silently treating a released weak reference
+    /// as a closed window.
+    var roundTracker: RoundTracker?
     var difficultyStore: DifficultyModeStore?
     var provisioner: (any PuzzleProvisioning)?
     var pacing: TacticsPacing = TacticsPacing()

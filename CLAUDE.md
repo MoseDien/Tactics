@@ -107,7 +107,9 @@ wake-up — no polling timers anywhere.
   (queen/rook/bishop/knight); the move is submitted only after a choice.
 - A new round unlocks after the round window (8 hours; 5 minutes in Debug builds); tapping
   `Next round` remains tappable inside the window, shows the remaining wait
-  time, and stays in Review; the view model enforces the same guard.
+  time, and stays in Review; a foreground refresh surfaces its CTA regardless
+  of board state, while a cold launch after expiry starts a new Play round
+  directly; the view model enforces the same guard.
 - Settings keeps manual next-chunk download tappable. At 50 or more untried
   puzzles it explains the threshold; below 50 it downloads and shows a local,
   semi-transparent spinner instead of a full-screen loading state.

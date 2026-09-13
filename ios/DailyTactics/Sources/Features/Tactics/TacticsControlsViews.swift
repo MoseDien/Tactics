@@ -127,53 +127,83 @@ struct FeedbackView: View {
     let viewModel: TacticsViewModel
 
     var body: some View {
-        switch viewModel.feedbackState {
-        case .idle:
-            EmptyView()
-        case let .error(message):
-            Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
-        case let .instruction(message, systemImage):
-            Label(message, systemImage: systemImage)
+        VStack(spacing: 12) {
+            switch viewModel.feedbackState {
+            case .idle:
+                EmptyView()
+            case let .error(message):
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            case let .instruction(message, systemImage):
+                Label(message, systemImage: systemImage)
+                    .foregroundStyle(.secondary)
+            case .reviewing:
+                Label(String(format: NSLocalizedString("tactics.reviewing_move", comment: "Review move progress"), viewModel.currentMoveNumber, viewModel.totalUserMoves), systemImage: "eye")
+                    .foregroundStyle(.secondary)
+            case .opponentMoving:
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text(String(localized: "tactics.opponent_moving"))
+                }
                 .foregroundStyle(.secondary)
-        case .reviewing:
-            Label(String(format: NSLocalizedString("tactics.reviewing_move", comment: "Review move progress"), viewModel.currentMoveNumber, viewModel.totalUserMoves), systemImage: "eye")
-                .foregroundStyle(.secondary)
-        case .opponentMoving:
-            HStack(spacing: 10) {
-                ProgressView()
-                Text(String(localized: "tactics.opponent_moving"))
+            case .opponentReply:
+                Label(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right")
+                    .foregroundStyle(.secondary)
+            case .incorrectMove:
+                Label(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise")
+                    .foregroundStyle(.orange)
+            case .puzzleComplete, .trainingComplete:
+                completedPuzzleActions
             }
-            .foregroundStyle(.secondary)
-        case .opponentReply:
-            Label(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right")
-                .foregroundStyle(.secondary)
-        case .incorrectMove:
-            Label(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise")
-                .foregroundStyle(.orange)
-        case .puzzleComplete, .trainingComplete:
-            VStack(spacing: 12) {
+
+            // This uses the same leading action position as the completed
+            // puzzle controls above, but is available in every active board
+            // state after a foreground refresh opens a new round.
+            if viewModel.shouldShowNewRoundAction {
                 HStack {
-                    if viewModel.mode == .reviewRound || viewModel.isRoundComplete {
-                        Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
-                            .buttonStyle(.borderedProminent)
-                            .tint(viewModel.isNewRoundAvailable ? .accentColor : Color.gray)
-                            .accessibilityHint(viewModel.isNewRoundAvailable
-                                ? String(localized: "tactics.next_round_ready_hint")
-                                : String(localized: "tactics.next_round_wait_hint"))
-                    }
+                    NewRoundAvailableView(viewModel: viewModel)
                     Spacer()
-                    Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
-                        .buttonStyle(.borderedProminent)
                 }
-                if !viewModel.isNewRoundAvailable, let unlocks = viewModel.nextRoundUnlockDescription {
-                    Label(unlocks, systemImage: "clock")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                .padding(.bottom, 28)
             }
-            .padding(.bottom, 28)
         }
+    }
+
+    private var completedPuzzleActions: some View {
+        VStack(spacing: 12) {
+            HStack {
+                if viewModel.mode == .reviewRound || viewModel.isRoundComplete {
+                    Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
+                        .buttonStyle(.borderedProminent)
+                        .tint(viewModel.isNewRoundAvailable ? .accentColor : Color.gray)
+                        .accessibilityHint(viewModel.isNewRoundAvailable
+                            ? String(localized: "tactics.next_round_ready_hint")
+                            : String(localized: "tactics.next_round_wait_hint"))
+                }
+                Spacer()
+                Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
+                    .buttonStyle(.borderedProminent)
+            }
+            if !viewModel.isNewRoundAvailable, let unlocks = viewModel.nextRoundUnlockDescription {
+                Label(unlocks, systemImage: "clock")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.bottom, 28)
+    }
+
+}
+
+/// Available outside of the completion feedback so a newly opened round can
+/// be started immediately after foregrounding, regardless of board state.
+struct NewRoundAvailableView: View {
+    let viewModel: TacticsViewModel
+
+    var body: some View {
+        Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
+            .buttonStyle(.borderedProminent)
+            .accessibilityHint(String(localized: "tactics.next_round_ready_hint"))
     }
 }
 

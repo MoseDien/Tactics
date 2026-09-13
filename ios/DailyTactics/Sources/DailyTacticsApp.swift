@@ -41,11 +41,12 @@ private struct RootView: View {
             ProgressView("Loading…")
                 .task {
                     dependencies.round.restore()
-                    // Any persisted round routes to review — inside its window
-                    // (keep reviewing) or expired (review until the player
-                    // taps Next round). Starting a fresh round is a user
-                    // action, never an automatic one on launch.
-                    initialMode = dependencies.round.activePuzzleIDs().isEmpty
+                    // A still-running round resumes in Review. If its window
+                    // already expired before launch, begin the newly available
+                    // batch immediately in Play instead of showing a redundant
+                    // Next round button. Foregrounding an existing screen
+                    // remains user-driven and shows that button instead.
+                    initialMode = dependencies.round.activePuzzleIDs().isEmpty || !dependencies.round.isWithinWindow
                         ? .play
                         : .reviewRound
                 }

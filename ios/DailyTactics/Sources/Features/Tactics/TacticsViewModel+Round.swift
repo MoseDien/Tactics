@@ -23,7 +23,17 @@ extension TacticsViewModel {
     var canStartNewRound: Bool { mode == .reviewRound && isNewRoundAvailable }
     /// Whether the round window has expired — a new round can start right now.
     /// Purely time-based; `canStartNewRound` additionally requires review mode.
-    var isNewRoundAvailable: Bool { roundTracker?.isWithinWindow == false }
+    var isNewRoundAvailable: Bool {
+        guard let roundTracker else { return false }
+        return !roundTracker.isWithinWindow
+    }
+
+    /// The completed-puzzle result controls already contain the Next round
+    /// action. In every other board state, surface a standalone CTA as soon
+    /// as the round window has expired.
+    var shouldShowNewRoundAction: Bool {
+        isNewRoundAvailable && !currentPuzzleFinished
+    }
 
     /// "Unlocks at 3:10 PM" for the disabled button's hint and label; nil
     /// when there is nothing running to wait for.
