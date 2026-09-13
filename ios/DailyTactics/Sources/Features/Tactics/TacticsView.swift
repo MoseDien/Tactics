@@ -71,6 +71,13 @@ struct TacticsView: View {
                     FeedbackView(viewModel: viewModel)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 12)
+
+                    let messageView = TacticsMessageArea(viewModel: viewModel)
+                    if messageView.hasMessage {
+                        messageView
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
+                    }
                 }
                 }
             }

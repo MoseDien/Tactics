@@ -121,39 +121,18 @@ struct MoveControlsView: View {
     }
 }
 
-/// The status line under the board: what is happening right now, and the
-/// next-puzzle / next-round actions once a puzzle completes.
+/// Result actions shown once a puzzle is complete, plus the available-next-
+/// round action surfaced after a foreground refresh.
 struct FeedbackView: View {
     let viewModel: TacticsViewModel
 
     var body: some View {
         VStack(spacing: 12) {
             switch viewModel.feedbackState {
-            case .idle:
-                EmptyView()
-            case let .error(message):
-                Label(message, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
-            case let .instruction(message, systemImage):
-                Label(message, systemImage: systemImage)
-                    .foregroundStyle(.secondary)
-            case .reviewing:
-                Label(String(format: NSLocalizedString("tactics.reviewing_move", comment: "Review move progress"), viewModel.currentMoveNumber, viewModel.totalUserMoves), systemImage: "eye")
-                    .foregroundStyle(.secondary)
-            case .opponentMoving:
-                HStack(spacing: 10) {
-                    ProgressView()
-                    Text(String(localized: "tactics.opponent_moving"))
-                }
-                .foregroundStyle(.secondary)
-            case .opponentReply:
-                Label(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right")
-                    .foregroundStyle(.secondary)
-            case .incorrectMove:
-                Label(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise")
-                    .foregroundStyle(.orange)
             case .puzzleComplete, .trainingComplete:
                 completedPuzzleActions
+            default:
+                EmptyView()
             }
 
             // This uses the same leading action position as the completed
@@ -184,15 +163,84 @@ struct FeedbackView: View {
                 Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
                     .buttonStyle(.borderedProminent)
             }
-            if !viewModel.isNewRoundAvailable, let unlocks = viewModel.nextRoundUnlockDescription {
-                Label(unlocks, systemImage: "clock")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(.bottom, 28)
     }
 
+}
+
+/// The bottom-of-screen, transient message area. It keeps move-state
+/// feedback separate from result/navigation controls above it.
+struct TacticsMessageArea: View {
+    let viewModel: TacticsViewModel
+
+    var hasMessage: Bool {
+        let hasStateMessage = switch viewModel.feedbackState {
+        case .idle, .puzzleComplete, .trainingComplete:
+            false
+        default:
+            true
+        }
+        return hasStateMessage || nextRoundUnlockMessage != nil
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Group {
+                switch viewModel.feedbackState {
+                case let .error(message):
+                    messageRow(message, systemImage: "exclamationmark.triangle.fill", color: .red)
+                case let .instruction(message, systemImage):
+                    messageRow(message, systemImage: systemImage, color: .secondary)
+                case .reviewing:
+                    messageRow(
+                        String(format: NSLocalizedString("tactics.reviewing_move", comment: "Review move progress"), viewModel.currentMoveNumber, viewModel.totalUserMoves),
+                        systemImage: "eye",
+                        color: .secondary
+                    )
+                case .opponentMoving:
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text(String(localized: "tactics.opponent_moving"))
+                    }
+                    .foregroundStyle(.secondary)
+                    .messageContainer()
+                case .opponentReply:
+                    messageRow(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right", color: .secondary)
+                case .incorrectMove:
+                    messageRow(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise", color: .orange)
+                case .idle, .puzzleComplete, .trainingComplete:
+                    EmptyView()
+                }
+            }
+
+            if let nextRoundUnlockMessage {
+                messageRow(nextRoundUnlockMessage, systemImage: "clock", color: .secondary)
+            }
+        }
+    }
+
+    private var nextRoundUnlockMessage: String? {
+        let showsNextRoundButton = viewModel.currentPuzzleFinished
+            && (viewModel.mode == .reviewRound || viewModel.isRoundComplete)
+        guard showsNextRoundButton, !viewModel.isNewRoundAvailable else { return nil }
+        return viewModel.nextRoundUnlockDescription
+    }
+
+    private func messageRow(_ message: String, systemImage: String, color: Color) -> some View {
+        Label(message, systemImage: systemImage)
+            .foregroundStyle(color)
+            .messageContainer()
+    }
+}
+
+private extension View {
+    func messageContainer() -> some View {
+        frame(maxWidth: .infinity, alignment: .leading)
+            .font(.subheadline)
+            .padding(12)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+    }
 }
 
 /// Available outside of the completion feedback so a newly opened round can
