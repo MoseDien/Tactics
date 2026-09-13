@@ -64,10 +64,39 @@ final class RoundTracker {
     func refresh() {
         guard let start = state.startTime() else {
             isWithinWindow = false
+            #if DEBUG
+            print("[RoundTracker] refresh: no persisted start time → isWithinWindow=false")
+            #endif
             return
         }
-        isWithinWindow = RoundWindow(startedAt: start).contains(now())
+        let now = now()
+        let window = RoundWindow(startedAt: start)
+        isWithinWindow = window.contains(now)
+        #if DEBUG
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        let remaining = window.secondsRemaining(at: now)
+        let state = remaining > 0
+            ? String(format: "inside window, %.1fs remaining", remaining)
+            : String(format: "expired %.1fs ago", -remaining)
+        print("""
+        [RoundTracker] refresh \
+        { start: \(formatter.string(from: start)), \
+        now: \(formatter.string(from: now)), \
+        duration: \(window.duration)s, \
+        expiresAt: \(formatter.string(from: window.expiresAt)), \
+        \(state), \
+        activePuzzles: \(state_activePuzzleCount()), \
+        → isWithinWindow=\(isWithinWindow) }
+        """)
+        #endif
     }
+
+    #if DEBUG
+    private func state_activePuzzleCount() -> Int {
+        state.activePuzzleIDs().count
+    }
+    #endif
 
     /// One scheduled wake-up at window expiry (no periodic timer). Replacing
     /// a pending watch cancels it first.
