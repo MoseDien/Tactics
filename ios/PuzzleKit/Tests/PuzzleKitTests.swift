@@ -159,11 +159,10 @@ final class PuzzleKitTests: XCTestCase {
     @MainActor
 
     func testRoundPolicyDuration() {
-        // Debug and Release currently share the same cadence (12h); keep the
-        // branches so a shorter debug window can return without touching this
-        // test's shape.
+        // Debug: 5 minutes so the round cycle is exercisable by hand.
+        // Release: 12 hours.
         #if DEBUG
-        XCTAssertEqual(RoundPolicy.roundDuration, 12 * 60 * 60)
+        XCTAssertEqual(RoundPolicy.roundDuration, 5 * 60)
         #else
         XCTAssertEqual(RoundPolicy.roundDuration, 12 * 60 * 60)
         #endif
