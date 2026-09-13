@@ -19,9 +19,11 @@ struct RoundReviewView: View {
     /// Bumped on every puzzle change so the new board fades in (same load
     /// semantics as the live screen).
     @State private var boardGeneration = 0
-    /// Whether the pending step moves the line forward (the only direction
-    /// that slides; back-steps snap).
+    /// Whether the pending step moves the line forward.
     @State private var steppingForward = false
+    /// The move a back-step just removed (captured before the session drops
+    /// it): its piece re-appears on `from`, having arrived from `to`.
+    @State private var lastUndoneMove: ChessMove?
 
     var body: some View {
         VStack(spacing: 12) {
@@ -187,8 +189,7 @@ struct RoundReviewView: View {
         }
         return BoardAnimation(
             arrival: arrival,
-            movesEnabled: true,
-            setupEnabled: true,
+
             boardGeneration: boardGeneration,
             moveRevision: stepRevision
         )
@@ -205,7 +206,12 @@ struct RoundReviewView: View {
     private func step(_ direction: Int) {
         guard var current = session else { return }
         steppingForward = direction > 0
-        if direction < 0, current.canStepBack { try? current.stepBack() }
+        if direction < 0, current.canStepBack {
+            lastUndoneMove = current.lastMove
+            try? current.stepBack()
+        } else {
+            lastUndoneMove = nil
+        }
         if direction > 0, current.canStepForward { try? current.stepForward() }
         session = current
         stepRevision += 1

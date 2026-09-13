@@ -91,8 +91,6 @@
 "results.summary" = "结果：%ld 题正确，%ld 题错误";
 
 "debug.section" = "调试工具";
-"debug.piece_animation" = "棋子移动动画";
-"debug.setup_animation" = "棋盘载入动画";
 "debug.round_duration" = "轮次时长";
 "debug.drain_pool" = "清空未尝试题池";
 "debug.footer" = "清空会把所有题目标记为已尝试,下一个 round 会触发真实下载。";

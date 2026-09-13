@@ -110,8 +110,6 @@
 
 /* debug (DEBUG builds only) */
 "debug.section" = "Debug tools";
-"debug.piece_animation" = "Piece move animation";
-"debug.setup_animation" = "Board setup animation";
 "debug.round_duration" = "Round duration";
 "debug.drain_pool" = "Drain untried pool";
 "debug.footer" = "Drain marks every puzzle attempted so the next round triggers a real chunk download.";

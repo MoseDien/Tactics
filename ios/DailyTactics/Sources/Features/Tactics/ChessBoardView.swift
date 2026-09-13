@@ -9,10 +9,6 @@ struct BoardAnimation: Equatable {
     /// moves, wrong-move preview, snap-back, castling rook). Empty when no
     /// move is attached, i.e. a puzzle load.
     var arrival: [Square: Square] = [:]
-    /// Whether pieces slide between squares (debug toggle).
-    var movesEnabled = true
-    /// Whether a freshly presented board fades its pieces in (debug toggle).
-    var setupEnabled = true
     /// Changes on every puzzle load. Baked into every piece id so a load
     /// presents entirely new views — insertion transitions apply, and no
     /// carried-over piece can interpolate its offset across the load (the
@@ -21,9 +17,16 @@ struct BoardAnimation: Equatable {
     /// Monotonic token for each committed or preview move. Unlike pieceCount,
     /// this changes for ordinary non-capturing moves as well.
     var moveRevision = 0
+    /// True while this render's arrivals are revert slides (wrong-move
+    /// snap-back): they play one-third faster than forward moves.
+    var isSnapback = false
 
     /// A board with no animation input — the review player's default.
-    static let passthrough = BoardAnimation(arrival: [:], movesEnabled: true, setupEnabled: false, boardGeneration: 0, moveRevision: 0)
+    static let passthrough = BoardAnimation(arrival: [:], boardGeneration: 0, moveRevision: 0, isSnapback: false)
+
+    /// Reverting moves (wrong-move snap-back) run one-third faster than
+    /// forward slides — the player already knows where the piece came from.
+    static let snapbackSpeedup = 1.5
 
     /// Distance-adaptive slide timing, capped: 50ms per square (plus a 45ms
     /// start-up) up to 2 squares, a hard ceiling beyond — every slide of two
@@ -180,12 +183,12 @@ struct ChessBoardView: View {
     /// differ by one square at most), so a one-square step finishes fast and
     /// a board-sweep takes its time. The setup fade keeps one fixed duration.
     private var transactionAnimation: Animation? {
-        guard !reduceMotion, animation.movesEnabled else { return nil }
+        guard !reduceMotion else { return nil }
         if !animation.arrival.isEmpty {
             return .easeOut(duration: moveSlideDuration)
         }
-        if animation.setupEnabled { return moveAnimation }
-        return nil
+        // A freshly presented board fades its pieces in.
+        return moveAnimation
     }
 
     /// Longest Chebyshev distance among this render's arrivals, mapped
@@ -197,8 +200,9 @@ struct ChessBoardView: View {
             }
             .max() ?? 1
         let effective = TimeInterval(min(squares, BoardAnimation.slideMaxSquares))
-        return BoardAnimation.slideBaseDuration
+        let forward = BoardAnimation.slideBaseDuration
             + BoardAnimation.slideNearPerSquare * effective
+        return animation.isSnapback ? forward / BoardAnimation.snapbackSpeedup : forward
     }
 
     /// Pieces sorted by square notation for a stable z-order (dictionary
@@ -215,10 +219,10 @@ struct ChessBoardView: View {
         for placement: (id: String, piece: Piece, square: Square),
         squareSide: CGFloat
     ) -> AnyTransition {
-        if let origin = animation.arrival[placement.square], animation.movesEnabled, !reduceMotion {
+        if let origin = animation.arrival[placement.square], !reduceMotion {
             return slideTransition(from: origin, to: placement.square, squareSide: squareSide)
         }
-        if animation.setupEnabled, animation.arrival.isEmpty, animation.movesEnabled, !reduceMotion {
+        if animation.arrival.isEmpty, !reduceMotion {
             return .opacity
         }
         return .identity

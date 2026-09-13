@@ -10,15 +10,12 @@ public enum AppPreferences {
     public static let activeRoundPuzzleIDs = "dailytactics.activeRoundPuzzleIDs"
     public static let puzzleSequence = "dailytactics.puzzleSequence"
     public static let libraryImported = "dailytactics.libraryImported"
-    public static let pieceAnimation = "dailytactics.pieceAnimation"
-    public static let setupAnimation = "dailytactics.setupAnimation"
     public static let roundDuration = "dailytactics.roundDuration"
 
     /// All of the above.
     public static let allKeys: [String] = [
         userRating, difficultyMode, roundStartTime, activeRoundPuzzleIDs,
-        puzzleSequence, libraryImported, pieceAnimation, setupAnimation,
-        roundDuration,
+        puzzleSequence, libraryImported, roundDuration,
     ]
 
     /// Debug reset: removes every stored preference (rating, round window,
@@ -60,37 +57,6 @@ public final class UserRatingStore {
     public func set(rating: Int) {
         let normalized = min(3000, max(400, rating))
         defaults.set(normalized, forKey: key)
-    }
-}
-
-/// Whether the board's pieces animate (debug toggles). Absent = on, so a
-/// fresh install animates and the debug reset restores the defaults.
-@MainActor
-public final class PieceAnimationStore {
-    private let moveKey = AppPreferences.pieceAnimation
-    private let setupKey = AppPreferences.setupAnimation
-    private let defaults: UserDefaults
-
-    public init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-    }
-
-    /// Whether pieces slide between squares.
-    public var isEnabled: Bool {
-        defaults.object(forKey: moveKey) == nil ? true : defaults.bool(forKey: moveKey)
-    }
-
-    /// Whether a freshly presented board fades its pieces in.
-    public var isSetupEnabled: Bool {
-        defaults.object(forKey: setupKey) == nil ? true : defaults.bool(forKey: setupKey)
-    }
-
-    public func setMovesEnabled(_ enabled: Bool) {
-        defaults.set(enabled, forKey: moveKey)
-    }
-
-    public func setSetupEnabled(_ enabled: Bool) {
-        defaults.set(enabled, forKey: setupKey)
     }
 }
 

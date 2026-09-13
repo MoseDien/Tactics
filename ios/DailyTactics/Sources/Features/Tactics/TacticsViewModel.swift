@@ -186,6 +186,10 @@ final class TacticsViewModel {
         return arrivals
     }
 
+    /// True while this render's arrivals are revert slides (the wrong-move
+    /// snap-back): the board plays them one-third faster than forward moves.
+    var isSnapbackRender: Bool { attemptedMove == nil && snapbackMove != nil }
+
     /// Increments on every puzzle load. The board bakes it into every piece id
     /// so a load presents brand-new views (fade-in transition; no carried-over
     /// views that could interpolate offsets across the load). Monotonic and

@@ -12,9 +12,11 @@ struct ReviewPuzzleView: View {
     /// Bumped on every step so the board sees each replayed move as a fresh
     /// animation transaction (forward and back alike).
     @State private var stepRevision = 0
-    /// Whether the pending step moves the line forward (the only direction
-    /// that plays a slide; back-steps snap).
+    /// Whether the pending step moves the line forward.
     @State private var steppingForward = false
+    /// The move a back-step just removed (captured before the session drops
+    /// it): its piece re-appears on `from`, having arrived from `to`.
+    @State private var lastUndoneMove: ChessMove?
 
     var body: some View {
         VStack(spacing: 14) {
@@ -117,13 +119,19 @@ struct ReviewPuzzleView: View {
 
     // MARK: - Replay animation
 
-    /// The replay's animation input: stepping forward slides the arriving
-    /// piece in from its origin (same rule as live play); the initial load
-    /// and stepping back render in place — a load presents a ready position,
-    /// and a taken-back move has no arrival to slide from.
+    /// The replay's animation input: forward steps slide the arriving piece
+    /// in from its origin (live play's rule); back-steps slide the undone
+    /// move's piece home — the revert runs one-third faster. The initial
+    /// load renders in place (a ready position).
     private func boardAnimation(for session: PuzzleSession) -> BoardAnimation {
         var arrival: [Square: Square] = [:]
-        if stepRevision > 0, let move = session.lastMove, steppingForward {
+        var isSnapback = false
+        if stepRevision > 0, !steppingForward, let undone = lastUndoneMove {
+            // The move a back-step just removed: its piece re-appears on
+            // `from`, having slid home from `to` — one-third faster.
+            arrival[undone.from] = undone.to
+            isSnapback = true
+        } else if stepRevision > 0, let move = session.lastMove, steppingForward {
             arrival[move.to] = move.from
             if let rook = session.castlingRookMove() {
                 arrival[rook.to] = rook.from
@@ -131,10 +139,9 @@ struct ReviewPuzzleView: View {
         }
         return BoardAnimation(
             arrival: arrival,
-            movesEnabled: true,
-            setupEnabled: false,
             boardGeneration: 0,
-            moveRevision: stepRevision
+            moveRevision: stepRevision,
+            isSnapback: isSnapback
         )
     }
 
@@ -147,7 +154,12 @@ struct ReviewPuzzleView: View {
     private func step(_ direction: Int) {
         guard var current = session else { return }
         steppingForward = direction > 0
-        if direction < 0, current.canStepBack { try? current.stepBack() }
+        if direction < 0, current.canStepBack {
+            lastUndoneMove = current.lastMove
+            try? current.stepBack()
+        } else {
+            lastUndoneMove = nil
+        }
         if direction > 0, current.canStepForward { try? current.stepForward() }
         session = current
         stepRevision += 1

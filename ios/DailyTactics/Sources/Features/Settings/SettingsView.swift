@@ -17,8 +17,6 @@ struct SettingsView: View {
     #if DEBUG
     @State private var debugNotice: String?
     @State private var showingResetAllConfirm = false
-    @State private var pieceAnimation = true
-    @State private var setupAnimation = true
     @State private var roundDuration: TimeInterval = RoundPolicy.roundDuration
     #endif
 
@@ -64,11 +62,8 @@ struct SettingsView: View {
                             Image(systemName: "arrow.down.circle")
                         }
                     }
-                    #if DEBUG
-                    .disabled(false)  // debug builds can always pull a chunk
-                    #else
                     .disabled(!isEligibleForManualDownload)
-                    #endif
+                    
                     .popover(
                         isPresented: Binding(
                             get: { downloadMorePuzzlesNotice != nil },
@@ -98,14 +93,6 @@ struct SettingsView: View {
 
                 #if DEBUG
                 Section {
-                    Toggle(String(localized: "debug.piece_animation"), isOn: $pieceAnimation)
-                        .onChange(of: pieceAnimation) { _, value in
-                            dependencies.pieceAnimation.setMovesEnabled(value)
-                        }
-                    Toggle(String(localized: "debug.setup_animation"), isOn: $setupAnimation)
-                        .onChange(of: setupAnimation) { _, value in
-                            dependencies.pieceAnimation.setSetupEnabled(value)
-                        }
                     Picker(String(localized: "debug.round_duration"), selection: $roundDuration) {
                         ForEach(Self.debugRoundDurations, id: \.self) { seconds in
                             Text(Duration.seconds(seconds).formatted(.units(width: .abbreviated)))
@@ -163,8 +150,6 @@ struct SettingsView: View {
                 snapshots = dependencies.data.ratingHistory()
                 difficulty = dependencies.difficulty.current
                 refreshLibraryStatus()
-                pieceAnimation = dependencies.pieceAnimation.isEnabled
-                setupAnimation = dependencies.pieceAnimation.isSetupEnabled
                 roundDuration = UserDefaults.standard.object(forKey: AppPreferences.roundDuration) == nil
                     ? RoundPolicy.roundDuration
                     : UserDefaults.standard.double(forKey: AppPreferences.roundDuration)
@@ -236,8 +221,8 @@ struct SettingsView: View {
             if snapshots.isEmpty {
                 Text(String(localized: "settings.rating_trend_empty"))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
+                    // .foregroundStyle(.secondary)
                     .padding(.vertical, 8)
             } else {
                 Chart(snapshots) { snapshot in

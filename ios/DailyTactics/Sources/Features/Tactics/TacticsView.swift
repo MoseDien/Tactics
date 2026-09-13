@@ -126,10 +126,9 @@ struct TacticsView: View {
     private func boardAnimation(for viewModel: TacticsViewModel) -> BoardAnimation {
         BoardAnimation(
             arrival: viewModel.animatedArrival,
-            movesEnabled: dependencies.pieceAnimation.isEnabled,
-            setupEnabled: dependencies.pieceAnimation.isSetupEnabled,
             boardGeneration: viewModel.boardGeneration,
-            moveRevision: viewModel.boardMoveRevision
+            moveRevision: viewModel.boardMoveRevision,
+            isSnapback: viewModel.isSnapbackRender
         )
     }
 }

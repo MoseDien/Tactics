@@ -14,7 +14,6 @@ final class AppDependencies {
     let round: RoundTracker
     let difficulty: DifficultyModeStore
     let userRating: UserRatingStore
-    let pieceAnimation: PieceAnimationStore
     let provisioner: any PuzzleProvisioning
     let sequenceStore: ChunkSequenceStore
     let pacing: TacticsPacing
@@ -25,7 +24,6 @@ final class AppDependencies {
         round: RoundTracker,
         difficulty: DifficultyModeStore,
         userRating: UserRatingStore,
-        pieceAnimation: PieceAnimationStore,
         provisioner: any PuzzleProvisioning,
         sequenceStore: ChunkSequenceStore,
         pacing: TacticsPacing
@@ -35,7 +33,6 @@ final class AppDependencies {
         self.round = round
         self.difficulty = difficulty
         self.userRating = userRating
-        self.pieceAnimation = pieceAnimation
         self.provisioner = provisioner
         self.sequenceStore = sequenceStore
         self.pacing = pacing
@@ -59,7 +56,6 @@ final class AppDependencies {
             ),
             difficulty: DifficultyModeStore(),
             userRating: UserRatingStore(),
-            pieceAnimation: PieceAnimationStore(),
             provisioner: LibraryProvisioner(
                 repositories: repositories,
                 sequenceStore: sequenceStore,
@@ -81,7 +77,6 @@ final class AppDependencies {
             round: RoundTracker(state: UserDefaultsRoundStateStore(defaults: defaults)),
             difficulty: DifficultyModeStore(defaults: defaults),
             userRating: UserRatingStore(defaults: defaults),
-            pieceAnimation: PieceAnimationStore(defaults: defaults),
             provisioner: LibraryProvisioner(
                 repositories: repositories,
                 sequenceStore: sequenceStore,
