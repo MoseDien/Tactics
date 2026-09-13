@@ -7,8 +7,9 @@
 "settings.title" = "设置";
 "settings.history" = "历史记录";
 "settings.favorites" = "收藏";
-"settings.contact" = "联系作者";
+"settings.contact" = "联系";
 "settings.contact_copy" = "复制邮箱地址";
+"settings.more_section" = "更多";
 "settings.how_to_play" = "玩法说明";
 "how_to_play.calculate" = "先在脑中算清整条变化线:你的第一手、对手的应手,再找出最佳着法。不要试棋。";
 "how_to_play.rounds" = "每8小时解锁一轮,每轮3道题。";
