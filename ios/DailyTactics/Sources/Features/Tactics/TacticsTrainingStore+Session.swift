@@ -1,20 +1,20 @@
 import PuzzleKit
 import ChessCore
 
-/// Cross-store session coordination. The chess interaction itself is owned by
+/// Cross-store sessionState.session coordination. The chess interaction itself is owned by
 /// `TacticsSessionStore`; this adapter records its business consequences.
 extension TacticsTrainingStore {
     func loadPuzzle(at index: Int) {
         do {
-            let puzzle = puzzles[index]
+            let puzzle = roundState.puzzles[index]
             sessionState.reset(
                 with: try PuzzleSession(puzzle: puzzle),
-                favorite: progress?.isFavorite(puzzle.id) ?? false
+                favorite: roundState.repositories?.isFavorite(puzzle.id) ?? false
             )
             progressState.beginPuzzle()
             Task { await playOpponentMove() }
         } catch {
-            errorMessage = String(localized: "tactics.error_load")
+            sessionState.errorMessage = String(localized: "tactics.error_load")
         }
     }
 
@@ -34,7 +34,7 @@ extension TacticsTrainingStore {
 
     func playOpponentMove() async {
         let solved = await sessionState.applyOpponentMove(after: pacing.opponentReplyDelay)
-        if solved, mode == .play { markCurrentSolved() }
+        if solved, roundState.mode == .play { markCurrentSolved() }
     }
 
     func handle(_ event: TacticsSessionEvent) {
@@ -57,6 +57,6 @@ extension TacticsTrainingStore {
     }
 
     private func recordFirstAttempt(correct: Bool) {
-        progressState.recordFirstAttempt(for: puzzles[currentIndex], correct: correct)
+        progressState.recordFirstAttempt(for: roundState.puzzles[roundState.currentIndex], correct: correct)
     }
 }

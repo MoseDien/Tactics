@@ -31,7 +31,7 @@ final class TacticsScreenViewModel {
     }
 
     func start() { training.start() }
-    var currentPuzzle: Puzzle { training.puzzles[training.currentIndex] }
+    var currentPuzzle: Puzzle { training.roundState.puzzles[training.roundState.currentIndex] }
 }
 
 @MainActor
@@ -173,7 +173,7 @@ final class TacticsMessageAreaViewModel {
 final class TacticsPromotionViewModel {
     private let training: TacticsTrainingStore
     init(training: TacticsTrainingStore) { self.training = training }
-    var pendingPromotion: (from: Square, to: Square)? { training.pendingPromotion }
+    var pendingPromotion: (from: Square, to: Square)? { training.sessionState.pendingPromotion }
     var playerColor: PieceColor { training.playerColor }
     func choose(_ kind: PieceKind) { training.choosePromotion(kind) }
 }

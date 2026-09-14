@@ -8,16 +8,16 @@ import TacticsData
 extension TacticsTrainingStore {
     /// `<`/`>` are review-only: available once the puzzle is solved (or while
     /// scrubbing the line afterwards). Disabled during active play.
-    var inReview: Bool { session.state == .solved || session.isReviewing }
+    var inReview: Bool { sessionState.session.state == .solved || sessionState.session.isReviewing }
     var hintEnabled: Bool {
-        !inReview && (session.state == .waitingForMove || session.state == .incorrectMove)
+        !inReview && (sessionState.session.state == .waitingForMove || sessionState.session.state == .incorrectMove)
     }
     /// Once a puzzle has finished, the Hint control changes purpose: it opens
     /// a read-only replay of this puzzle rather than changing its outcome.
-    var canReviewCurrentPuzzle: Bool { currentPuzzleFinished }
-    var isReviewing: Bool { session.isReviewing }
-    var currentMoveNumber: Int { session.currentMoveNumber }
-    var totalUserMoves: Int { session.totalUserMoves }
+    var canReviewCurrentPuzzle: Bool { sessionState.currentPuzzleFinished }
+    var isReviewing: Bool { sessionState.session.isReviewing }
+    var currentMoveNumber: Int { sessionState.session.currentMoveNumber }
+    var totalUserMoves: Int { sessionState.session.totalUserMoves }
 
     /// Two-stage hint: the first tap reveals the expected move (highlighted,
     /// scored immediately as a loss); the second tap plays it for the player.
@@ -42,35 +42,21 @@ extension TacticsTrainingStore {
     /// additional hints cannot stack another penalty.
     func settlePuzzleAsFailed() {
         progressState.settleFailure(
-            for: puzzles[currentIndex],
-            at: currentIndex,
+            for: roundState.puzzles[roundState.currentIndex],
+            at: roundState.currentIndex,
             ratingEnabled: canUpdateRating
         )
     }
 
     func markCurrentSolved() {
-        currentPuzzleFinished = true
+        sessionState.currentPuzzleFinished = true
         progressState.complete(
-            puzzle: puzzles[currentIndex],
-            at: currentIndex,
-            round: puzzles,
+            puzzle: roundState.puzzles[roundState.currentIndex],
+            at: roundState.currentIndex,
+            round: roundState.puzzles,
             isRoundEnding: isLastPuzzle,
             ratingEnabled: canUpdateRating,
-            usedHint: hintMove != nil
+            usedHint: sessionState.hintMove != nil
         )
-    }
-}
-
-extension PuzzleSession {
-    /// Stand-in session for a puzzle that failed to build. Shows an empty
-    /// board in the error state instead of crashing the app.
-    static func empty() -> PuzzleSession {
-        try! PuzzleSession(puzzle: Puzzle(
-            id: "empty",
-            fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
-            moves: ["e1e2", "e8e7"],
-            rating: nil,
-            themes: []
-        ))
     }
 }

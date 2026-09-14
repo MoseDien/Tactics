@@ -4,258 +4,204 @@ import SwiftData
 import Charts
 import TacticsData
 
+/// The settings form: pure layout and binding. All state and actions live in
+/// `SettingsViewModel`.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppDependencies.self) private var dependencies
-    @State private var difficulty = DifficultyMode.medium
-    @State private var snapshots: [RatingSample] = []
-    @State private var libraryChunk = 0
-    @State private var libraryCount = 0
-    @State private var untriedPuzzleCount = 0
-    @State private var isDownloadingMorePuzzles = false
-    @State private var downloadMorePuzzlesNotice: String?
-    #if DEBUG
-    @State private var debugNotice: String?
-    @State private var showingResetAllConfirm = false
-    @State private var roundDuration: TimeInterval = RoundPolicy.roundDuration
-    #endif
+    @State private var viewModel: SettingsViewModel?
 
     var body: some View {
         NavigationStack {
-            Form {
-                ratingTrendSection
+            if let viewModel {
+                form(for: viewModel)
+            } else {
+                ProgressView()
+            }
+        }
+    }
 
-                Section {
-                    Picker(String(localized: "settings.difficulty"), selection: $difficulty) {
-                        ForEach(DifficultyMode.allCases) { mode in
-                            Text(LocalizedStringKey(mode.localizedKey)).tag(mode)
-                        }
+    @ViewBuilder
+    private func form(for model: SettingsViewModel) -> some View {
+        Form {
+            ratingTrendSection(for: model)
+
+            Section {
+                Picker(String(localized: "settings.difficulty"), selection: Binding(
+                    get: { model.difficulty },
+                    set: { model.difficulty = $0; model.setDifficulty($0) }
+                )) {
+                    ForEach(DifficultyMode.allCases) { mode in
+                        Text(LocalizedStringKey(mode.localizedKey)).tag(mode)
                     }
-                    .onChange(of: difficulty) { _, value in
-                        dependencies.difficulty.set(value)
-                    }
-                    NavigationLink {
-                        HistoryView()
-                    } label: {
-                        Label(String(localized: "settings.history"), systemImage: "clock.arrow.circlepath")
-                    }
-                    NavigationLink {
-                        FavoritesView()
-                    } label: {
-                        Label(String(localized: "settings.favorites"), systemImage: "heart")
-                    }
-                    Button {
-                        downloadMorePuzzlesTapped()
-                    } label: {
-                        Label {
-                            HStack(spacing: 8) {
-                                Text(String(localized: "settings.download_more_puzzles"))
-                                if isDownloadingMorePuzzles {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .tint(.secondary)
-                                        .opacity(0.65)
-                                }
+                }
+                NavigationLink {
+                    HistoryView()
+                } label: {
+                    Label(String(localized: "settings.history"), systemImage: "clock.arrow.circlepath")
+                }
+                NavigationLink {
+                    FavoritesView()
+                } label: {
+                    Label(String(localized: "settings.favorites"), systemImage: "heart")
+                }
+
+                Button {
+                    model.downloadMorePuzzlesTapped()
+                } label: {
+                    Label {
+                        HStack(spacing: 8) {
+                            Text(String(localized: "settings.download_more_puzzles"))
+                            if model.isDownloadingMorePuzzles {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(.secondary)
+                                    .opacity(0.65)
                             }
-                        } icon: {
-                            Image(systemName: "arrow.down.circle")
                         }
+                    } icon: {
+                        Image(systemName: "arrow.down.circle")
                     }
-                    .disabled(!isEligibleForManualDownload)
-                    .foregroundStyle(isEligibleForManualDownload ? Color.primary : Color.secondary)
-                    .popover(
-                        isPresented: Binding(
-                            get: { downloadMorePuzzlesNotice != nil },
-                            set: { if !$0 { downloadMorePuzzlesNotice = nil } }
-                        ),
-                        arrowEdge: .top
-                    ) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(String(localized: "settings.download_more_puzzles_unavailable_title"))
-                                .font(.headline)
-                            Text(downloadMorePuzzlesNotice ?? "")
-                                .fixedSize(horizontal: false, vertical: true)
-                                .font(.subheadline)
+                }
+                .disabled(!model.isEligibleForManualDownload)
+                .foregroundStyle(model.isEligibleForManualDownload ? Color.primary : Color.secondary)
+                .popover(
+                    isPresented: Binding(
+                        get: { model.downloadMorePuzzlesNotice != nil },
+                        set: { if !$0 { model.downloadMorePuzzlesNotice = nil } }
+                    ),
+                    arrowEdge: .top
+                ) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(String(localized: "settings.download_more_puzzles_unavailable_title"))
+                            .font(.headline)
+                        Text(model.downloadMorePuzzlesNotice ?? "")
+                            .fixedSize(horizontal: false, vertical: true)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .presentationCompactAdaptation(.popover)
+                }
+            } header: {
+                Text(String(localized: "settings.library_section"))
+            } footer: {
+                Text(String(
+                    format: NSLocalizedString("settings.library_status", comment: "Library chunk and puzzle count"),
+                    model.libraryChunk, model.libraryCount, model.untriedPuzzleCount
+                ))
+            }
+
+            Section {
+                Link(destination: URL(string: "mailto:beldailytactics@gmail.com")!) {
+                    Label {
+                        HStack {
+                            Text(String(localized: "settings.contact"))
+                            Spacer()
+                            Text("beldailytactics@gmail.com")
+                                .font(.caption.monospaced())
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
                         }
-                        .padding()
-                        .presentationCompactAdaptation(.popover)
+                    } icon: {
+                        Image(systemName: "envelope")
                     }
-                } header: {
-                    Text(String(localized: "settings.library_section"))
-                } footer: {
-                    Text(String(
-                        format: NSLocalizedString("settings.library_status", comment: "Library chunk and puzzle count"),
-                        libraryChunk, libraryCount, untriedPuzzleCount
-                    ))
                 }
-
-                Section {
-                    Link(destination: URL(string: "mailto:beldailytactics@gmail.com")!) {
-                        Label {
-                            HStack {
-                                Text(String(localized: "settings.contact"))
-                                Spacer()
-                                Text("beldailytactics@gmail.com")
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                        } icon: {
-                            Image(systemName: "envelope")
-                        }
+                .contextMenu {
+                    // Long-press copy for anyone who'd rather not open Mail.
+                    Button {
+                        UIPasteboard.general.string = "beldailytactics@gmail.com"
+                    } label: {
+                        Label(String(localized: "settings.contact_copy"), systemImage: "doc.on.doc")
                     }
-                    .contextMenu {
-                        // Long-press copy for anyone who'd rather not open Mail.
-                        Button {
-                            UIPasteboard.general.string = "beldailytactics@gmail.com"
-                        } label: {
-                            Label(String(localized: "settings.contact_copy"), systemImage: "doc.on.doc")
-                        }
-                    }
-                } header: {
-                    Text(String(localized: "settings.more_section"))
                 }
-
-                #if DEBUG
-                Section {
-                    Picker(String(localized: "debug.round_duration"), selection: $roundDuration) {
-                        ForEach(Self.debugRoundDurations, id: \.self) { seconds in
-                            Text(Duration.seconds(seconds).formatted(.units(width: .abbreviated)))
-                                .tag(seconds)
-                        }
-                    }
-                    .onChange(of: roundDuration) { _, value in
-                        UserDefaults.standard.set(value, forKey: AppPreferences.roundDuration)
-                        // restore = refresh + re-watch: the running window's
-                        // expiry recomputes under the new length immediately.
-                        dependencies.round.restore()
-                    }
-                    Button(String(localized: "debug.drain_pool")) {
-                        drainUntriedPool()
-                    }
-                    Button(String(localized: "debug.reset_all"), role: .destructive) {
-                        showingResetAllConfirm = true
-                    }
-                } header: {
-                    Text(String(localized: "debug.section"))
-                } footer: {
-                    Text(String(localized: "debug.footer"))
-                }
-                #endif
+            } header: {
+                Text(String(localized: "settings.more_section"))
             }
-            .navigationTitle(String(localized: "settings.title"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "common.done")) { dismiss() }
-                }
-            }
+
             #if DEBUG
-            .alert(
-                String(localized: "debug.reset_all_confirm_title"),
-                isPresented: $showingResetAllConfirm
-            ) {
-                Button(String(localized: "debug.reset_all"), role: .destructive) {
-                    resetToInitialState()
+            Section {
+                Picker(String(localized: "debug.round_duration"), selection: Binding(
+                    get: { model.roundDuration },
+                    set: { model.roundDuration = $0; model.setRoundDuration($0) }
+                )) {
+                    ForEach(SettingsViewModel.debugRoundDurations, id: \.self) { seconds in
+                        Text(Duration.seconds(seconds).formatted(.units(width: .abbreviated)))
+                            .tag(seconds)
+                    }
                 }
-                Button(String(localized: "common.cancel"), role: .cancel) { }
-            } message: {
-                Text(String(localized: "debug.reset_all_confirm"))
-            }
-            .alert(
-                String(localized: "debug.notice_title"),
-                isPresented: Binding(get: { debugNotice != nil }, set: { if !$0 { debugNotice = nil } })
-            ) {
-                Button(String(localized: "common.done"), role: .cancel) { }
-            } message: {
-                Text(debugNotice ?? "")
+                Button(String(localized: "debug.drain_pool")) {
+                    model.drainUntriedPool()
+                }
+                Button(String(localized: "debug.reset_all"), role: .destructive) {
+                    model.showingResetAllConfirm = true
+                }
+            } header: {
+                Text(String(localized: "debug.section"))
+            } footer: {
+                Text(String(localized: "debug.footer"))
             }
             #endif
-            .task {
-                snapshots = dependencies.data.ratingHistory()
-                difficulty = dependencies.difficulty.current
-                refreshLibraryStatus()
-                roundDuration = UserDefaults.standard.object(forKey: AppPreferences.roundDuration) == nil
-                    ? RoundPolicy.roundDuration
-                    : UserDefaults.standard.double(forKey: AppPreferences.roundDuration)
+        }
+        .navigationTitle(String(localized: "settings.title"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(String(localized: "common.done")) { dismiss() }
+            }
+        }
+        #if DEBUG
+        .alert(
+            String(localized: "debug.reset_all_confirm_title"),
+            isPresented: Binding(
+                get: { model.showingResetAllConfirm },
+                set: { model.showingResetAllConfirm = $0 }
+            )
+        ) {
+            Button(String(localized: "debug.reset_all"), role: .destructive) {
+                model.resetToInitialState()
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) { }
+        } message: {
+            Text(String(localized: "debug.reset_all_confirm"))
+        }
+        .alert(
+            String(localized: "debug.notice_title"),
+            isPresented: Binding(
+                get: { model.debugNotice != nil },
+                set: { if !$0 { model.debugNotice = nil } }
+            )
+        ) {
+            Button(String(localized: "common.done"), role: .cancel) { }
+        } message: {
+            Text(model.debugNotice ?? "")
+        }
+        #endif
+        .task {
+            // The sheet inherits the environment; build the model once.
+            if viewModel == nil {
+                let built = SettingsViewModel(dependencies: dependencies)
+                built.load()
+                viewModel = built
             }
         }
     }
-
-    /// Download conditions: the untried pool must be low AND the remote must
-    /// still have unpublished chunks left (a 404 latch kills it for the
-    /// session). Anything else grays the button out.
-    private var isEligibleForManualDownload: Bool {
-        untriedPuzzleCount < 50 && !dependencies.sequenceStore.noMoreChunks
-    }
-
-    /// Debug round-length options: 5 minutes through 8 hours.
-    static let debugRoundDurations: [TimeInterval] = [
-        5 * 60, 15 * 60, 30 * 60, 3600, 2 * 3600, 4 * 3600, 8 * 3600,
-    ]
-
-    private func downloadMorePuzzlesTapped() {
-        guard !isDownloadingMorePuzzles else { return }
-        guard isEligibleForManualDownload else {
-            downloadMorePuzzlesNotice = String(localized: "settings.download_more_puzzles_unavailable_message")
-            return
-        }
-        Task { await downloadMorePuzzles() }
-    }
-
-    private func downloadMorePuzzles() async {
-        guard !isDownloadingMorePuzzles, isEligibleForManualDownload else { return }
-        isDownloadingMorePuzzles = true
-        _ = await dependencies.provisioner.ensureRoundAvailable(minimum: 50)
-        refreshLibraryStatus()
-        isDownloadingMorePuzzles = false
-    }
-
-    private func refreshLibraryStatus() {
-        let library = dependencies.data.allPuzzles()
-        libraryChunk = dependencies.sequenceStore.current
-        libraryCount = library.count
-        untriedPuzzleCount = library.count - dependencies.data.attemptedIDs().count
-    }
-
-    #if DEBUG
-    /// Back to first-launch state: every SwiftData row and every stored
-    /// preference gone. Clearing the import gate re-routes RootView to the
-    /// loading screen, which re-imports the bundled chunk.
-    private func resetToInitialState() {
-        dependencies.data.deleteAllData()
-        AppPreferences.wipeAll()
-    }
-
-    /// Marks every library puzzle as attempted so the untried pool drops to
-    /// zero; the next round boundary then exercises the real download path.
-    /// Note: this freezes rating updates for the drained library (no puzzle
-    /// can be a first attempt anymore) — play still works via selection
-    /// fallbacks. Reset by reinstalling or waiting for new chunks.
-    private func drainUntriedPool() {
-        let ids = dependencies.data.allPuzzles().map(\.id)
-        dependencies.data.markAttempted(ids)
-        debugNotice = String(format: NSLocalizedString("debug.drained", comment: "Pool drained notice"), ids.count)
-    }
-    #endif
 
     // MARK: - Rating trend
 
     /// One point per completed round. Single series: the section title names
     /// it, so no legend; the line uses the app accent, which iOS keeps
     /// legible in both appearances.
-    private var ratingTrendSection: some View {
+    private func ratingTrendSection(for viewModel: SettingsViewModel) -> some View {
         Section {
-            if snapshots.isEmpty {
+            if viewModel.snapshots.isEmpty {
                 Text(String(localized: "settings.rating_trend_empty"))
                     .font(.subheadline)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    // .foregroundStyle(.secondary)
                     .padding(.vertical, 8)
             } else {
-                Chart(snapshots) { snapshot in
+                Chart(viewModel.snapshots) { snapshot in
                     LineMark(
                         x: .value("Date", snapshot.recordedAt),
                         y: .value("Rating", snapshot.rating)
@@ -271,7 +217,7 @@ struct SettingsView: View {
                     .foregroundStyle(Color.accentColor)
                     .symbolSize(30)
                 }
-                .chartYScale(domain: ratingDomain)
+                .chartYScale(domain: viewModel.ratingDomain)
                 .chartXAxis {
                     AxisMarks(values: .stride(by: .day)) { _ in
                         AxisGridLine()
@@ -283,47 +229,22 @@ struct SettingsView: View {
                 }
                 .frame(height: 180)
                 .accessibilityLabel(String(localized: "settings.rating_trend"))
-                .accessibilityValue(trendAccessibilitySummary)
+                .accessibilityValue(viewModel.trendAccessibilitySummary)
             }
         } header: {
             HStack {
                 Text(String(localized: "settings.rating_trend"))
                 Spacer()
-                Text("\(currentRating)")
+                Text("\(viewModel.currentRating)")
                     .foregroundStyle(.secondary)
             }
         } footer: {
-            if let delta = trendDelta {
+            if let delta = viewModel.trendDelta {
                 Text(String(
                     format: NSLocalizedString("settings.rating_trend_delta", comment: "Change since the first snapshot"),
                     delta
                 ))
             }
         }
-    }
-
-    private var currentRating: Int {
-        snapshots.last?.rating ?? dependencies.userRating.rating
-    }
-
-    /// Rating floor/ceiling with padding so the line never touches the frame.
-    private var ratingDomain: ClosedRange<Int> {
-        let values = snapshots.map(\.rating)
-        let lo = values.min() ?? 1500
-        let hi = values.max() ?? 1500
-        let pad = max(25, (hi - lo) / 4)
-        return (lo - pad)...(hi + pad)
-    }
-
-    private var trendDelta: Int? {
-        guard let first = snapshots.first?.rating, let last = snapshots.last?.rating,
-              snapshots.count > 1
-        else { return nil }
-        return last - first
-    }
-
-    private var trendAccessibilitySummary: String {
-        guard let first = snapshots.first, let last = snapshots.last else { return "" }
-        return "\(first.rating) → \(last.rating)"
     }
 }

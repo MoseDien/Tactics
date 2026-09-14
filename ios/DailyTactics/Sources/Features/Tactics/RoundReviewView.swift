@@ -105,9 +105,9 @@ struct RoundReviewView: View {
                         }
                         HStack(spacing: 2) {
                             ForEach(1...5, id: \.self) { level in
-                                Image(systemName: level <= FavoritesView.difficultyLevel(for: puzzle.rating) ? "star.fill" : "star")
+                                Image(systemName: level <= FavoritesViewModel.difficultyLevel(for: puzzle.rating) ? "star.fill" : "star")
                                     .font(.caption2)
-                                    .foregroundStyle(level <= FavoritesView.difficultyLevel(for: puzzle.rating) ? Color.primary : Color.secondary.opacity(0.45))
+                                    .foregroundStyle(level <= FavoritesViewModel.difficultyLevel(for: puzzle.rating) ? Color.primary : Color.secondary.opacity(0.45))
                             }
                         }
                         if let theme = puzzle.themes.first {

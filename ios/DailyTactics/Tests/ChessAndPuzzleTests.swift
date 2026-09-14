@@ -10,7 +10,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         // A single-puzzle dataset makes the "which puzzle loaded" variable
         // deterministic, so the orientation invariant is actually exercised.
         let vm = TacticsTrainingStore(dataset: Array(Puzzle.samples.prefix(1)))
-        XCTAssertEqual(vm.isBoardFlipped, vm.playerColor == .black)
+        XCTAssertEqual(vm.sessionState.isBoardFlipped, vm.playerColor == .black)
 
         // After the machine's opening move the orientation must still hold.
         vm.start()
@@ -19,7 +19,7 @@ final class ChessAndPuzzleTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(50))
             waited += 1
         }
-        XCTAssertEqual(vm.isBoardFlipped, vm.playerColor == .black)
+        XCTAssertEqual(vm.sessionState.isBoardFlipped, vm.playerColor == .black)
     }
     @MainActor
     func testRatingStoreClampsToRange() {
@@ -67,19 +67,19 @@ final class ChessAndPuzzleTests: XCTestCase {
         }
         XCTAssertEqual(vm.state, .waitingForMove)
 
-        let before = vm.userRating
+        let before = vm.progressState.userRating
         vm.requestHint()
 
         // Using a hint is a failure: rating drops right away and the round
         // marker records it as wrong.
-        XCTAssertLessThan(vm.userRating, before, "Hint should cost rating points")
-        XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0, "Hint should record a negative delta")
+        XCTAssertLessThan(vm.progressState.userRating, before, "Hint should cost rating points")
+        XCTAssertLessThan(vm.progressState.lastRatingDelta ?? 0, 0, "Hint should record a negative delta")
         XCTAssertEqual(progress.failedCount(), 1, "Hint should persist the puzzle as failed")
 
         // A second tap must not stack another penalty.
-        let afterFirstHint = vm.userRating
+        let afterFirstHint = vm.progressState.userRating
         vm.requestHint()
-        XCTAssertEqual(vm.userRating, afterFirstHint)
+        XCTAssertEqual(vm.progressState.userRating, afterFirstHint)
         XCTAssertEqual(progress.failedCount(), 1)
     }
 
@@ -99,25 +99,25 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         vm.start()
         try await waitForWaitingForMove(on: vm)
-        let ratingBefore = vm.userRating
+        let ratingBefore = vm.progressState.userRating
 
         vm.attemptMove(from: Square(notation: "e2")!, to: Square(notation: "d2")!)
 
         XCTAssertEqual(vm.state, .incorrectMove)
-        XCTAssertEqual(vm.results, [.wrong])
+        XCTAssertEqual(vm.progressState.outcomes, [.wrong])
         XCTAssertEqual(progress.failedCount(), 1)
-        XCTAssertLessThan(vm.userRating, ratingBefore, "A wrong move should cost rating points")
-        XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0, "The deducted score should be available to display")
+        XCTAssertLessThan(vm.progressState.userRating, ratingBefore, "A wrong move should cost rating points")
+        XCTAssertLessThan(vm.progressState.lastRatingDelta ?? 0, 0, "The deducted score should be available to display")
 
-        let ratingAfterFailure = vm.userRating
+        let ratingAfterFailure = vm.progressState.userRating
         vm.attemptMove(from: Square(notation: "e2")!, to: Square(notation: "e3")!)
 
         XCTAssertEqual(vm.state, .solved)
-        XCTAssertTrue(vm.currentPuzzleFinished)
+        XCTAssertTrue(vm.sessionState.currentPuzzleFinished)
         XCTAssertTrue(vm.canReviewCurrentPuzzle,
                       "a completed puzzle should make the Hint control open its single-puzzle review")
-        XCTAssertEqual(vm.userRating, ratingAfterFailure, "Finishing after a mistake must not apply rating twice")
-        XCTAssertLessThan(vm.lastRatingDelta ?? 0, 0)
+        XCTAssertEqual(vm.progressState.userRating, ratingAfterFailure, "Finishing after a mistake must not apply rating twice")
+        XCTAssertLessThan(vm.progressState.lastRatingDelta ?? 0, 0)
     }
 
     @MainActor
@@ -145,19 +145,19 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         vm.attemptMove(from: origin, to: target)
 
-        XCTAssertEqual(vm.attemptedMove, ChessMove(from: origin, to: target))
+        XCTAssertEqual(vm.sessionState.attemptedMove, ChessMove(from: origin, to: target))
         XCTAssertEqual(vm.animatedArrival, [target: origin])
         XCTAssertEqual(vm.boardMoveRevision, revisionBeforeAttempt + 1,
                        "the wrong-move preview starts its own animation transaction")
 
         var waited = 0
-        while vm.attemptedMove != nil && waited < 100 {
+        while vm.sessionState.attemptedMove != nil && waited < 100 {
             try await Task.sleep(for: .milliseconds(5))
             waited += 1
         }
 
-        XCTAssertNil(vm.attemptedMove)
-        XCTAssertEqual(vm.snapbackMove, ChessMove(from: origin, to: target))
+        XCTAssertNil(vm.sessionState.attemptedMove)
+        XCTAssertEqual(vm.sessionState.snapbackMove, ChessMove(from: origin, to: target))
         XCTAssertEqual(vm.animatedArrival, [origin: target])
         XCTAssertEqual(vm.boardMoveRevision, revisionBeforeAttempt + 2,
                        "snap-back must change the observed value so SwiftUI animates the return")
@@ -206,11 +206,11 @@ final class ChessAndPuzzleTests: XCTestCase {
         tracker.begin(puzzles)
 
         let vm = TacticsTrainingStore(dataset: puzzles, dailyPuzzleCount: 2, mode: .reviewRound)
-        vm.roundTracker = tracker
+        vm.roundState.tracker = tracker
         vm.startNextRound()
 
-        XCTAssertEqual(vm.mode, .reviewRound)
-        XCTAssertEqual(vm.puzzles.map(\.id), puzzles.map(\.id))
+        XCTAssertEqual(vm.roundState.mode, .reviewRound)
+        XCTAssertEqual(vm.roundState.puzzles.map(\.id), puzzles.map(\.id))
         XCTAssertEqual(state.activePuzzleIDs(), puzzles.map(\.id))
     }
 
@@ -222,7 +222,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         tracker.begin(puzzles)
 
         let vm = TacticsTrainingStore(dataset: puzzles, dailyPuzzleCount: 2, mode: .reviewRound)
-        vm.roundTracker = tracker
+        vm.roundState.tracker = tracker
         XCTAssertFalse(vm.isNewRoundAvailable)
         XCTAssertFalse(vm.shouldShowNewRoundAction)
 
@@ -242,7 +242,7 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         // Before the puzzle is finished the heart is unavailable.
         vm.toggleFavorite()
-        XCTAssertFalse(vm.isCurrentFavorite)
+        XCTAssertFalse(vm.sessionState.isCurrentFavorite)
         XCTAssertTrue(store.favoriteIDs().isEmpty, "favoriting must be a no-op before the puzzle is finished")
 
         // Solve, then favorite: persists through the repository.
@@ -253,15 +253,15 @@ final class ChessAndPuzzleTests: XCTestCase {
             waited += 1
         }
         try await solveActivePuzzle(on: vm)
-        XCTAssertTrue(vm.currentPuzzleFinished)
+        XCTAssertTrue(vm.sessionState.currentPuzzleFinished)
 
         vm.toggleFavorite()
-        XCTAssertTrue(vm.isCurrentFavorite)
+        XCTAssertTrue(vm.sessionState.isCurrentFavorite)
         XCTAssertEqual(store.favoriteIDs(), [puzzle.id])
 
         // Toggling again removes it.
         vm.toggleFavorite()
-        XCTAssertFalse(vm.isCurrentFavorite)
+        XCTAssertFalse(vm.sessionState.isCurrentFavorite)
         XCTAssertTrue(store.favoriteIDs().isEmpty)
     }
 
@@ -274,7 +274,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         // Single-puzzle round solved cleanly: the snapshot must capture the
         // rating AFTER the last puzzle's delta landed, not before.
         let vm = TacticsTrainingStore(dataset: Array(Puzzle.samples.prefix(1)), progress: store, ratingStore: ratingStore, dailyPuzzleCount: 1)
-        let ratingBefore = vm.userRating
+        let ratingBefore = vm.progressState.userRating
 
         vm.start()
         try await waitForWaitingForMove(on: vm)
@@ -282,7 +282,7 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         XCTAssertEqual(store.ratingHistory().count, 1, "one snapshot per completed round")
         let snapshot = try XCTUnwrap(store.ratingHistory().first)
-        XCTAssertEqual(snapshot.rating, vm.userRating,
+        XCTAssertEqual(snapshot.rating, vm.progressState.userRating,
                        "snapshot must equal the settled rating (hint-free solve moves it)")
         XCTAssertNotEqual(snapshot.rating, ratingBefore,
                           "a clean first-attempt solve must have moved the rating into the snapshot")
@@ -312,7 +312,7 @@ final class ChessAndPuzzleTests: XCTestCase {
         var guardCount = 0
         while vm.state != .solved && guardCount < 150 {
             if vm.state == .waitingForMove, let expected = vm.sessionForTest().expectedMove {
-                if vm.selectedSquare == nil {
+                if vm.sessionState.selectedSquare == nil {
                     vm.select(expected.from)
                 } else {
                     // A pending promotion (not in the samples) would need a

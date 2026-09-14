@@ -171,3 +171,17 @@ final class TacticsSessionStore {
         }
     }
 }
+
+extension PuzzleSession {
+    /// Stand-in session for a puzzle that failed to build. Shows an empty
+    /// board in the error state instead of crashing the app.
+    static func empty() -> PuzzleSession {
+        try! PuzzleSession(puzzle: Puzzle(
+            id: "empty",
+            fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+            moves: ["e1e2", "e8e7"],
+            rating: nil,
+            themes: []
+        ))
+    }
+}
