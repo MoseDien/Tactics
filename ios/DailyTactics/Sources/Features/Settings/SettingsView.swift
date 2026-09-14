@@ -19,6 +19,15 @@ struct SettingsView: View {
                 ProgressView()
             }
         }
+        .task {
+            // Attached outside the `if let`: the form (and its own modifiers)
+            // only render once the model exists, so this must live here.
+            if viewModel == nil {
+                let built = SettingsViewModel(dependencies: dependencies)
+                built.load()
+                viewModel = built
+            }
+        }
     }
 
     @ViewBuilder
@@ -178,14 +187,6 @@ struct SettingsView: View {
             Text(model.debugNotice ?? "")
         }
         #endif
-        .task {
-            // The sheet inherits the environment; build the model once.
-            if viewModel == nil {
-                let built = SettingsViewModel(dependencies: dependencies)
-                built.load()
-                viewModel = built
-            }
-        }
     }
 
     // MARK: - Rating trend
