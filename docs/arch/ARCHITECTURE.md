@@ -103,7 +103,7 @@ flowchart TD
     Entry --> Root["RootView"]
     Root -->|"题库未导入"| Loading["LibraryLoadingView"]
     Root -->|"题库已导入"| Restore["恢复 Round 状态"]
-    Restore -->|"时窗内且有固定题目"| Review["TacticsView: Review"]
+    Restore -->|"时窗内且有固定题目"| Resume["TacticsView: Resume Play"]
     Restore -->|"无有效 Round"| Play["TacticsView: Play"]
 ```
 

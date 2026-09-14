@@ -48,5 +48,6 @@ extension TacticsTrainingStore {
             ratingEnabled: canUpdateRating,
             usedHint: sessionState.hintMove != nil
         )
+        roundState.markCurrentPuzzleFinished()
     }
 }

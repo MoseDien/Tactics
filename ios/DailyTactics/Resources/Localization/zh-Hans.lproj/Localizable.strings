@@ -56,7 +56,7 @@
 "tactics.reviewing_move" = "正在复盘第 %ld / %ld 步";
 "tactics.puzzle_progress" = "第 %ld 题，共 %ld 题";
 "tactics.next_puzzle" = "下一题";
-"tactics.next_round" = "下一轮题目";
+"tactics.next_round" = "新一轮";
 "tactics.next_round_ready_hint" = "开始新一轮题目";
 "tactics.next_round_wait_hint" = "当前轮次结束后解锁";
 "tactics.next_round_wait" = "下一轮题目暂未开放。";

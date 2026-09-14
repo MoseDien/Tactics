@@ -5,13 +5,17 @@ import TacticsData
 
 struct TacticsView: View {
     let mode: TacticsMode
+    let resumesActiveRound: Bool
     @Environment(AppDependencies.self) private var dependencies
     @State private var screen: TacticsScreenViewModel?
     @State private var showingSettings = false
     @State private var showingHowToPlay = false
     @State private var reviewingPuzzle: Puzzle?
 
-    init(mode: TacticsMode = .play) { self.mode = mode }
+    init(mode: TacticsMode = .play, resumesActiveRound: Bool = false) {
+        self.mode = mode
+        self.resumesActiveRound = resumesActiveRound
+    }
 
     var body: some View {
         Group {
@@ -26,7 +30,8 @@ struct TacticsView: View {
             let training = TacticsTrainingStore(
                 dependencies: dependencies,
                 dailyPuzzleCount: RoundPolicy.puzzleCount,
-                mode: mode
+                mode: mode,
+                resumesActiveRound: resumesActiveRound
             )
             let screen = TacticsScreenViewModel(training: training)
             screen.start()

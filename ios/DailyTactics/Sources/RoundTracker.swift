@@ -42,6 +42,12 @@ final class RoundTracker {
         state.activePuzzleIDs()
     }
 
+    func nextPuzzleIndex() -> Int { state.nextPuzzleIndex() }
+
+    func setNextPuzzleIndex(_ index: Int) {
+        state.setNextPuzzleIndex(index)
+    }
+
     func currentPuzzles(from library: [Puzzle]) -> [Puzzle] {
         RoundLookup.puzzles(withIDs: state.activePuzzleIDs(), in: library)
     }

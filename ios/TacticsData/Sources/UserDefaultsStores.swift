@@ -8,13 +8,14 @@ public enum AppPreferences {
     public static let difficultyMode = "dailytactics.difficultyMode"
     public static let roundStartTime = "dailytactics.roundStartTime"
     public static let activeRoundPuzzleIDs = "dailytactics.activeRoundPuzzleIDs"
+    public static let activeRoundNextPuzzleIndex = "dailytactics.activeRoundNextPuzzleIndex"
     public static let puzzleSequence = "dailytactics.puzzleSequence"
     public static let libraryImported = "dailytactics.libraryImported"
     public static let roundDuration = "dailytactics.roundDuration"
 
     /// All of the above.
     public static let allKeys: [String] = [
-        userRating, difficultyMode, roundStartTime, activeRoundPuzzleIDs,
+        userRating, difficultyMode, roundStartTime, activeRoundPuzzleIDs, activeRoundNextPuzzleIndex,
         puzzleSequence, libraryImported, roundDuration,
     ]
 
@@ -87,6 +88,7 @@ public final class DifficultyModeStore {
 public final class UserDefaultsRoundStateStore: RoundStateRepository {
     private let startKey = AppPreferences.roundStartTime
     private let puzzleIDsKey = AppPreferences.activeRoundPuzzleIDs
+    private let nextPuzzleIndexKey = AppPreferences.activeRoundNextPuzzleIndex
     private let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {
@@ -101,8 +103,17 @@ public final class UserDefaultsRoundStateStore: RoundStateRepository {
         defaults.stringArray(forKey: puzzleIDsKey) ?? []
     }
 
+    public func nextPuzzleIndex() -> Int {
+        max(0, defaults.integer(forKey: nextPuzzleIndexKey))
+    }
+
+    public func setNextPuzzleIndex(_ index: Int) {
+        defaults.set(max(0, index), forKey: nextPuzzleIndexKey)
+    }
+
     public func begin(_ puzzles: [Puzzle], at start: Date) {
         defaults.set(start, forKey: startKey)
         defaults.set(puzzles.map(\.id), forKey: puzzleIDsKey)
+        setNextPuzzleIndex(0)
     }
 }

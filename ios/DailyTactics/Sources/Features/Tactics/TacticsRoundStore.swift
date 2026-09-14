@@ -42,6 +42,20 @@ final class TacticsRoundStore {
         )
     }
 
+    /// On relaunch, continue at this round's persisted cursor. This must not
+    /// consult global puzzle completion because a previously solved puzzle can
+    /// legitimately appear in a later fallback round.
+    @discardableResult
+    func restorePersistedCursor() -> Int {
+        let persisted = tracker?.nextPuzzleIndex() ?? 0
+        currentIndex = min(max(0, persisted), max(0, puzzles.count - 1))
+        return currentIndex
+    }
+
+    func markCurrentPuzzleFinished() {
+        tracker?.setNextPuzzleIndex(currentIndex + 1)
+    }
+
     func advance(
         currentPuzzleFinished: Bool,
         pacing: TacticsPacing,

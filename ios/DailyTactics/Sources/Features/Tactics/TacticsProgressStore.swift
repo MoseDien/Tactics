@@ -36,6 +36,17 @@ final class TacticsProgressStore {
         roundRecorded = false
     }
 
+    /// Rehydrate the result row when an active Round is resumed after process
+    /// termination. A failure takes precedence because the original result is
+    /// still wrong even if the player later finished the line.
+    func restoreRoundOutcomes(for puzzles: [Puzzle]) {
+        outcomes = puzzles.map { puzzle in
+            guard let repositories else { return nil }
+            if repositories.hasFailed(puzzle.id) { return .wrong }
+            return repositories.isCompleted(puzzle.id) ? .correct : nil
+        }
+    }
+
     func beginPuzzle() {
         hadMistake = false
         firstAttemptWasCorrect = false

@@ -60,9 +60,9 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 ### Round（8 小时节奏）
 
 - 每个 round 默认包含 3 道题，数量由 `RoundPolicy.puzzleCount` 配置。
-- 新 round 开始时记录 `dailytactics.roundStartTime` 到 UserDefaults，并持久化当前题目 ID。
+- 新 round 开始时记录 `dailytactics.roundStartTime` 到 UserDefaults，并持久化当前题目 ID 与本轮下一题索引；每完成一题即推进该索引。
 - 只有当 `当前时间 - roundStartTime >= RoundPolicy.roundDuration` 时，才能开始下一个 round；正式版 `roundDuration = 12 小时`，Debug 构建缩短为 5 分钟以便手工测试完整周期。
-- 冷却期间重新打开 App 不会随机生成新题，只进入当前 round 的 Review mode；若启动时窗口已经过期，则直接创建新的 Play round，不显示 `Next round`。
+- 冷却期间重新打开 App 不会随机生成新题，而是恢复当前 round 的 **Play mode**（包括只完成一题后被系统终止的情形）；Review mode 只会在同一进程中完成 Play round 后、用户点击 `Next puzzle` 时进入。若启动时窗口已经过期，则直接创建新的 Play round，不显示 `Next round`。
 - 窗口状态在**生命周期事件**上重查:App 启动(restore)、切回前台(scenePhase .active)各 refresh 一次;`RoundTracker` 自带的到期唤醒兜底进程内计时。
 - 若切回前台时窗口已经过期，`Next round` 会立即显示在棋盘页，不依赖当前棋局正处于等待走棋、对手走棋或复盘等哪一种状态。
 - `Next round` 始终可点击：冷却结束后以强调色显示并开始下一组题目；冷却中保持灰色，点击会展示剩余冷却时间。ViewModel 也会再次校验窗口，避免其他调用方绕过节奏规则。

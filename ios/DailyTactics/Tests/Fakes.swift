@@ -24,11 +24,15 @@ final class MutableClock: @unchecked Sendable {
 final class InMemoryRoundState: RoundStateRepository {
     private(set) var storedStart: Date?
     private(set) var storedIDs: [String] = []
+    private(set) var storedNextPuzzleIndex = 0
 
     func startTime() -> Date? { storedStart }
     func activePuzzleIDs() -> [String] { storedIDs }
+    func nextPuzzleIndex() -> Int { storedNextPuzzleIndex }
+    func setNextPuzzleIndex(_ index: Int) { storedNextPuzzleIndex = max(0, index) }
     func begin(_ puzzles: [Puzzle], at start: Date) {
         storedStart = start
         storedIDs = puzzles.map(\.id)
+        storedNextPuzzleIndex = 0
     }
 }

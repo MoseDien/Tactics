@@ -156,6 +156,13 @@ public final class SwiftDataRepositories: PuzzleDataRepositories {
         return (try? context.fetch(descriptor).first?.isCompleted) ?? false
     }
 
+    public func hasFailed(_ puzzleId: String) -> Bool {
+        let descriptor = FetchDescriptor<PuzzleProgress>(
+            predicate: #Predicate { $0.puzzleId == puzzleId }
+        )
+        return (try? context.fetch(descriptor).first?.hasFailed) ?? false
+    }
+
     public func markFailed(_ puzzleId: String) {
         let descriptor = FetchDescriptor<PuzzleProgress>(
             predicate: #Predicate { $0.puzzleId == puzzleId }

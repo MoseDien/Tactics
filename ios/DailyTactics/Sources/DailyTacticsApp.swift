@@ -24,20 +24,24 @@ private struct RootView: View {
     @Environment(AppDependencies.self) private var dependencies
     @AppStorage(LibraryStateStore.importedKey) private var libraryImported = false
     // Resolved once per session so window changes don't recreate TacticsView.
-    @State private var initialMode: TacticsMode?
+    @State private var launchConfiguration: TacticsLaunchConfiguration?
 
     var body: some View {
         if !libraryImported {
             LibraryLoadingView()
-        } else if let initialMode {
-            TacticsView(mode: initialMode)
+        } else if let launchConfiguration {
+            TacticsView(
+                mode: launchConfiguration.mode,
+                resumesActiveRound: launchConfiguration.resumesActiveRound
+            )
         } else {
             ProgressView("Loading…")
                 .task {
                     dependencies.round.restore()
-                    initialMode = dependencies.round.activePuzzleIDs().isEmpty || !dependencies.round.isWithinWindow
-                        ? .play
-                        : .reviewRound
+                    launchConfiguration = TacticsLaunchConfiguration.resolve(
+                        activePuzzleIDs: dependencies.round.activePuzzleIDs(),
+                        isWithinWindow: dependencies.round.isWithinWindow
+                    )
                 }
         }
     }

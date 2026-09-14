@@ -5,6 +5,67 @@ import TacticsData
 @testable import DailyTactics
 
 final class ChessAndPuzzleTests: XCTestCase {
+    func testLaunchResumesAnActiveRoundInPlayMode() {
+        let configuration = TacticsLaunchConfiguration.resolve(
+            activePuzzleIDs: ["puzzle-1", "puzzle-2"],
+            isWithinWindow: true
+        )
+
+        XCTAssertTrue(configuration.resumesActiveRound)
+        XCTAssertEqual(configuration.mode, .play)
+    }
+
+    func testLaunchCreatesAPlayRoundWhenNoActiveRoundCanBeResumed() {
+        XCTAssertEqual(
+            TacticsLaunchConfiguration.resolve(activePuzzleIDs: [], isWithinWindow: true),
+            TacticsLaunchConfiguration(mode: .play, resumesActiveRound: false)
+        )
+        XCTAssertEqual(
+            TacticsLaunchConfiguration.resolve(activePuzzleIDs: ["expired"], isWithinWindow: false),
+            TacticsLaunchConfiguration(mode: .play, resumesActiveRound: false)
+        )
+    }
+
+    @MainActor
+    func testResumedRoundStartsAtItsPersistedCursor() {
+        let round = TacticsRoundStore(
+            puzzles: Array(Puzzle.samples.prefix(3)),
+            repositories: nil,
+            dailyPuzzleCount: 3,
+            mode: .play
+        )
+        let state = InMemoryRoundState()
+        let tracker = RoundTracker(state: state)
+        tracker.begin(round.puzzles)
+        tracker.setNextPuzzleIndex(1)
+        round.tracker = tracker
+
+        XCTAssertEqual(
+            round.restorePersistedCursor(),
+            1
+        )
+        XCTAssertEqual(round.currentIndex, 1)
+    }
+
+    @MainActor
+    func testResumedRoundRestoresCompletedAndFailedOutcomeMarkers() {
+        let repositories = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        let puzzles = Array(Puzzle.samples.prefix(3))
+        repositories.markCompleted(puzzles[0].id)
+        repositories.markFailed(puzzles[1].id)
+
+        let progress = TacticsProgressStore(
+            repositories: repositories,
+            ratingStore: UserRatingStore(defaults: UserDefaults(suiteName: "restored-outcomes-\(UUID().uuidString)")!),
+            puzzleCount: puzzles.count
+        )
+        progress.restoreRoundOutcomes(for: puzzles)
+
+        XCTAssertEqual(progress.outcomes[0], .correct)
+        XCTAssertEqual(progress.outcomes[1], .wrong)
+        XCTAssertNil(progress.outcomes[2])
+    }
+
     @MainActor
     func testBoardAutoOrientsToPlayerColor() async throws {
         // A single-puzzle dataset makes the "which puzzle loaded" variable

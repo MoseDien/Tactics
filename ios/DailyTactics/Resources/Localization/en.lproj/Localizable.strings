@@ -61,7 +61,7 @@
 "tactics.reviewing_move" = "Reviewing move %ld / %ld";
 "tactics.puzzle_progress" = "PUZZLE %ld OF %ld";
 "tactics.next_puzzle" = "Next";
-"tactics.next_round" = "Next round";
+"tactics.next_round" = "New round";
 "tactics.next_round_ready_hint" = "Starts a fresh round of puzzles";
 "tactics.next_round_wait_hint" = "Unlocks when the current round's time window ends";
 "tactics.next_round_wait" = "The next round is not available yet.";

@@ -54,6 +54,9 @@ public protocol PuzzleProgressRepository: AnyObject {
     func markFailed(_ puzzleId: String)
     func hasAttempted(_ puzzleId: String) -> Bool
     func isCompleted(_ puzzleId: String) -> Bool
+    /// A failed first attempt remains the Round result even if the player
+    /// later completes the line.
+    func hasFailed(_ puzzleId: String) -> Bool
     func completedCount() -> Int
     func failedCount() -> Int
     /// Favorites (only completable puzzles, enforced by the caller): stamp or
@@ -92,11 +95,13 @@ public protocol PuzzleDataRepositories: PuzzleLibraryRepository,
     func deleteAllData()
 }
 
-/// Persisted round state (active round identity + start time).
+/// Persisted round state (active round identity, start time, and cursor).
 @MainActor
 public protocol RoundStateRepository: AnyObject {
     func startTime() -> Date?
     func activePuzzleIDs() -> [String]
+    func nextPuzzleIndex() -> Int
+    func setNextPuzzleIndex(_ index: Int)
     func begin(_ puzzles: [Puzzle], at start: Date)
 }
 
