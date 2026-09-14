@@ -11,9 +11,8 @@ enum TacticsSessionEvent {
     case opponentMoving(firstAttemptCorrect: Bool)
 }
 
-/// Mutable state for the currently displayed puzzle. It intentionally owns no
-/// repository or round-selection policy: `TacticsTrainingStore` coordinates
-/// those cross-feature actions and reports results to `TacticsProgressStore`.
+/// Mutable state for the displayed puzzle; no repositories or selection
+/// policy (the coordinator owns those).
 @MainActor
 @Observable
 final class TacticsSessionStore {
@@ -173,8 +172,7 @@ final class TacticsSessionStore {
 }
 
 extension PuzzleSession {
-    /// Stand-in session for a puzzle that failed to build. Shows an empty
-    /// board in the error state instead of crashing the app.
+    /// Fallback for an unloadable puzzle: empty board, error state.
     static func empty() -> PuzzleSession {
         try! PuzzleSession(puzzle: Puzzle(
             id: "empty",

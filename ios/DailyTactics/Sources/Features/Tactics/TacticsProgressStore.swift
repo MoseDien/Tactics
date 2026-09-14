@@ -3,9 +3,8 @@ import Observation
 import PuzzleKit
 import TacticsData
 
-/// Owns persisted puzzle progress, per-round outcomes, and rating changes.
-/// Session and round code report events to this store; neither duplicates its
-/// scoring or history-writing rules.
+/// Owns persisted progress, round outcomes, and rating changes; the sole
+/// writer of scoring and history rules.
 @MainActor
 @Observable
 final class TacticsProgressStore {

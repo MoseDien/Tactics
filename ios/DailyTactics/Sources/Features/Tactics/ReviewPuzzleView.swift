@@ -2,20 +2,14 @@ import SwiftUI
 import PuzzleKit
 import ChessCore
 
-/// Review for one completed puzzle: step through its line move by move.
-/// Used from the favorites list; round review has its own continuous player
-/// (`RoundReviewView`).
+/// Single-puzzle replay from the favorites list.
 struct ReviewPuzzleView: View {
     @Environment(\.dismiss) private var dismiss
     let puzzle: Puzzle
     @State private var session: PuzzleSession?
-    /// Bumped on every step so the board sees each replayed move as a fresh
-    /// animation transaction (forward and back alike).
     @State private var stepRevision = 0
-    /// Whether the pending step moves the line forward.
     @State private var steppingForward = false
-    /// The move a back-step just removed (captured before the session drops
-    /// it): its piece re-appears on `from`, having arrived from `to`.
+    /// Captured before stepBack drops it: the piece re-appears on `from`.
     @State private var lastUndoneMove: ChessMove?
 
     var body: some View {
@@ -50,9 +44,6 @@ struct ReviewPuzzleView: View {
 
     // MARK: - Header
 
-    /// The puzzle's own card, mirroring `RoundReviewView`'s: side to move
-    /// (the player's king), id and subtitle on the left; rating, difficulty
-    /// stars and the leading theme on the right.
     private var header: some View {
         HStack(spacing: 14) {
             HStack {
@@ -104,8 +95,7 @@ struct ReviewPuzzleView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    /// The side the puzzle asks the player to move for (the FEN side-to-move's
-    /// opponent — same rule as the live session).
+    /// FEN side-to-move's opponent, as the live session derives it.
     private var playerColor: PieceColor {
         guard let side = puzzle.fen.split(separator: " ").dropFirst().first,
               side == "w" || side == "b"
@@ -119,16 +109,11 @@ struct ReviewPuzzleView: View {
 
     // MARK: - Replay animation
 
-    /// The replay's animation input: forward steps slide the arriving piece
-    /// in from its origin (live play's rule); back-steps slide the undone
-    /// move's piece home — the revert runs one-third faster. The initial
-    /// load renders in place (a ready position).
+    /// Forward steps slide; back-steps revert-slide; loads render in place.
     private func boardAnimation(for session: PuzzleSession) -> BoardAnimation {
         var arrival: [Square: Square] = [:]
         var isSnapback = false
         if stepRevision > 0, !steppingForward, let undone = lastUndoneMove {
-            // The move a back-step just removed: its piece re-appears on
-            // `from`, having slid home from `to` — one-third faster.
             arrival[undone.from] = undone.to
             isSnapback = true
         } else if stepRevision > 0, let move = session.lastMove, steppingForward {

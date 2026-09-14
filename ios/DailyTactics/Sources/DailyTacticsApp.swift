@@ -12,8 +12,6 @@ struct DailyTacticsApp: App {
             RootView()
                 .environment(dependencies)
                 .onChange(of: scenePhase) { _, phase in
-                    // Time passes while suspended; recompute the round window
-                    // on activation so Next round reflects reality.
                     if phase == .active {
                         dependencies.round.refresh()
                     }
@@ -24,12 +22,8 @@ struct DailyTacticsApp: App {
 
 private struct RootView: View {
     @Environment(AppDependencies.self) private var dependencies
-    /// First-launch gate: the puzzle library is bulk-imported into SwiftData
-    /// once. Observed via `@AppStorage` so completing the import re-routes.
     @AppStorage(LibraryStateStore.importedKey) private var libraryImported = false
-    // Resolve the initial mode once per app session. The round window changes
-    // when a new round starts, and must not cause SwiftUI to recreate the
-    // active TacticsView in review mode.
+    // Resolved once per session so window changes don't recreate TacticsView.
     @State private var initialMode: TacticsMode?
 
     var body: some View {
@@ -41,11 +35,6 @@ private struct RootView: View {
             ProgressView("Loading…")
                 .task {
                     dependencies.round.restore()
-                    // A still-running round resumes in Review. If its window
-                    // already expired before launch, begin the newly available
-                    // batch immediately in Play instead of showing a redundant
-                    // Next round button. Foregrounding an existing screen
-                    // remains user-driven and shows that button instead.
                     initialMode = dependencies.round.activePuzzleIDs().isEmpty || !dependencies.round.isWithinWindow
                         ? .play
                         : .reviewRound

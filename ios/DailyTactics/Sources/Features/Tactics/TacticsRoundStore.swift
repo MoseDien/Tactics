@@ -3,9 +3,8 @@ import Observation
 import PuzzleKit
 import TacticsData
 
-/// State and dependencies scoped to one training round. Selection and loading
-/// are coordinated by `TacticsTrainingStore`, because they must also reset the
-/// current `TacticsSessionStore` and notify `TacticsProgressStore`.
+/// State and dependencies scoped to one training round; selection stays with
+/// the coordinator (it resets the session and progress stores too).
 @MainActor
 @Observable
 final class TacticsRoundStore {

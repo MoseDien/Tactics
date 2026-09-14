@@ -3,7 +3,6 @@ import PuzzleKit
 import ChessCore
 import TacticsData
 
-/// The user's rating with the latest delta, shown above the move controls.
 struct RatingPanelView: View {
     let viewModel: TacticsRatingViewModel
 
@@ -28,7 +27,6 @@ struct RatingPanelView: View {
     }
 }
 
-/// One row of dots: the per-puzzle outcomes of the current round.
 struct RoundProgressView: View {
     let viewModel: TacticsProgressViewModel
 
@@ -38,10 +36,8 @@ struct RoundProgressView: View {
     }
 }
 
-/// Flip / move counter / hint, between the board and the feedback area.
-/// The counter sits at the row's true geometric center (overlay) — the sides
-/// hold different content widths (flip + favorite vs. hint), so flow layout
-/// with two spacers would push it off-center.
+/// Flip / counter / hint. The counter is an overlay: the sides hold
+/// different widths (flip+favorite vs hint), so flow layout would off-center it.
 struct MoveControlsView: View {
     let viewModel: TacticsControlsViewModel
     let onReviewCurrentPuzzle: () -> Void
@@ -84,7 +80,6 @@ struct MoveControlsView: View {
         }
     }
 
-    /// "2 / 3 · P" pinned to the row's center, whatever the sides hold.
     private var moveCounter: some View {
         HStack(spacing: 5) {
             Text("\(viewModel.currentMoveNumber) / \(viewModel.totalUserMoves)")
@@ -101,9 +96,7 @@ struct MoveControlsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The favorite heart, right of the flip button. Outlines only: pink when
-    /// favorited, gray otherwise. Appears once the puzzle is finished (play
-    /// or review); hidden keeps its space so the center counter doesn't shift.
+    /// Pink when favorited; hidden (space kept) until the puzzle finishes.
     @ViewBuilder
     private var favoriteButton: some View {
         Button {
@@ -135,9 +128,6 @@ struct RoundActionsView: View {
                 EmptyView()
             }
 
-            // This uses the same leading action position as the completed
-            // puzzle controls above, but is available in every active board
-            // state after a foreground refresh opens a new round.
             if viewModel.shouldShowNewRoundAction {
                 HStack {
                     NextRoundButton(viewModel: viewModel)
@@ -164,8 +154,7 @@ struct RoundActionsView: View {
 
 }
 
-/// The bottom-of-screen, transient message area. It keeps move-state
-/// feedback separate from result/navigation controls above it.
+/// Transient move-state messages, kept below the result/navigation actions.
 struct TacticsMessageArea: View {
     let viewModel: TacticsMessageAreaViewModel
 
@@ -236,8 +225,6 @@ private extension View {
     }
 }
 
-/// One control shared by the completed-round action row and the foreground
-/// availability prompt.
 struct NextRoundButton: View {
     let viewModel: TacticsRoundActionsViewModel
 
@@ -252,8 +239,7 @@ struct NextRoundButton: View {
     }
 }
 
-/// The four promotion choices shown over the board when a pawn reaches the
-/// last rank. The move itself is only submitted once a piece is picked.
+/// Four promotion choices; the move submits only after a pick.
 struct PromotionPickerView: View {
     let viewModel: TacticsPromotionViewModel
     let promotion: (from: Square, to: Square)

@@ -22,8 +22,6 @@ struct TacticsView: View {
             }
         }
         .task {
-            // Top up the library first: if the unattempted pool can't fill a
-            // round, fetch the next remote chunk (silently skipped offline).
             _ = await dependencies.provisioner.ensureRoundAvailable(minimum: RoundPolicy.puzzleCount)
             let training = TacticsTrainingStore(
                 dependencies: dependencies,

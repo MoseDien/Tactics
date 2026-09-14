@@ -2,21 +2,18 @@ import Foundation
 import Observation
 import PuzzleKit
 
-/// Observable wrapper over the round window. Owns the clock (injectable) so
-/// `isWithinWindow` is testable without sleeping, and schedules a single
-/// wake-up at expiry so the Next-round button unlocks on time without any
-/// polling timer in the view.
+/// Observable round-window wrapper: injectable clock (testable without
+/// sleeping) plus one expiry wake-up (no polling timers).
 @MainActor
 @Observable
 final class RoundTracker {
     private let state: any RoundStateRepository
     private let now: @Sendable () -> Date
-    /// Window length, injectable so the debug duration picker can override
-    /// `RoundPolicy.roundDuration` without the domain reading preferences.
+    /// Injectable so the debug picker overrides the policy without the domain
+    /// reading preferences.
     private let duration: @Sendable () -> TimeInterval
     private var expiryTask: Task<Void, Never>?
 
-    /// Recomputed from the persisted start time; observers see it flip.
     private(set) var isWithinWindow: Bool = false
 
     init(
@@ -29,13 +26,12 @@ final class RoundTracker {
         self.duration = duration
     }
 
-    /// Reads persisted state (app launch) and starts the expiry watch.
+    /// Launch: read persisted state and start the expiry watch.
     func restore() {
         refresh()
         watchExpiry()
     }
 
-    /// Begins a new round at the current instant and watches its expiry.
     func begin(_ puzzles: [Puzzle]) {
         state.begin(puzzles, at: now())
         refresh()
@@ -50,18 +46,13 @@ final class RoundTracker {
         RoundLookup.puzzles(withIDs: state.activePuzzleIDs(), in: library)
     }
 
-    /// When the current window ends (the next round unlocks), if a round is
-    /// persisted and still running. The UI shows this instant as a clock
-    /// time rather than a countdown, so it stays truthful without ticking.
     var nextRoundUnlocksAt: Date? {
         guard let start = state.startTime() else { return nil }
         let end = RoundWindow(startedAt: start, duration: duration()).expiresAt
         return end > now() ? end : nil
     }
 
-    /// Recomputes the window from the persisted start time. Public so the app
-    /// can re-check on lifecycle events (foreground, screen entry) — the
-    /// scheduled expiry watch alone misses time passed while suspended.
+    /// Re-check on lifecycle events; the expiry sleep misses suspended time.
     func refresh() {
         guard let start = state.startTime() else {
             isWithinWindow = false
@@ -99,8 +90,7 @@ final class RoundTracker {
     }
     #endif
 
-    /// One scheduled wake-up at window expiry (no periodic timer). Replacing
-    /// a pending watch cancels it first.
+    /// One wake-up at expiry; replacing a pending watch cancels it first.
     private func watchExpiry() {
         expiryTask?.cancel()
         guard let start = state.startTime() else { return }

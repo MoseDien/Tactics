@@ -3,8 +3,7 @@ import PuzzleKit
 import ChessCore
 import TacticsData
 
-/// View model for the favorites list: loads the favorited puzzles with their
-/// stamps, derives each row's display fields, and owns the row-ordering rule.
+/// Favorites list state and row derivations.
 @MainActor
 @Observable
 final class FavoritesViewModel {
@@ -15,8 +14,7 @@ final class FavoritesViewModel {
         self.dependencies = dependencies
     }
 
-    /// Newest favorites first; puzzles without a stamp (legacy rows) sink to
-    /// the bottom in id order.
+    /// Newest first; untimestamped legacy rows sink in id order.
     func reload() {
         let library = dependencies.data.allPuzzles()
         let stamps = dependencies.data.favoriteStamps()
@@ -35,8 +33,7 @@ final class FavoritesViewModel {
 
     // MARK: Row display fields
 
-    /// The side the puzzle asks the player to move for, read off the FEN's
-    /// side to move (the machine opens, so the user holds its opponent).
+    /// FEN side-to-move's opponent (the machine opens).
     func playerColorKey(for puzzle: Puzzle) -> String {
         guard let side = fenSide(for: puzzle) else { return "favorites.side_unknown" }
         return side == "w" ? "favorites.side_black" : "favorites.side_white"

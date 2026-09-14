@@ -1,17 +1,10 @@
 import SwiftUI
 import PuzzleKit
 
-/// A horizontal row of per-puzzle markers shown below the board. Shared by the
-/// daily round so all result screens read identically:
-///
-/// - green check: solved correctly
-/// - gray check on a gray disc: the puzzle currently being played
-/// - gray check: not yet attempted
-/// - soft-red cross: a wrong move was made
+/// Green check = correct, gray disc = current puzzle, gray check = not yet
+/// attempted, soft-red cross = wrong.
 struct PuzzleResultRow: View {
     let outcomes: [PuzzleOutcome?]
-    /// The puzzle currently on the board, if any. It renders as a gray disc
-    /// with a white check so the player can see where they are in the round.
     var currentIndex: Int? = nil
 
     var body: some View {
@@ -25,8 +18,6 @@ struct PuzzleResultRow: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// The marker keeps its outcome color; being the current puzzle adds a
-    /// light gray disc behind it whatever the outcome.
     @ViewBuilder
     private func marker(for outcome: PuzzleOutcome?, isCurrent: Bool) -> some View {
         symbol(for: outcome)

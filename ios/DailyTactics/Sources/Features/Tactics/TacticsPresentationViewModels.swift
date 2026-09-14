@@ -3,8 +3,7 @@ import Observation
 import ChessCore
 import PuzzleKit
 
-/// Composition root for the training screen. It composes dedicated session,
-/// progress, and training-flow stores into view-specific interfaces.
+/// Composes the training stores into view-specific view models.
 @MainActor
 @Observable
 final class TacticsScreenViewModel {

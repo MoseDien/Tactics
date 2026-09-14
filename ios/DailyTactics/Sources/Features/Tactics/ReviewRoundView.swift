@@ -3,9 +3,7 @@ import PuzzleKit
 import ChessCore
 import TacticsData
 
-/// History browser: rounds grouped into calendar weeks (newest first), each
-/// row showing the round's results at a glance. Tapping a round opens the
-/// continuous round review player.
+/// History browser grouped by week; a round opens the review player.
 struct HistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppDependencies.self) private var dependencies
@@ -44,8 +42,6 @@ struct HistoryView: View {
         }
     }
 
-    /// One round: completion time, the per-puzzle result row, and a solved
-    /// ratio capsule.
     private func roundRow(_ round: RoundSummary) -> some View {
         HStack(spacing: 12) {
             Text(round.completedAt, format: .dateTime.weekday(.abbreviated).hour().minute())
@@ -91,7 +87,6 @@ struct HistoryView: View {
         }
     }
 
-    /// Week title plus a totals line (puzzles and correct/wrong counts).
     private func weekHeader(_ week: HistoryGrouper.Week) -> some View {
         let s = week.summary
         return HStack {

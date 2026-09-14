@@ -3,20 +3,15 @@ import PuzzleKit
 import ChessCore
 import TacticsData
 
-/// Round navigation: moving between the roundState.puzzles of the current round, looping
-/// the finished round in review, and starting the next round once its window
-/// opens.
+/// Round navigation: between puzzles, looping the finished round, starting
+/// the next one once its window opens.
 extension TacticsTrainingStore {
     var puzzleCount: Int { roundState.puzzles.count }
     var puzzleNumber: Int { roundState.currentIndex + 1 }
     var isLastPuzzle: Bool { roundState.currentIndex >= roundState.puzzles.count - 1 }
     var isRoundComplete: Bool { isLastPuzzle && sessionState.currentPuzzleFinished }
 
-    /// The puzzle has been completed at least once. Review navigation must not
-    /// revoke this state or disable the Next puzzle action.
-    /// Once the current puzzle is finished, navigation is available. At the
-    /// end of a round we deliberately keep it enabled so the user can loop
-    /// back through the completed round for review, even in Play roundState.mode.
+    /// Stays enabled at the end of a round so the player can loop back in review.
     var canAdvanceToNextPuzzle: Bool {
         sessionState.currentPuzzleFinished && (!isLastPuzzle || isRoundComplete)
     }
@@ -26,9 +21,7 @@ extension TacticsTrainingStore {
         return !tracker.isWithinWindow
     }
 
-    /// The completed-puzzle result controls already contain the Next round
-    /// action. In every other board state, surface a standalone CTA as soon
-    /// as the round window has expired.
+    /// Standalone CTA in every non-completed state once the window expired.
     var shouldShowNewRoundAction: Bool {
         isNewRoundAvailable && !sessionState.currentPuzzleFinished
     }
@@ -45,12 +38,10 @@ extension TacticsTrainingStore {
     var canUpdateRating: Bool { roundState.mode == .play }
     var canInteractWithPuzzle: Bool { !inReview && (state == .waitingForMove || state == .incorrectMove) }
 
-    /// The current puzzle's Lichess difficulty rating, if the data provides it.
     var currentPuzzleRating: Int? {
         roundState.puzzles.indices.contains(roundState.currentIndex) ? roundState.puzzles[roundState.currentIndex].rating : nil
     }
 
-    /// How many times the current puzzle has been played on Lichess.
     var currentPuzzlePlayCount: Int? {
         roundState.puzzles.indices.contains(roundState.currentIndex) ? roundState.puzzles[roundState.currentIndex].playCount : nil
     }
@@ -63,9 +54,7 @@ extension TacticsTrainingStore {
         )
     }
 
-    /// Starts a fresh round once the current window has expired. This guard is
-    /// deliberately in the view model as well as the UI so another caller
-    /// cannot bypass the cadence rule.
+    /// The window guard here mirrors the disabled button: neither alone suffices.
     func startNextRound() {
         guard isNewRoundAvailable else { return }
         roundState.mode = .play

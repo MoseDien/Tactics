@@ -2,36 +2,18 @@ import SwiftUI
 import ChessCore
 import TacticsData
 
-/// Everything the board animates on, in one value.
 struct BoardAnimation: Equatable {
-    /// For each square that gained a piece in this render, the square that
-    /// piece visually arrived from (the view model derives it — committed
-    /// moves, wrong-move preview, snap-back, castling rook). Empty when no
-    /// move is attached, i.e. a puzzle load.
+    /// Square that gained a piece → where it arrived from. Empty = a load.
     var arrival: [Square: Square] = [:]
-    /// Changes on every puzzle load. Baked into every piece id so a load
-    /// presents entirely new views — insertion transitions apply, and no
-    /// carried-over piece can interpolate its offset across the load (the
-    /// "pieces fly across the board" defect).
+    /// In every piece id, so a load presents brand-new views.
     var boardGeneration = 0
-    /// Monotonic token for each committed or preview move. Unlike pieceCount,
-    /// this changes for ordinary non-capturing moves as well.
     var moveRevision = 0
-    /// True while this render's arrivals are revert slides (wrong-move
-    /// snap-back): they play one-third faster than forward moves.
     var isSnapback = false
 
-    /// A board with no animation input — the review player's default.
     static let passthrough = BoardAnimation(arrival: [:], boardGeneration: 0, moveRevision: 0, isSnapback: false)
-
-    /// Reverting moves (wrong-move snap-back) run one-third faster than
-    /// forward slides — the player already knows where the piece came from.
     static let snapbackSpeedup = 1.5
 
-    /// Distance-adaptive slide timing, capped: 50ms per square (plus a 45ms
-    /// start-up) up to 2 squares, a hard ceiling beyond — every slide of two
-    /// or more squares lands together. A one-square step finishes in 95ms;
-    /// everything else in 145ms.
+    /// 45ms + 50ms/square, capped at 2 (95/145ms).
     static let slideBaseDuration: TimeInterval = 0.045
     static let slideNearPerSquare: TimeInterval = 0.05
     static let slideMaxSquares = 2
@@ -53,13 +35,8 @@ struct ChessBoardView: View {
     private let moveHighlight = Color(red: 0.76, green: 0.80, blue: 0.25)
     private let selectedHighlight = Color(red: 0.65, green: 0.69, blue: 0.10)
 
-    /// Piece-travel animation: ease-out (non-linear, no overshoot, starts
-    /// moving immediately — an ease-in start reads as a stall at the origin).
     private let moveAnimation: Animation = .easeOut(duration: 0.18)
 
-    /// Ranks rendered top-to-bottom and files rendered left-to-right for the
-    /// current perspective. The logical `Square` for each cell is unchanged, so
-    /// move matching, highlights and taps all keep working when flipped.
     private var ranks: [Int] { isFlipped ? Array(0..<8) : Array((0..<8).reversed()) }
     private var files: [Int] { isFlipped ? Array(0..<8).reversed() : Array(0..<8) }
     private var bottomRank: Int { isFlipped ? 7 : 0 }
@@ -79,7 +56,7 @@ struct ChessBoardView: View {
         .aspectRatio(1, contentMode: .fit)
     }
 
-    // MARK: - Square layer (colors, highlights, coordinates — no pieces)
+    // MARK: - Square layer
 
     private func squares(squareSide: CGFloat) -> some View {
         VStack(spacing: 0) {
@@ -150,18 +127,10 @@ struct ChessBoardView: View {
         }
         .frame(width: side, height: side, alignment: .topLeading)
         .allowsHitTesting(false)
-        // The single animation declaration. A move (non-empty arrival map)
-        // plays each arrival's slide. A puzzle load (empty arrival map, new
-        // generation) fades the fresh pieces in — the generation is baked
-        // into every id, so a load presents brand-new views whose insertion
-        // transition is the fade, and no carried-over piece exists to
-        // interpolate its offset across the load. Board flips don't change
-        // `position`; Reduce Motion renders everything instantly.
+        // Moves slide; loads (empty arrivals, new generation) fade in.
         .animation(transactionAnimation, value: boardStamp)
     }
 
-    /// What the animation modifier observes — a move and a board load each
-    /// change it exactly once.
     private var boardStamp: BoardStamp {
         BoardStamp(
             pieceCount: position.count,
@@ -178,21 +147,15 @@ struct ChessBoardView: View {
         var moveRevision: Int
     }
 
-    /// The container animation. A move's duration comes from that move's
-    /// longest travel (castling moves two pieces; the king and rook lengths
-    /// differ by one square at most), so a one-square step finishes fast and
-    /// a board-sweep takes its time. The setup fade keeps one fixed duration.
+    /// Duration from the move's longest travel (castling: king+rook).
     private var transactionAnimation: Animation? {
         guard !reduceMotion else { return nil }
         if !animation.arrival.isEmpty {
             return .easeOut(duration: moveSlideDuration)
         }
-        // A freshly presented board fades its pieces in.
         return moveAnimation
     }
 
-    /// Longest Chebyshev distance among this render's arrivals, mapped
-    /// through the capped model (per-square pace up to the ceiling).
     private var moveSlideDuration: TimeInterval {
         let squares = animation.arrival
             .map { destination, origin in
@@ -205,16 +168,12 @@ struct ChessBoardView: View {
         return animation.isSnapback ? forward / BoardAnimation.snapbackSpeedup : forward
     }
 
-    /// Pieces sorted by square notation for a stable z-order (dictionary
-    /// iteration order would reshuffle the layering every move).
     private var piecePlacements: [(id: String, piece: Piece, square: Square)] {
         position
             .sorted { $0.key.notation < $1.key.notation }
             .map { ("\($0.value.assetName + $0.key.notation)#\(animation.boardGeneration)", $0.value, $0.key) }
     }
 
-    /// Decision table for a piece's insertion: a move slides the arriving
-    /// piece in, a load fades every piece in, everything else appears in place.
     private func transition(
         for placement: (id: String, piece: Piece, square: Square),
         squareSide: CGFloat
@@ -228,9 +187,6 @@ struct ChessBoardView: View {
         return .identity
     }
 
-    /// The arriving piece first renders on its origin square (origin-offset
-    /// minus destination-offset); the container's transaction animation —
-    /// whose duration this move's longest travel sets — settles it into place.
     private func slideTransition(from origin: Square, to destination: Square, squareSide: CGFloat) -> AnyTransition {
         let start = offset(for: origin, squareSide: squareSide)
         let end = offset(for: destination, squareSide: squareSide)
@@ -240,7 +196,6 @@ struct ChessBoardView: View {
         )
     }
 
-    /// Top-left-origin offset for a square under the current perspective.
     private func offset(for square: Square, squareSide: CGFloat) -> CGSize {
         let column = files.firstIndex(of: square.file) ?? square.file
         let row = ranks.firstIndex(of: square.rank) ?? (7 - square.rank)

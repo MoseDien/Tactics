@@ -2,10 +2,8 @@ import SwiftUI
 import PuzzleKit
 import ChessCore
 
-/// Continuous review player for a completed round: step through each puzzle's
-/// line, then move on to the next puzzle (looping at the end). Read-only —
-/// no scoring, no repositories, no round tracker; the historical round is a
-/// plain dataset by the time it reaches this view.
+/// Continuous read-only replay of a completed round: step through each line,
+/// then the next puzzle (looping). The round arrives as a plain dataset.
 struct RoundReviewView: View {
     @Environment(\.dismiss) private var dismiss
     let puzzles: [Puzzle]
@@ -13,16 +11,10 @@ struct RoundReviewView: View {
 
     @State private var puzzleIndex = 0
     @State private var session: PuzzleSession?
-    /// Bumped on every in-line step so each replayed move gets its own
-    /// animation transaction (forward and back alike).
     @State private var stepRevision = 0
-    /// Bumped on every puzzle change so the new board fades in (same load
-    /// semantics as the live screen).
     @State private var boardGeneration = 0
-    /// Whether the pending step moves the line forward.
     @State private var steppingForward = false
-    /// The move a back-step just removed (captured before the session drops
-    /// it): its piece re-appears on `from`, having arrived from `to`.
+    /// Captured before stepBack drops it: the piece re-appears on `from`.
     @State private var lastUndoneMove: ChessMove?
 
     var body: some View {
@@ -58,10 +50,6 @@ struct RoundReviewView: View {
 
     // MARK: - Header
 
-    /// Mirrors the live screen's header: puzzle progress over the round's
-    /// result row (the shared `PuzzleResultRow` with the current index), then
-    /// the puzzle's own card — side to move (the player's king) and the
-    /// difficulty stars with the rating.
     private var header: some View {
         VStack(spacing: 10) {
             Text(String(format: NSLocalizedString("tactics.puzzle_progress", comment: "Puzzle progress"), puzzleIndex + 1, puzzles.count))
@@ -96,7 +84,6 @@ struct RoundReviewView: View {
 
                     Spacer(minLength: 0)
 
-                    // Rating and difficulty stars stacked on the trailing side.
                     VStack(alignment: .trailing, spacing: 6) {
                         if let rating = puzzle.rating {
                             Text("\(rating)")
@@ -132,8 +119,7 @@ struct RoundReviewView: View {
         puzzles.indices.contains(puzzleIndex) ? puzzles[puzzleIndex] : nil
     }
 
-    /// The side the replayed puzzle asks the player to move for (the FEN
-    /// side-to-move's opponent — same rule as the live session).
+    /// FEN side-to-move's opponent, as the live session derives it.
     private var playerColor: PieceColor {
         guard let puzzle = currentPuzzle,
               let side = puzzle.fen.split(separator: " ").dropFirst().first,
@@ -148,9 +134,7 @@ struct RoundReviewView: View {
 
     // MARK: - Controls
 
-    /// In-line stepping for the current puzzle, plus puzzle-to-puzzle
-    /// navigation (looping after the last one). The rows sit well apart so
-    /// the two step directions can't be mis-tapped for each other.
+    /// Rows sit apart so step-move and step-puzzle can't be mis-tapped.
     private func controls(for session: PuzzleSession) -> some View {
         VStack(spacing: 22) {
             HStack {
@@ -176,9 +160,7 @@ struct RoundReviewView: View {
 
     // MARK: - Replay animation
 
-    /// The replay's animation input: forward steps slide the arriving piece in
-    /// from its origin (the live screen's rule, castling rook included); a
-    /// puzzle change fades the fresh board in; back-steps render in place.
+    /// Forward steps slide; back-steps revert-slide; loads fade in.
     private func boardAnimation(for session: PuzzleSession) -> BoardAnimation {
         var arrival: [Square: Square] = [:]
         if stepRevision > 0, let move = session.lastMove, steppingForward {

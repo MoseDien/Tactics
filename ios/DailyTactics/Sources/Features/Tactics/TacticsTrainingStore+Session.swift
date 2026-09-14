@@ -1,8 +1,8 @@
 import PuzzleKit
 import ChessCore
 
-/// Cross-store sessionState.session coordination. The chess interaction itself is owned by
-/// `TacticsSessionStore`; this adapter records its business consequences.
+/// Cross-store session coordination: records the business consequences of
+/// `TacticsSessionStore` events (scoring, previews, replies).
 extension TacticsTrainingStore {
     func loadPuzzle(at index: Int) {
         do {
