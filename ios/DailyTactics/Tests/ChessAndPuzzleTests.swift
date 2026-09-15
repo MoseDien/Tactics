@@ -5,23 +5,22 @@ import TacticsData
 @testable import DailyTactics
 
 final class ChessAndPuzzleTests: XCTestCase {
-    func testLaunchResumesAnActiveRoundInPlayMode() {
-        let configuration = TacticsLaunchConfiguration.resolve(
-            activePuzzleIDs: ["puzzle-1", "puzzle-2"],
-            isWithinWindow: true
-        )
-
-        XCTAssertTrue(configuration.resumesActiveRound)
-        XCTAssertEqual(configuration.mode, .play)
+    func testLaunchResumesAPersistedRoundInReviewMode() {
+        // Inside its window or expired alike — starting a fresh round is a
+        // user action, never automatic on launch.
+        for inWindow in [true, false] {
+            let configuration = TacticsLaunchConfiguration.resolve(
+                activePuzzleIDs: ["puzzle-1", "puzzle-2"],
+                isWithinWindow: inWindow
+            )
+            XCTAssertTrue(configuration.resumesActiveRound)
+            XCTAssertEqual(configuration.mode, .reviewRound)
+        }
     }
 
-    func testLaunchCreatesAPlayRoundWhenNoActiveRoundCanBeResumed() {
+    func testLaunchCreatesAPlayRoundOnlyWithNothingPersisted() {
         XCTAssertEqual(
             TacticsLaunchConfiguration.resolve(activePuzzleIDs: [], isWithinWindow: true),
-            TacticsLaunchConfiguration(mode: .play, resumesActiveRound: false)
-        )
-        XCTAssertEqual(
-            TacticsLaunchConfiguration.resolve(activePuzzleIDs: ["expired"], isWithinWindow: false),
             TacticsLaunchConfiguration(mode: .play, resumesActiveRound: false)
         )
     }

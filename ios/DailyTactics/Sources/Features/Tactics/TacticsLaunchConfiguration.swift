@@ -7,7 +7,12 @@ struct TacticsLaunchConfiguration: Equatable {
     let mode: TacticsMode
     let resumesActiveRound: Bool
 
+    /// Any persisted round resumes in review — inside its window or expired
+    /// alike: starting a fresh round is a user action (Next round), never an
+    /// automatic one on launch. `isWithinWindow` only decides whether that
+    /// button starts enabled.
     static func resolve(activePuzzleIDs: [String], isWithinWindow: Bool) -> Self {
-        Self(mode: .play, resumesActiveRound: !activePuzzleIDs.isEmpty && isWithinWindow)
+        let resumes = !activePuzzleIDs.isEmpty
+        return Self(mode: resumes ? .reviewRound : .play, resumesActiveRound: resumes)
     }
 }
