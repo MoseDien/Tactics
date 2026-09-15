@@ -57,12 +57,12 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 - `Hard`：选择 rating 不低于用户当前 Rating - 200 的题目。
 - 当符合筛选条件的题目不足一个 round 时，回退到未尝试题目池；未尝试题目不足时再从全部题库随机选择。
 
-### Round（8 小时节奏）
+### Round（12 小时节奏）
 
 - 每个 round 默认包含 3 道题，数量由 `RoundPolicy.puzzleCount` 配置。
 - 新 round 开始时记录 `dailytactics.roundStartTime` 到 UserDefaults，并持久化当前题目 ID 与本轮下一题索引；每完成一题即推进该索引。
 - 只有当 `当前时间 - roundStartTime >= RoundPolicy.roundDuration` 时，才能开始下一个 round；正式版 `roundDuration = 12 小时`，Debug 构建缩短为 5 分钟以便手工测试完整周期。
-- 冷却期间重新打开 App 不会随机生成新题，而是恢复当前 round 的 **Play mode**（包括只完成一题后被系统终止的情形）；Review mode 只会在同一进程中完成 Play round 后、用户点击 `Next puzzle` 时进入。若启动时窗口已经过期，则直接创建新的 Play round，不显示 `Next round`。
+- 冷启动**永远不会自动生成新题**，而是根据持久化的下一题索引恢复当前 round：索引未越过末题（round 未完成，包括刚开了个头或只完成一题后被系统终止的情形）恢复为 **Play mode** 并停在保存的进度；索引已越过末题（round 已完成）恢复为 **Review mode**，从第一题开始循环复盘。窗口是否过期不参与启动路由，只决定 `Next round` 按钮是否可点；启动后开新 round 的唯一路径是用户点击 `Next round`。
 - 窗口状态在**生命周期事件**上重查:App 启动(restore)、切回前台(scenePhase .active)各 refresh 一次;`RoundTracker` 自带的到期唤醒兜底进程内计时。
 - 若切回前台时窗口已经过期，`Next round` 会立即显示在棋盘页，不依赖当前棋局正处于等待走棋、对手走棋或复盘等哪一种状态。
 - `Next round` 始终可点击：冷却结束后以强调色显示并开始下一组题目；冷却中保持灰色，点击会展示剩余冷却时间。ViewModel 也会再次校验窗口，避免其他调用方绕过节奏规则。
@@ -75,7 +75,7 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 - 题目从整个题库中随机选择尚未尝试过的 3 道（按 Difficulty Mode 的相对 rating 规则筛选）。
 - **查询数据库只在 round 开始时发生一次**。一个 round 进行中不再重新随机选择题目。
 - 当未做过的题目不足 3 道时，回退为从全部题目中随机选择。
-- 一轮完成时恰好写入一条 `RoundHistory`：最后一题用 Hint 不影响历史记录；Review 中重解最后一题也不会重复写入。
+- 一轮完成时恰好写入一条 `RoundHistory`：最后一题用 Hint 不影响历史记录；Review 中重解最后一题、以及 kill 后重启在恢复的 Review 中重解，都不会重复写入（以「持久化的下一题索引已越过末题」作为已写入标志恢复去重状态）。每轮的 `RatingSnapshot` 遵循同一条只写一次的规则。
 
 ### Review mode
 

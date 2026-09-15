@@ -103,7 +103,8 @@ flowchart TD
     Entry --> Root["RootView"]
     Root -->|"题库未导入"| Loading["LibraryLoadingView"]
     Root -->|"题库已导入"| Restore["恢复 Round 状态"]
-    Restore -->|"时窗内且有固定题目"| Resume["TacticsView: Resume Play"]
+    Restore -->|"未完成 Round（索引未过末题）"| Resume["TacticsView: Resume Play"]
+    Restore -->|"已完成 Round"| Review["TacticsView: Resume Review"]
     Restore -->|"无有效 Round"| Play["TacticsView: Play"]
 ```
 
@@ -153,7 +154,7 @@ Lichess 解法数组采用机器先走：
 同一模块中的策略对象包括：
 
 - `RoundSelector`：优先从未尝试题目中按难度选题，不足时回退。
-- `RoundPolicy`：每 Round 5 题；Debug 时窗 5 分钟，Release 时窗 8 小时。
+- `RoundPolicy`：每 Round 3 题；Debug 时窗 5 分钟，Release 时窗 12 小时。
 - `PuzzleRatingCalculator`：独立计算 Rating delta。
 - Repository protocols：定义领域层需要的数据能力，不暴露 SwiftData Model。
 
@@ -348,7 +349,7 @@ Rating 更新由 App 层编排，计算公式在 `PuzzleKit/RatingPolicy.swift` 
 - 已尝试题目和 Review：不更新 Rating。
 - Rating 限制在 `400...3000`。
 
-单题结果采用 first-write-wins：一旦记录为 wrong，后续完成不能覆盖成 correct。`RoundHistory` 在最后一题完成时独立且只写一次；最终 `RatingSnapshot` 会在该题 Rating 结算后写入。
+单题结果采用 first-write-wins：一旦记录为 wrong，后续完成不能覆盖成 correct。`RoundHistory` 在最后一题完成时独立且只写一次（Review 重解或 kill 后重启的重放都不会再写）；最终 `RatingSnapshot` 会在该题 Rating 结算后同样只写一次。
 
 ## 11. 时间与并发
 

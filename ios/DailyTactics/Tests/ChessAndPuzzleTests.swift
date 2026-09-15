@@ -5,22 +5,33 @@ import TacticsData
 @testable import DailyTactics
 
 final class ChessAndPuzzleTests: XCTestCase {
-    func testLaunchResumesAPersistedRoundInReviewMode() {
-        // Inside its window or expired alike — starting a fresh round is a
-        // user action, never automatic on launch.
-        for inWindow in [true, false] {
+    func testLaunchResumesAnIncompleteRoundInPlayMode() {
+        // Including a cursor of 0 (killed right after the round began) — the
+        // player continues where the process died, with rating live.
+        for cursor in [0, 1, 2] {
             let configuration = TacticsLaunchConfiguration.resolve(
-                activePuzzleIDs: ["puzzle-1", "puzzle-2"],
-                isWithinWindow: inWindow
+                activePuzzleIDs: ["p1", "p2", "p3"],
+                nextPuzzleIndex: cursor
             )
             XCTAssertTrue(configuration.resumesActiveRound)
-            XCTAssertEqual(configuration.mode, .reviewRound)
+            XCTAssertEqual(configuration.mode, .play)
         }
+    }
+
+    func testLaunchResumesACompletedRoundInReviewMode() {
+        // Starting a fresh round is a user action (Next round), never
+        // automatic on launch — inside the window or expired alike.
+        let configuration = TacticsLaunchConfiguration.resolve(
+            activePuzzleIDs: ["p1", "p2", "p3"],
+            nextPuzzleIndex: 3
+        )
+        XCTAssertTrue(configuration.resumesActiveRound)
+        XCTAssertEqual(configuration.mode, .reviewRound)
     }
 
     func testLaunchCreatesAPlayRoundOnlyWithNothingPersisted() {
         XCTAssertEqual(
-            TacticsLaunchConfiguration.resolve(activePuzzleIDs: [], isWithinWindow: true),
+            TacticsLaunchConfiguration.resolve(activePuzzleIDs: [], nextPuzzleIndex: 2),
             TacticsLaunchConfiguration(mode: .play, resumesActiveRound: false)
         )
     }
@@ -44,6 +55,53 @@ final class ChessAndPuzzleTests: XCTestCase {
             1
         )
         XCTAssertEqual(round.currentIndex, 1)
+    }
+
+    /// The full relaunch path — resolve → TacticsView's store construction —
+    /// against a real library, exactly as production wires it.
+    @MainActor
+    func testMidRoundRelaunchContinuesAtThePersistedCursor() async throws {
+        let defaults = UserDefaults(suiteName: "resume-deps-\(UUID().uuidString)")!
+        let repositories = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        let sequenceStore = ChunkSequenceStore(defaults: defaults)
+        let dependencies = AppDependencies(
+            data: repositories,
+            importer: PuzzleLibraryImporter(context: repositories.context),
+            round: RoundTracker(state: UserDefaultsRoundStateStore(defaults: defaults)),
+            difficulty: DifficultyModeStore(defaults: defaults),
+            userRating: UserRatingStore(defaults: defaults),
+            provisioner: LibraryProvisioner(
+                repositories: repositories,
+                sequenceStore: sequenceStore,
+                fetcher: NoopChunkFetcher()
+            ),
+            sequenceStore: sequenceStore,
+            pacing: TacticsPacing()
+        )
+        let failures = await dependencies.importer.importAllBundled { _ in }
+        XCTAssertEqual(failures, 0)
+
+        // The "previous session": began a round, finished puzzle 1, died.
+        let round = Array(dependencies.data.allPuzzles().prefix(3))
+        dependencies.round.begin(round)
+        dependencies.round.setNextPuzzleIndex(1)
+
+        let configuration = TacticsLaunchConfiguration.resolve(
+            activePuzzleIDs: dependencies.round.activePuzzleIDs(),
+            nextPuzzleIndex: dependencies.round.nextPuzzleIndex()
+        )
+        XCTAssertEqual(configuration.mode, .play)
+        XCTAssertTrue(configuration.resumesActiveRound)
+
+        let vm = TacticsTrainingStore(
+            dependencies: dependencies,
+            dailyPuzzleCount: RoundPolicy.puzzleCount,
+            mode: configuration.mode,
+            resumesActiveRound: configuration.resumesActiveRound
+        )
+        XCTAssertEqual(vm.roundState.puzzles.map(\.id), round.map(\.id), "resume must reload the persisted batch")
+        XCTAssertEqual(vm.roundState.currentIndex, 1, "mid-round relaunch must continue at the persisted cursor")
+        XCTAssertEqual(vm.roundState.mode, .play)
     }
 
     @MainActor
@@ -251,10 +309,59 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         // Re-solving the round in review must not insert a second row.
         vm.startNextRound()  // inside the cooldown: stays on the same round
+        // A genuine replay: loop back to the (only) puzzle and re-solve it.
+        vm.nextPuzzle()
+        var reloaded = 0
+        while vm.state != .waitingForMove && reloaded < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            reloaded += 1
+        }
         try await solveActivePuzzle(on: vm)
         XCTAssertEqual(store.history().count, 1, "review replay must not duplicate the round record")
         // Same idempotency for the rating snapshot.
         XCTAssertEqual(store.ratingHistory().count, 1, "review replay must not duplicate the rating snapshot")
+    }
+
+    @MainActor
+    func testRelaunchedCompletedRoundReplayDoesNotReRecord() async throws {
+        let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        let puzzle = Puzzle.samples[0]
+
+        // Session one: finish the single-puzzle round; row + snapshot land once.
+        let first = TacticsTrainingStore(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
+        first.start()
+        var waited = 0
+        while first.state != .waitingForMove && waited < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            waited += 1
+        }
+        try await solveActivePuzzle(on: first)
+        XCTAssertEqual(store.history().count, 1)
+        XCTAssertEqual(store.ratingHistory().count, 1)
+
+        // Kill + relaunch: the persisted cursor (1 of 1) says the round
+        // already closed, so the resumed review must restore that latch —
+        // replaying the last puzzle must not re-record either row.
+        let state = InMemoryRoundState()
+        let tracker = RoundTracker(state: state)
+        tracker.begin([puzzle])
+        tracker.setNextPuzzleIndex(1)
+
+        let second = TacticsTrainingStore(dataset: [puzzle], progress: store, dailyPuzzleCount: 1, mode: .reviewRound)
+        second.roundState.tracker = tracker
+        second.progressState.restoreRoundOutcomes(for: [puzzle])
+        second.progressState.restoreRoundRecorded(cursor: tracker.nextPuzzleIndex(), puzzleCount: 1)
+        second.roundState.restorePersistedCursor()
+
+        second.start()
+        var rewound = 0
+        while second.state != .waitingForMove && rewound < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            rewound += 1
+        }
+        try await solveActivePuzzle(on: second)
+        XCTAssertEqual(store.history().count, 1, "relaunched review replay must not duplicate the round record")
+        XCTAssertEqual(store.ratingHistory().count, 1, "relaunched review replay must not duplicate the rating snapshot")
     }
 
     @MainActor

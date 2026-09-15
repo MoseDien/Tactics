@@ -20,11 +20,13 @@ line at a time, and stores progress locally.
 - Daily puzzle rounds are selected from SwiftData and can be reviewed after completion
 - After a round is complete, `Next puzzle` remains available and enters Review mode,
   looping through the current round without changing Rating
-- Each round draws 5 random not-yet-attempted puzzles (queried only at round
-  start); a new round unlocks every 8 hours (5 minutes in Debug builds), and
+- Each round draws 3 random not-yet-attempted puzzles (queried only at round
+  start); a new round unlocks every 12 hours (5 minutes in Debug builds), and
   `Next round` reports the remaining cooldown when tapped early and appears
-  immediately after a foreground refresh unlocks it; a cold launch after
-  expiry starts the new Play round directly; the difficulty setting
+  immediately after a foreground refresh unlocks it; a cold launch never
+  starts a round by itself — an incomplete persisted round resumes in Play at
+  its saved cursor, a completed one resumes in Review, and a fresh round only
+  begins when the user taps `Next round`; the difficulty setting
   (Easy/Medium/Hard) filters new rounds relative to the user's Rating
 - Settings keeps “Download more puzzles” tappable: it downloads below 50
   untried puzzles and otherwise explains the threshold; normal round creation

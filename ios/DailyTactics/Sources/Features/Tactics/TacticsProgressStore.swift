@@ -47,6 +47,13 @@ final class TacticsProgressStore {
         }
     }
 
+    /// A cursor past the last puzzle means the closing chain — which is what
+    /// advances the cursor — already ran before the kill, so its side effects
+    /// are recorded and review replays must not repeat them.
+    func restoreRoundRecorded(cursor: Int, puzzleCount: Int) {
+        roundRecorded = cursor >= puzzleCount
+    }
+
     func beginPuzzle() {
         hadMistake = false
         firstAttemptWasCorrect = false
@@ -83,16 +90,19 @@ final class TacticsProgressStore {
             ratingAppliedForPuzzle = true
             recordOutcome(.correct, at: index)
         }
-        if isRoundEnding, !roundRecorded {
+        // The history row and the snapshot are round-closing side effects:
+        // they fire once per round, never again on review replays.
+        let closesRound = isRoundEnding && !roundRecorded
+        if closesRound {
             roundRecorded = true
             repositories?.recordRound(puzzles: round, outcomes: outcomes)
         }
         guard ratingEnabled, firstAttemptWasCorrect else {
-            if isRoundEnding { repositories?.recordRatingSnapshot(value: userRating) }
+            if closesRound { repositories?.recordRatingSnapshot(value: userRating) }
             return
         }
         applyRating(for: puzzle, solved: !hadMistake && !usedHint, enabled: true)
-        if isRoundEnding { repositories?.recordRatingSnapshot(value: userRating) }
+        if closesRound { repositories?.recordRatingSnapshot(value: userRating) }
     }
 
     private func applyRating(for puzzle: Puzzle, solved: Bool, enabled: Bool) {

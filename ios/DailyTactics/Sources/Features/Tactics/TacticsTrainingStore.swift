@@ -105,6 +105,10 @@ sessionState.isBoardFlipped.toggle()
 
     /// Build the session at the persisted cursor of the active round.
     private func restoreActiveRoundSession() {
+        progressState.restoreRoundRecorded(
+            cursor: roundState.tracker?.nextPuzzleIndex() ?? 0,
+            puzzleCount: roundState.puzzles.count
+        )
         let index = roundState.restorePersistedCursor()
         guard roundState.puzzles.indices.contains(index) else { return }
         let puzzle = roundState.puzzles[index]

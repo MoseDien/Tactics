@@ -42,22 +42,24 @@ feature and preserve the existing offline iOS SwiftUI product direction.
   local to the control, not a screen replacement.
 - Lichess lines are machine-first: `moves[0]` auto-plays, then the player
   starts at `moves[1]` and turns alternate.
-- During an active puzzle Hint reveals the expected move visually but never
-  auto-plays it. Once the puzzle is complete, the same control opens a
-  read-only review of that puzzle.
+- During an active puzzle Hint is two-stage: the first tap reveals the expected
+  move (scored immediately as a loss); a second tap plays it for the player.
+  Once the puzzle is complete, the same control opens a read-only review of
+  that puzzle.
 - Round review navigation is not undo. After a Play round is complete, `Next
   puzzle` enters Review mode and loops through the current round.
 - `Next round` remains tappable during its cooldown: it shows the remaining
   wait time, and the view model must reject an early start.
 - When a foreground refresh finds an expired round window, show the Next
   round CTA regardless of the current board-feedback state.
-- On a cold launch with an expired persisted round, start the newly available
-  Play round directly; the Next round CTA is for foregrounding an existing UI.
+- A cold launch never starts a round by itself: an incomplete persisted round
+  resumes in Play at its saved cursor, a completed one resumes in Review, and
+  a fresh round only begins when the user taps `Next round`.
 - Review may record puzzle progress, but must never update the user's Rating.
 - Keep the normal training screen usable on iPhone SE without scrolling;
   retain `ScrollView` only as a Dynamic Type/accessibility fallback.
 - Do not display `Solved` or `Failed` counters in the training UI.
-- Rating starts at 1500, uses the isolated policy in
+- Rating starts at 1000, uses the isolated policy in
   `PuzzleKit/RatingPolicy.swift`, and persists locally (UserDefaults scalar +
   one SwiftData snapshot per completed round).
 

@@ -109,17 +109,20 @@ wake-up — no polling timers anywhere.
   puzzle is complete, Hint opens its read-only single-puzzle review instead.
 - A pawn reaching the last rank opens a promotion picker
   (queen/rook/bishop/knight); the move is submitted only after a choice.
-- A new round unlocks after the round window (8 hours; 5 minutes in Debug builds); tapping
+- A new round unlocks after the round window (12 hours; 5 minutes in Debug builds); tapping
   `Next round` remains tappable inside the window, shows the remaining wait
   time, and stays in Review; a foreground refresh surfaces its CTA regardless
-  of board state, while a cold launch after expiry starts a new Play round
-  directly; the view model enforces the same guard.
+  of board state. A cold launch never starts a round by itself: an incomplete
+  persisted round resumes in Play at its saved cursor, a completed one resumes
+  in Review looping from the first puzzle, and a fresh round only begins when
+  the user taps `Next round`; the view model enforces the same guard.
 - Settings keeps manual next-chunk download tappable. At 50 or more untried
   puzzles it explains the threshold; below 50 it downloads and shows a local,
   semi-transparent spinner instead of a full-screen loading state.
 - Round history (`RoundHistory`) is written exactly once per round: neither a
-  hint on the final puzzle nor re-solving the round in review may skip or
-  duplicate the row.
+  hint on the final puzzle, re-solving the round in review, nor replaying a
+  completed round after a relaunch may skip or duplicate the row (the
+  round-end rating snapshot follows the same once-per-round rule).
 - Review navigation is round-scoped. After the final puzzle, `Next puzzle` loops
   to the first puzzle and transitions Play mode into Review mode.
 - Review mode keeps Hint, board flipping, move interaction, and progress updates,
