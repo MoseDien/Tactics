@@ -60,9 +60,9 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 ### Round（12 小时节奏）
 
 - 每个 round 默认包含 3 道题，数量由 `RoundPolicy.puzzleCount` 配置。
-- 新 round 开始时记录 `dailytactics.roundStartTime` 到 UserDefaults，并持久化当前题目 ID 与本轮下一题索引；每完成一题即推进该索引。
+- 新 round 开始时记录 `dailytactics.roundStartTime` 到 UserDefaults，并持久化当前题目 ID、本轮下一题索引与 mode 标签（`activeRoundMode = "play"`）；每完成一题推进该索引；末题完成（全部题目都被 touch 过，成功/失败均已结算）时把标签翻成 `"review"`。
 - 只有当 `当前时间 - roundStartTime >= RoundPolicy.roundDuration` 时，才能开始下一个 round；正式版 `roundDuration = 12 小时`，Debug 构建缩短为 5 分钟以便手工测试完整周期。
-- 冷启动**永远不会自动生成新题**，而是根据持久化的下一题索引恢复当前 round：索引未越过末题（round 未完成，包括刚开了个头或只完成一题后被系统终止的情形）恢复为 **Play mode** 并停在保存的进度；索引已越过末题（round 已完成）恢复为 **Review mode**，从第一题开始循环复盘。窗口是否过期不参与启动路由，只决定 `Next round` 按钮是否可点；启动后开新 round 的唯一路径是用户点击 `Next round`。
+- 冷启动**永远不会自动生成新题**，而是按持久化的 mode 标签恢复当前 round：`"play"`（存在未完成的题目）恢复为 **Play mode** 并停在保存的进度；`"review"`（全部题目已 touch 过）恢复为 **Review mode**，从第一题开始循环复盘。旧版本写入的数据没有该标签，回退用游标推断（索引越过末题 = 已完成）。窗口是否过期不参与启动路由，只决定 `Next round` 按钮是否可点；启动后开新 round 的唯一路径是用户点击 `Next round`。
 - 窗口状态在**生命周期事件**上重查:App 启动(restore)、切回前台(scenePhase .active)各 refresh 一次;`RoundTracker` 自带的到期唤醒兜底进程内计时。
 - 若切回前台时窗口已经过期，`Next round` 会立即显示在棋盘页，不依赖当前棋局正处于等待走棋、对手走棋或复盘等哪一种状态。
 - `Next round` 始终可点击：冷却结束后以强调色显示并开始下一组题目；冷却中保持灰色，点击会展示剩余冷却时间。ViewModel 也会再次校验窗口，避免其他调用方绕过节奏规则。
@@ -174,8 +174,9 @@ UserDefaults
   ├ dailytactics.userRating      → 当前 Rating
   ├ dailytactics.puzzleSequence → 当前已载入的题库块序号
   ├ dailytactics.difficultyMode  → 新 round 的难度模式
-  ├ dailytactics.pieceAnimation  → 棋子移动动画开关（debug，缺省开）
-  ├ dailytactics.setupAnimation  → 棋盘载入动画开关（debug，缺省开）
+  ├ dailytactics.roundDuration   → round 时长覆盖（debug 选择器写入）
   ├ dailytactics.roundStartTime          → 当前 round 开始时间
-  └ dailytactics.activeRoundPuzzleIDs    → 当前 round 的固定题目顺序
+  ├ dailytactics.activeRoundPuzzleIDs    → 当前 round 的固定题目顺序
+  ├ dailytactics.activeRoundNextPuzzleIndex → 本轮已完成到第几题（游标）
+  └ dailytactics.activeRoundMode         → 本轮 mode："play"/"review"（开局写 play，末题完成翻成 review）
 ```

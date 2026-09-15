@@ -306,14 +306,15 @@ flowchart LR
 
 | Key | 数据 |
 |---|---|
-| `dailytactics.userRating` | 当前 Rating，默认 1500 |
+| `dailytactics.userRating` | 当前 Rating，默认 1000 |
 | `dailytactics.difficultyMode` | 新 Round 难度 |
 | `dailytactics.roundStartTime` | 当前 Round 开始时间 |
 | `dailytactics.activeRoundPuzzleIDs` | 当前 Round 固定题目顺序 |
+| `dailytactics.activeRoundNextPuzzleIndex` | 本轮已完成到第几题（游标） |
+| `dailytactics.activeRoundMode` | 本轮 mode："play"/"review"，末题完成时翻成 review |
+| `dailytactics.roundDuration` | Round 时长覆盖（Debug 选择器写入） |
 | `dailytactics.puzzleSequence` | 已导入的最高题库块编号 |
 | `dailytactics.libraryImported` | 首次导入 gate |
-| `dailytactics.pieceAnimation` | Debug 移动动画开关 |
-| `dailytactics.setupAnimation` | Debug 载入动画开关 |
 
 当前 Rating 的权威值是 UserDefaults 标量；`RatingSnapshot` 只用于趋势历史。
 

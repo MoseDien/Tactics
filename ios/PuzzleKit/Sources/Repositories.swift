@@ -95,13 +95,16 @@ public protocol PuzzleDataRepositories: PuzzleLibraryRepository,
     func deleteAllData()
 }
 
-/// Persisted round state (active round identity, start time, and cursor).
+/// Persisted round state (active round identity, start time, cursor, and mode).
 @MainActor
 public protocol RoundStateRepository: AnyObject {
     func startTime() -> Date?
     func activePuzzleIDs() -> [String]
     func nextPuzzleIndex() -> Int
     func setNextPuzzleIndex(_ index: Int)
+    /// "play" or "review"; nil on rows written before the field existed.
+    func roundMode() -> String?
+    func setRoundMode(_ mode: String)
     func begin(_ puzzles: [Puzzle], at start: Date)
 }
 

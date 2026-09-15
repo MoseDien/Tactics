@@ -9,6 +9,7 @@ public enum AppPreferences {
     public static let roundStartTime = "dailytactics.roundStartTime"
     public static let activeRoundPuzzleIDs = "dailytactics.activeRoundPuzzleIDs"
     public static let activeRoundNextPuzzleIndex = "dailytactics.activeRoundNextPuzzleIndex"
+    public static let activeRoundMode = "dailytactics.activeRoundMode"
     public static let puzzleSequence = "dailytactics.puzzleSequence"
     public static let libraryImported = "dailytactics.libraryImported"
     public static let roundDuration = "dailytactics.roundDuration"
@@ -16,7 +17,7 @@ public enum AppPreferences {
     /// All of the above.
     public static let allKeys: [String] = [
         userRating, difficultyMode, roundStartTime, activeRoundPuzzleIDs, activeRoundNextPuzzleIndex,
-        puzzleSequence, libraryImported, roundDuration,
+        activeRoundMode, puzzleSequence, libraryImported, roundDuration,
     ]
 
     /// Debug reset: removes every stored preference (rating, round window,
@@ -89,6 +90,7 @@ public final class UserDefaultsRoundStateStore: RoundStateRepository {
     private let startKey = AppPreferences.roundStartTime
     private let puzzleIDsKey = AppPreferences.activeRoundPuzzleIDs
     private let nextPuzzleIndexKey = AppPreferences.activeRoundNextPuzzleIndex
+    private let modeKey = AppPreferences.activeRoundMode
     private let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {
@@ -111,9 +113,18 @@ public final class UserDefaultsRoundStateStore: RoundStateRepository {
         defaults.set(max(0, index), forKey: nextPuzzleIndexKey)
     }
 
+    public func roundMode() -> String? {
+        defaults.string(forKey: modeKey)
+    }
+
+    public func setRoundMode(_ mode: String) {
+        defaults.set(mode, forKey: modeKey)
+    }
+
     public func begin(_ puzzles: [Puzzle], at start: Date) {
         defaults.set(start, forKey: startKey)
         defaults.set(puzzles.map(\.id), forKey: puzzleIDsKey)
         setNextPuzzleIndex(0)
+        setRoundMode("play")
     }
 }

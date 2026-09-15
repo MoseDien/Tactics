@@ -54,8 +54,14 @@ final class TacticsRoundStore {
         return currentIndex
     }
 
+    /// Finishing the last puzzle touches the whole round (every puzzle ended
+    /// correct or wrong): persist the review flip alongside the cursor.
     func markCurrentPuzzleFinished() {
-        tracker?.setNextPuzzleIndex(currentIndex + 1)
+        let next = currentIndex + 1
+        tracker?.setNextPuzzleIndex(next)
+        if next >= puzzles.count {
+            tracker?.setRoundMode(TacticsMode.reviewRound.persistedLabel)
+        }
     }
 
     func advance(

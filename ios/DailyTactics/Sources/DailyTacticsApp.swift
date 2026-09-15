@@ -40,7 +40,8 @@ private struct RootView: View {
                     dependencies.round.restore()
                     launchConfiguration = TacticsLaunchConfiguration.resolve(
                         activePuzzleIDs: dependencies.round.activePuzzleIDs(),
-                        nextPuzzleIndex: dependencies.round.nextPuzzleIndex()
+                        nextPuzzleIndex: dependencies.round.nextPuzzleIndex(),
+                        storedMode: dependencies.round.roundMode()
                     )
                 }
         }

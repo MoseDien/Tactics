@@ -11,7 +11,8 @@ final class ChessAndPuzzleTests: XCTestCase {
         for cursor in [0, 1, 2] {
             let configuration = TacticsLaunchConfiguration.resolve(
                 activePuzzleIDs: ["p1", "p2", "p3"],
-                nextPuzzleIndex: cursor
+                nextPuzzleIndex: cursor,
+                storedMode: "play"
             )
             XCTAssertTrue(configuration.resumesActiveRound)
             XCTAssertEqual(configuration.mode, .play)
@@ -23,15 +24,33 @@ final class ChessAndPuzzleTests: XCTestCase {
         // automatic on launch — inside the window or expired alike.
         let configuration = TacticsLaunchConfiguration.resolve(
             activePuzzleIDs: ["p1", "p2", "p3"],
-            nextPuzzleIndex: 3
+            nextPuzzleIndex: 3,
+            storedMode: "review"
         )
         XCTAssertTrue(configuration.resumesActiveRound)
         XCTAssertEqual(configuration.mode, .reviewRound)
     }
 
+    /// Rows persisted before the mode field existed (nil) derive it from the
+    /// cursor; an unrecognized label falls back the same way.
+    func testLaunchFallsBackToTheCursorWithoutAStoredMode() {
+        XCTAssertEqual(
+            TacticsLaunchConfiguration.resolve(activePuzzleIDs: ["p1", "p2"], nextPuzzleIndex: 1, storedMode: nil).mode,
+            .play
+        )
+        XCTAssertEqual(
+            TacticsLaunchConfiguration.resolve(activePuzzleIDs: ["p1", "p2"], nextPuzzleIndex: 2, storedMode: nil).mode,
+            .reviewRound
+        )
+        XCTAssertEqual(
+            TacticsLaunchConfiguration.resolve(activePuzzleIDs: ["p1", "p2"], nextPuzzleIndex: 2, storedMode: "garbage").mode,
+            .reviewRound
+        )
+    }
+
     func testLaunchCreatesAPlayRoundOnlyWithNothingPersisted() {
         XCTAssertEqual(
-            TacticsLaunchConfiguration.resolve(activePuzzleIDs: [], nextPuzzleIndex: 2),
+            TacticsLaunchConfiguration.resolve(activePuzzleIDs: [], nextPuzzleIndex: 2, storedMode: "review"),
             TacticsLaunchConfiguration(mode: .play, resumesActiveRound: false)
         )
     }
@@ -88,7 +107,8 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         let configuration = TacticsLaunchConfiguration.resolve(
             activePuzzleIDs: dependencies.round.activePuzzleIDs(),
-            nextPuzzleIndex: dependencies.round.nextPuzzleIndex()
+            nextPuzzleIndex: dependencies.round.nextPuzzleIndex(),
+            storedMode: dependencies.round.roundMode()
         )
         XCTAssertEqual(configuration.mode, .play)
         XCTAssertTrue(configuration.resumesActiveRound)
@@ -102,6 +122,33 @@ final class ChessAndPuzzleTests: XCTestCase {
         XCTAssertEqual(vm.roundState.puzzles.map(\.id), round.map(\.id), "resume must reload the persisted batch")
         XCTAssertEqual(vm.roundState.currentIndex, 1, "mid-round relaunch must continue at the persisted cursor")
         XCTAssertEqual(vm.roundState.mode, .play)
+        XCTAssertEqual(dependencies.round.roundMode(), "play", "begin persists the play label")
+    }
+
+    /// Touching every puzzle (each ends correct or wrong) flips the stored
+    /// label to review — the flag a relaunch routes on.
+    @MainActor
+    func testFinishingTheLastPuzzlePersistsTheReviewLabel() async throws {
+        let store = SwiftDataRepositories(container: ModelContainerFactory.makeInMemory())
+        let state = InMemoryRoundState()
+        let tracker = RoundTracker(state: state)
+        let puzzle = Puzzle.samples[0]
+
+        tracker.begin([puzzle])
+        XCTAssertEqual(state.storedMode, "play")
+
+        let vm = TacticsTrainingStore(dataset: [puzzle], progress: store, dailyPuzzleCount: 1)
+        vm.roundState.tracker = tracker
+        vm.start()
+        var waited = 0
+        while vm.state != .waitingForMove && waited < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            waited += 1
+        }
+        try await solveActivePuzzle(on: vm)
+
+        XCTAssertEqual(state.storedNextPuzzleIndex, 1)
+        XCTAssertEqual(state.storedMode, "review", "a fully touched round must persist review")
     }
 
     @MainActor
