@@ -46,7 +46,7 @@ struct AnalysisScreenView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 4)
         .padding(.vertical, 12)
         .overlay {
             if let pending = store.pendingPromotion {

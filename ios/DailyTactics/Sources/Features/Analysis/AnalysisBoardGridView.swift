@@ -37,12 +37,11 @@ struct AnalysisBoardGridView: View {
     }
 
     private func cell(for square: Analysis.Square) -> some View {
-        let isLight = (square.file + square.rank).isMultiple(of: 2)
         return Button {
             onSelect(square)
         } label: {
             ZStack {
-                (isLight ? Self.lightSquare : Self.darkSquare)
+                ((square.file + square.rank).isMultiple(of: 2) ? Self.darkSquare : Self.lightSquare)
 
                 if isMoveEndpoint(square) {
                     Self.lastMoveHighlight
@@ -65,7 +64,7 @@ struct AnalysisBoardGridView: View {
                         .frame(width: 13, height: 13)
                 }
 
-                coordinateLabels(for: square, textColor: isLight ? Self.darkSquare : Self.lightSquare)
+                coordinateLabels(for: square)
             }
             .aspectRatio(1, contentMode: .fit)
         }
@@ -78,22 +77,28 @@ struct AnalysisBoardGridView: View {
         lastMove.map { $0.from == square || $0.to == square } ?? false
     }
 
+    /// Same geometry as the training board: rank digits lead the rightmost
+    /// file, file letters lead the bottom rank, opposite-square ink.
     @ViewBuilder
-    private func coordinateLabels(for square: Analysis.Square, textColor: Color) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            if square.rank == ranks.last {
-                Text(String(Character(UnicodeScalar(UInt8(square.file + 97)))))
-                    .font(.caption2)
-                    .foregroundStyle(textColor)
+    private func coordinateLabels(for square: Analysis.Square) -> some View {
+        VStack {
+            HStack {
+                if square.file == files.last {
+                    Text("\(square.rank + 1)")
+                }
+                Spacer()
+            }
+            Spacer()
+            HStack {
+                if square.rank == ranks.last {
+                    Text(String(Character(UnicodeScalar(UInt8(square.file + 97)))))
+                }
+                Spacer()
             }
         }
-        .overlay(alignment: .topLeading) {
-            if square.file == files.first {
-                Text("\(square.rank + 1)")
-                    .font(.caption2)
-                    .foregroundStyle(textColor)
-            }
-        }
+        .font(.caption.weight(.bold))
+        .foregroundStyle((square.file + square.rank).isMultiple(of: 2) ? Self.lightSquare : Self.darkSquare)
+        .padding(4)
     }
 
     private func squareAccessibilityLabel(for square: Analysis.Square) -> String {
