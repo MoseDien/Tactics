@@ -13,11 +13,15 @@ struct TacticsView: View {
     @State private var reviewingPuzzle: Puzzle?
     @State private var analysisSeed: AnalysisSeed?
 
-    /// Sheet payload for the free analysis board; reads the training board
-    /// once, at open time.
+    /// Sheet payload for the free analysis board. It always starts from the
+    /// puzzle's setup position after the machine's opening move.
     private struct AnalysisSeed: Identifiable {
         let fen: String
         var id: String { fen }
+
+        init(puzzle: Puzzle) {
+            fen = PositionFENSerializer.analysisFEN(for: puzzle)
+        }
     }
 
     init(mode: TacticsMode = .play, resumesActiveRound: Bool = false) {
@@ -47,9 +51,7 @@ struct TacticsView: View {
             #if DEBUG
             // Smoke-test hook: `simctl launch ... -showAnalysisBoard 1`.
             if UserDefaults.standard.bool(forKey: "showAnalysisBoard") {
-                analysisSeed = AnalysisSeed(
-                    fen: PositionFENSerializer.fen(from: training.sessionState.session.board)
-                )
+                analysisSeed = AnalysisSeed(puzzle: training.roundState.puzzles[training.roundState.currentIndex])
             }
             #endif
         }
@@ -89,9 +91,7 @@ struct TacticsView: View {
                             reviewingPuzzle = screen.currentPuzzle
                         },
                         onOpenAnalysis: {
-                            analysisSeed = AnalysisSeed(
-                                fen: PositionFENSerializer.fen(from: screen.training.sessionState.session.board)
-                            )
+                            analysisSeed = AnalysisSeed(puzzle: screen.currentPuzzle)
                         }
                     )
 

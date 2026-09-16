@@ -44,4 +44,14 @@ final class PositionFENSerializerTests: XCTestCase {
         XCTAssertEqual(fields[1], "b")
         XCTAssertEqual(fields[3], "e3")
     }
+
+    func testAnalysisSeedResetsPuzzleThenAppliesMachineOpeningMove() throws {
+        let puzzle = Puzzle.samples[0]
+        var expected = try PuzzleSession(puzzle: puzzle)
+        try expected.applyOpponentMove()
+
+        let analysisBoard = try Board(fen: PositionFENSerializer.analysisFEN(for: puzzle))
+        XCTAssertEqual(analysisBoard.pieces, expected.board.pieces)
+        XCTAssertEqual(analysisBoard.sideToMove, expected.board.sideToMove)
+    }
 }

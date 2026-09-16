@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The free analysis board sheet: seeded with the training board's current
-/// position, both sides playable, read-only with respect to training state.
+/// The free analysis board sheet: seeded from the puzzle's machine-first
+/// opening position, both sides playable, read-only with respect to training.
 struct AnalysisScreenView: View {
     let seedFEN: String
     @Environment(\.dismiss) private var dismiss
@@ -37,6 +37,12 @@ struct AnalysisScreenView: View {
                 legalTargets: store.legalTargets,
                 lastMove: store.lastMove,
                 isFlipped: store.isFlipped,
+                animation: AnalysisBoardAnimation(
+                    arrival: store.animatedArrival,
+                    boardGeneration: store.boardGeneration,
+                    moveRevision: store.moveRevision,
+                    isUndo: store.isUndoAnimation
+                ),
                 onSelect: { store.select($0) }
             )
 

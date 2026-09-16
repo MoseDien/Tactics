@@ -1,5 +1,12 @@
 import SwiftUI
 
+struct AnalysisBoardAnimation: Equatable {
+    var arrival: [Analysis.Square: Analysis.Square]
+    var boardGeneration: Int
+    var moveRevision: Int
+    var isUndo: Bool
+}
+
 /// Tap-to-move grid for the analysis board. Visual constants mirror the
 /// training board's literals (kept independent of its code): warm square
 /// palette, edge coordinates, in-cell pieces — no slide animation here.
@@ -11,7 +18,10 @@ struct AnalysisBoardGridView: View {
     let legalTargets: Set<Analysis.Square>
     let lastMove: Analysis.Move?
     let isFlipped: Bool
+    let animation: AnalysisBoardAnimation
     let onSelect: (Analysis.Square) -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let lightSquare = Color(red: 0.94, green: 0.85, blue: 0.70)
     private static let darkSquare = Color(red: 0.71, green: 0.52, blue: 0.36)
@@ -22,21 +32,34 @@ struct AnalysisBoardGridView: View {
     private var files: [Int] { isFlipped ? Array(stride(from: 7, through: 0, by: -1)) : Array(0...7) }
 
     var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            let squareSide = side / 8
+            squares(squareSide: squareSide)
+                .overlay {
+                    pieceLayer(squareSide: squareSide, side: side)
+                }
+                .frame(width: side, height: side)
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func squares(squareSide: CGFloat) -> some View {
         VStack(spacing: 0) {
             ForEach(ranks, id: \.self) { rank in
                 HStack(spacing: 0) {
                     ForEach(files, id: \.self) { file in
                         if let square = Analysis.Square(file: file, rank: rank) {
-                            cell(for: square)
+                            cell(for: square, squareSide: squareSide)
                         }
                     }
                 }
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    private func cell(for square: Analysis.Square) -> some View {
+    private func cell(for square: Analysis.Square, squareSide: CGFloat) -> some View {
         return Button {
             onSelect(square)
         } label: {
@@ -50,15 +73,7 @@ struct AnalysisBoardGridView: View {
                     Self.selectedHighlight
                 }
 
-                if let piece = position[square] {
-                    Image(piece.assetName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(5)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                } else if legalTargets.contains(square) {
+                if position[square] == nil, legalTargets.contains(square) {
                     Circle()
                         .fill(Color.black.opacity(0.22))
                         .frame(width: 13, height: 13)
@@ -66,11 +81,74 @@ struct AnalysisBoardGridView: View {
 
                 coordinateLabels(for: square)
             }
-            .aspectRatio(1, contentMode: .fit)
+            .frame(width: squareSide, height: squareSide)
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(squareAccessibilityLabel(for: square))
+    }
+
+    private struct Placement: Identifiable {
+        let id: String
+        let piece: Analysis.Piece
+        let square: Analysis.Square
+    }
+
+    private var placements: [Placement] {
+        position.squares.enumerated().compactMap { index, piece in
+            guard let piece, let square = Analysis.Square(index: index) else { return nil }
+            return Placement(
+                id: "\(piece.assetName)-\(square.notation)#\(animation.boardGeneration)",
+                piece: piece,
+                square: square
+            )
+        }
+    }
+
+    private func pieceLayer(squareSide: CGFloat, side: CGFloat) -> some View {
+        ZStack {
+            ForEach(placements) { placement in
+                Image(placement.piece.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: squareSide * 0.88, height: squareSide * 0.88)
+                    .frame(width: squareSide, height: squareSide)
+                    .offset(offset(for: placement.square, squareSide: squareSide))
+                    .transition(transition(for: placement, squareSide: squareSide))
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(width: side, height: side, alignment: .topLeading)
+        .allowsHitTesting(false)
+        .animation(transactionAnimation, value: boardStamp)
+    }
+
+    private var boardStamp: String {
+        "\(position.squares.compactMap { $0 }.count)-\(animation.boardGeneration)-\(animation.moveRevision)-\(animation.arrival.count)"
+    }
+
+    private var transactionAnimation: Animation? {
+        guard !reduceMotion else { return nil }
+        return animation.arrival.isEmpty ? .easeOut(duration: 0.18) : .easeOut(duration: animation.isUndo ? 0.09 : 0.15)
+    }
+
+    private func transition(for placement: Placement, squareSide: CGFloat) -> AnyTransition {
+        guard let origin = animation.arrival[placement.square], !reduceMotion else {
+            return animation.arrival.isEmpty && !reduceMotion ? .opacity : .identity
+        }
+        let start = offset(for: origin, squareSide: squareSide)
+        let end = offset(for: placement.square, squareSide: squareSide)
+        return .asymmetric(
+            insertion: .offset(CGSize(width: start.width - end.width, height: start.height - end.height)),
+            removal: .identity
+        )
+    }
+
+    private func offset(for square: Analysis.Square, squareSide: CGFloat) -> CGSize {
+        let column = files.firstIndex(of: square.file) ?? square.file
+        let row = ranks.firstIndex(of: square.rank) ?? (7 - square.rank)
+        return CGSize(width: CGFloat(column) * squareSide, height: CGFloat(row) * squareSide)
     }
 
     private func isMoveEndpoint(_ square: Analysis.Square) -> Bool {

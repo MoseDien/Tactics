@@ -90,6 +90,32 @@ final class AnalysisGameTests: XCTestCase {
     }
 
     @MainActor
+    func testStorePublishesForwardAndUndoAnimationArrivals() {
+        let store = AnalysisGameStore(seedFEN: Analysis.Position.startFEN)
+        store.select(square("e2"))
+        store.select(square("e4"))
+
+        XCTAssertEqual(store.animatedArrival, [square("e4"): square("e2")])
+        XCTAssertEqual(store.moveRevision, 1)
+        XCTAssertFalse(store.isUndoAnimation)
+
+        store.undo()
+        XCTAssertEqual(store.animatedArrival, [square("e2"): square("e4")])
+        XCTAssertEqual(store.moveRevision, 2)
+        XCTAssertTrue(store.isUndoAnimation)
+    }
+
+    @MainActor
+    func testCastlingPublishesKingAndRookArrivals() {
+        let store = AnalysisGameStore(seedFEN: "4k3/8/8/8/8/8/8/4K2R w K - 0 1")
+        store.select(square("e1"))
+        store.select(square("g1"))
+
+        XCTAssertEqual(store.animatedArrival[square("g1")], square("e1"))
+        XCTAssertEqual(store.animatedArrival[square("f1")], square("h1"))
+    }
+
+    @MainActor
     func testTappingTheSelectedSquareDeselects() {
         let store = AnalysisGameStore(seedFEN: Analysis.Position.startFEN)
         store.select(square("e2"))

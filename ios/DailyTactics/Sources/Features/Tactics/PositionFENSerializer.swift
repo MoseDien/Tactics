@@ -1,9 +1,21 @@
 import ChessCore
+import PuzzleKit
 
 /// Serializes the training board into the FEN the analysis feature consumes.
 /// Lives at the feature boundary: the analysis engine itself stays free of
 /// ChessCore types.
 enum PositionFENSerializer {
+    /// The analysis board always begins from the puzzle's own opening state,
+    /// after Lichess's machine-first setup move. It deliberately ignores the
+    /// live training session, which may be midway through a line or in review.
+    static func analysisFEN(for puzzle: Puzzle) -> String {
+        guard var session = try? PuzzleSession(puzzle: puzzle) else {
+            return puzzle.fen
+        }
+        try? session.applyOpponentMove()
+        return fen(from: session.board)
+    }
+
     static func fen(from board: Board) -> String {
         var grid = [ChessCore.Piece?](repeating: nil, count: 64)
         for (square, piece) in board.pieces {
