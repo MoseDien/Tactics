@@ -51,6 +51,7 @@
 "tactics.error_apply" = "着法无法应用。";
 "tactics.error_reply" = "对手回应无法应用。";
 "tactics.flip_board" = "翻转棋盘";
+"tactics.open_analysis" = "自由棋面";
 "tactics.settings" = "设置";
 "tactics.rating" = "Rating";
 "tactics.reviewing_move" = "正在复盘第 %ld / %ld 步";
@@ -92,6 +93,17 @@
 "piece.knight.name" = "马";
 "piece.pawn.name" = "兵";
 "results.summary" = "结果：%ld 题正确，%ld 题错误";
+
+/* analysis (自由棋面) */
+"analysis.title" = "自由棋面";
+"analysis.undo" = "撤销一步";
+"analysis.reset" = "重置棋盘";
+"analysis.status_white_to_move" = "白方行棋";
+"analysis.status_black_to_move" = "黑方行棋";
+"analysis.status_check" = "将军！";
+"analysis.status_checkmate" = "将杀——%@ 获胜";
+"analysis.status_stalemate" = "逼和——和棋";
+"analysis.free_move_hint" = "双方棋子均可自由移动。";
 
 "debug.section" = "调试工具";
 "debug.round_duration" = "轮次时长";

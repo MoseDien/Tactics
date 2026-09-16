@@ -11,6 +11,14 @@ struct TacticsView: View {
     @State private var showingSettings = false
     @State private var showingHowToPlay = false
     @State private var reviewingPuzzle: Puzzle?
+    @State private var analysisSeed: AnalysisSeed?
+
+    /// Sheet payload for the free analysis board; reads the training board
+    /// once, at open time.
+    private struct AnalysisSeed: Identifiable {
+        let fen: String
+        var id: String { fen }
+    }
 
     init(mode: TacticsMode = .play, resumesActiveRound: Bool = false) {
         self.mode = mode
@@ -36,6 +44,14 @@ struct TacticsView: View {
             let screen = TacticsScreenViewModel(training: training)
             screen.start()
             self.screen = screen
+            #if DEBUG
+            // Smoke-test hook: `simctl launch ... -showAnalysisBoard 1`.
+            if UserDefaults.standard.bool(forKey: "showAnalysisBoard") {
+                analysisSeed = AnalysisSeed(
+                    fen: PositionFENSerializer.fen(from: training.sessionState.session.board)
+                )
+            }
+            #endif
         }
     }
 
@@ -67,9 +83,17 @@ struct TacticsView: View {
                     }
                     .padding(.horizontal, 4)
 
-                    MoveControlsView(viewModel: screen.controls) {
-                        reviewingPuzzle = screen.currentPuzzle
-                    }
+                    MoveControlsView(
+                        viewModel: screen.controls,
+                        onReviewCurrentPuzzle: {
+                            reviewingPuzzle = screen.currentPuzzle
+                        },
+                        onOpenAnalysis: {
+                            analysisSeed = AnalysisSeed(
+                                fen: PositionFENSerializer.fen(from: screen.training.sessionState.session.board)
+                            )
+                        }
+                    )
 
                     RoundActionsView(viewModel: screen.roundActions)
                         .padding(.horizontal, 20)
@@ -122,6 +146,12 @@ struct TacticsView: View {
                 NavigationStack {
                     ReviewPuzzleView(puzzle: puzzle)
                 }
+            }
+            .sheet(item: $analysisSeed) { seed in
+                NavigationStack {
+                    AnalysisScreenView(seedFEN: seed.fen)
+                }
+                .presentationDetents([.large])
             }
         }
     }

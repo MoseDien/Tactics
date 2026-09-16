@@ -101,6 +101,12 @@ wake-up — no polling timers anywhere.
   generation baked into piece ids so loads present fresh views). Keep this
   shape — priority lists of animation signals have repeatedly regressed.
 - A wrong legal move is displayed briefly, recorded, and retryable.
+- A free analysis board opens from the control row (right of the flip
+  button): seeded with the current puzzle's live position as a FEN, both
+  sides playable by the user, with its own clean-room rules engine and board
+  view under `Features/Analysis/` (no ChessCore/PuzzleKit/TacticsData
+  imports, no training-state access); undo/reset/flip and a promotion picker
+  included, and it never touches rating, progress, or history.
 - A puzzle can be favorited once finished (play or review): the heart
   outline right of the flip button toggles `PuzzleProgress.isFavorite`;
 - During an active puzzle, Hint is two-stage: the first tap highlights the

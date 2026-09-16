@@ -56,6 +56,7 @@
 "tactics.error_apply" = "The move could not be applied.";
 "tactics.error_reply" = "The reply could not be applied.";
 "tactics.flip_board" = "Flip board";
+"tactics.open_analysis" = "Free board";
 "tactics.settings" = "Settings";
 "tactics.rating" = "Rating";
 "tactics.reviewing_move" = "Reviewing move %ld / %ld";
@@ -110,6 +111,17 @@
 "theme.endgame" = "Endgame";
 /* results */
 "results.summary" = "Results: %ld correct, %ld wrong";
+
+/* analysis (free board) */
+"analysis.title" = "Free board";
+"analysis.undo" = "Undo move";
+"analysis.reset" = "Reset board";
+"analysis.status_white_to_move" = "White to move";
+"analysis.status_black_to_move" = "Black to move";
+"analysis.status_check" = "Check!";
+"analysis.status_checkmate" = "Checkmate — %@ wins";
+"analysis.status_stalemate" = "Stalemate — draw";
+"analysis.free_move_hint" = "Move pieces for both sides.";
 
 /* debug (DEBUG builds only) */
 "debug.section" = "Debug tools";

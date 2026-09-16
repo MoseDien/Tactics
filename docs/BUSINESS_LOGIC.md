@@ -84,6 +84,12 @@ Settings 中可以选择新 round 的难度模式，默认是 `Medium`。设置�
 - Review 可以更新题目的完成/失败进度，但不修改用户 Rating。
 - Review 不会改变实时解题结果，也不会触发对手自动回应。
 
+### 自由棋面（Free board）
+
+- 训练页控制行（flip 按钮右侧）可打开自由分析棋盘：以当前 puzzle 的**实时局面**为种子（调用点把 ChessCore `Board` 序列化为 FEN 传入），黑白双方均由用户自由行棋。
+- 引擎与界面完全独立（`Features/Analysis/`，不 import ChessCore/PuzzleKit/TacticsData，不触碰训练状态）：包含完整规则——牵制、王车易位、过路兵、四选一升变、将军/将杀/逼和状态；快照式撤销与重置回种子局面。
+- 不影响任何训练进度、历史或 Rating；关闭即弃，无持久化。
+
 ### 单题流程
 
 1. 系统先自动执行 Lichess puzzle line 的第一步机器走子。

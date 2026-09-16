@@ -41,6 +41,7 @@ struct RoundProgressView: View {
 struct MoveControlsView: View {
     let viewModel: TacticsControlsViewModel
     let onReviewCurrentPuzzle: () -> Void
+    let onOpenAnalysis: () -> Void
 
     var body: some View {
         HStack {
@@ -53,6 +54,16 @@ struct MoveControlsView: View {
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
             .accessibilityLabel(String(localized: "tactics.flip_board"))
+
+            Button {
+                onOpenAnalysis()
+            } label: {
+                Image(systemName: "checkerboard.rectangle")
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color(.secondarySystemBackground)))
+            }
+            .accessibilityLabel(String(localized: "tactics.open_analysis"))
 
             favoriteButton
 
