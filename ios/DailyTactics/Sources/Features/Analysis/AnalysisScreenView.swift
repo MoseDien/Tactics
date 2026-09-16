@@ -92,12 +92,23 @@ struct AnalysisScreenView: View {
 
     private func controlsRow(for store: AnalysisGameStore) -> some View {
         HStack(spacing: 14) {
-            controlButton(symbol: "arrow.uturn.backward", label: "analysis.undo", isDisabled: !store.canUndo) {
+            // One back control: tap undoes a step, hold opens reset-to-seed.
+            Menu {
+                Button(String(localized: "analysis.reset")) {
+                    store.reset()
+                }
+            } label: {
+                Image(systemName: "arrow.uturn.backward")
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color(.secondarySystemBackground)))
+            } primaryAction: {
                 store.undo()
             }
-            controlButton(symbol: "arrow.counterclockwise", label: "analysis.reset", isDisabled: !store.hasMoves) {
-                store.reset()
-            }
+            .disabled(!store.canUndo)
+            .opacity(store.canUndo ? 1 : 0.4)
+            .accessibilityLabel(String(localized: "analysis.undo"))
+
             Spacer()
             controlButton(symbol: "arrow.up.arrow.down", label: "tactics.flip_board", isDisabled: false) {
                 store.flip()
