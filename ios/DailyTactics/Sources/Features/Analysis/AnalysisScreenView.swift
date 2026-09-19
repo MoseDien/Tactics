@@ -44,7 +44,7 @@ struct AnalysisScreenView: View {
 
     private func content(for store: AnalysisGameStore) -> some View {
         VStack(spacing: 12) {
-            statusBand(for: store)
+            header(for: store)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
 
@@ -86,44 +86,21 @@ struct AnalysisScreenView: View {
         }
     }
 
-    /// The framed status band: the current side-to-move's king at the left,
+    /// The board header band: the current side-to-move's king at the left,
     /// then two lines — "you hold white/black" (hidden on an unseeded free
     /// board) over the live status — with the material badge at the right.
-    /// Framed like the board: warm light-square fill, dark-square border.
-    private func statusBand(for store: AnalysisGameStore) -> some View {
+    private func header(for store: AnalysisGameStore) -> some View {
         let (statusText, imageName) = statusCopy(for: store.status, activeColor: store.position.activeColor)
-        return HStack(spacing: 10) {
-            Image(imageName)
-                .resizable()
-                .scaledToFit()
-                .padding(10)
-                .frame(width: 54, height: 54)
-                .background(Color(red: 0.94, green: 0.85, blue: 0.70))
-                .clipShape(.rect(cornerRadius: 10))
-
-            
-            VStack(alignment: .leading, spacing: 2) {
-                if let heldColor = store.heldColor {
-                    Text(String(localized: heldColor == .white ? "analysis.you_hold_white" : "analysis.you_hold_black"))
-                }
-                
-                Text(statusText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
+        return BoardHeaderView(
+            kingAsset: imageName,
+            title: store.heldColor.map {
+                String(localized: $0 == .white ? "analysis.you_hold_white" : "analysis.you_hold_black")
+            },
+            subtitle: statusText
+        ) {
             materialBalance(for: store)
         }
-        .padding(8)
-        .background(Color(.secondarySystemBackground).opacity(0.72))
-        .clipShape(.rect(cornerRadius: 16))
     }
-
-    /// The board's own square palette, mirrored so the band reads as part of
-    /// it (the same literals `ChessBoardView` and `AnalysisBoardGridView`
-    /// each keep independently).
-    private static let boardLightSquare = Color(red: 0.94, green: 0.85, blue: 0.70)
-    private static let boardDarkSquare = Color(red: 0.71, green: 0.52, blue: 0.36)
 
     /// Material comparison, lichess-style: only the leading side shows a
     /// badge (pawn 1, knight/bishop 3, rook 5, queen 9); equal material

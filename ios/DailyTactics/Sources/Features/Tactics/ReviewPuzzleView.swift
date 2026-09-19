@@ -46,54 +46,7 @@ struct ReviewPuzzleView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(spacing: 14) {
-            HStack {
-                Image(playerColor == .white ? "wK" : "bK")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(10)
-                    .frame(width: 46, height: 46)
-                    .background(Color(red: 0.94, green: 0.85, blue: 0.70))
-                    .clipShape(.rect(cornerRadius: 10))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("#\(puzzle.id)")
-                        .font(.subheadline.weight(.semibold).monospacedDigit())
-                        .lineLimit(1)
-                    Text(String(localized: playerColor == .white ? "tactics.find_best_white" : "tactics.find_best_black"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
-
-            Spacer(minLength: 0)
-
-            VStack(alignment: .trailing, spacing: 6) {
-                if let rating = puzzle.rating {
-                    Text("\(rating)")
-                        .font(.subheadline.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                HStack(spacing: 2) {
-                    ForEach(1...5, id: \.self) { level in
-                        Image(systemName: level <= FavoritesViewModel.difficultyLevel(for: puzzle.rating) ? "star.fill" : "star")
-                            .font(.caption2)
-                            .foregroundStyle(level <= FavoritesViewModel.difficultyLevel(for: puzzle.rating) ? Color.primary : Color.secondary.opacity(0.45))
-                    }
-                }
-                if let theme = puzzle.themes.first {
-                    Text(themeName(theme))
-                        .font(.caption2.weight(.semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Color.accentColor.opacity(0.12)))
-                }
-            }
-        }
-        .padding(8)
-        .background(Color(.secondarySystemBackground).opacity(0.72))
-        .clipShape(.rect(cornerRadius: 16))
+        PuzzleHeaderView(puzzle: puzzle, playerColor: playerColor)
     }
 
     /// FEN side-to-move's opponent, as the live session derives it.
@@ -102,10 +55,6 @@ struct ReviewPuzzleView: View {
               side == "w" || side == "b"
         else { return .white }
         return side == "w" ? .black : .white
-    }
-
-    private func themeName(_ theme: PuzzleTheme) -> String {
-        NSLocalizedString("theme.\(theme.rawValue)", comment: "Puzzle theme name")
     }
 
     // MARK: - Replay animation

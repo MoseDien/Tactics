@@ -110,8 +110,10 @@ wake-up — no polling timers anywhere.
   view under `Features/Analysis/` (no ChessCore/PuzzleKit/TacticsData
   imports, no training-state access); undo/reset and a promotion picker
   included (no manual flip — boards orient automatically), and it never
-  touches rating, progress, or history. A framed
-  status band shows the side-to-move's king, "you hold white/black" over
+  touches rating, progress, or history. Every board screen crowns its
+  board with the shared `BoardHeaderView` band (king tile, title over
+  subtitle, screen-supplied trailing accessory); on the analysis board it
+  shows the side-to-move's king, "you hold white/black" over
   the live status (the held side is opposite the machine's opener, hidden
   on an unseeded free board), and the material-advantage badge (leading
   side only); a SAN move strip with per-move piece icons sits above it,
