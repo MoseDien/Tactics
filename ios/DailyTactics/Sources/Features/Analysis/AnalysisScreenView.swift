@@ -10,6 +10,8 @@ struct AnalysisScreenView: View {
     var startsFlipped: Bool = false
     @Environment(\.dismiss) private var dismiss
     @State private var store: AnalysisGameStore?
+    /// Which move chip the strip is scrolled to; set to track the latest move.
+    @State private var moveStripAnchor: Int?
 
     var body: some View {
         Group {
@@ -97,7 +99,7 @@ struct AnalysisScreenView: View {
                 .padding(10)
                 .frame(width: 54, height: 54)
                 .background(Color(red: 0.94, green: 0.85, blue: 0.70))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(.rect(cornerRadius: 10))
 
             
             VStack(alignment: .leading, spacing: 2) {
@@ -114,7 +116,7 @@ struct AnalysisScreenView: View {
         }
         .padding(8)
         .background(Color(.secondarySystemBackground).opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(.rect(cornerRadius: 16))
     }
 
     /// The board's own square palette, mirrored so the band reads as part of
@@ -164,24 +166,21 @@ struct AnalysisScreenView: View {
     /// icon; one horizontally scrolling row that tracks the latest move.
     private func moveStrip(for store: AnalysisGameStore) -> some View {
         let list = store.moveList
-        return ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(Array(list.enumerated()), id: \.offset) { index, display in
-                        moveChip(display, numberPrefix: numberPrefix(at: index, in: list))
-                            .id(index)
-                    }
+        return ScrollView(.horizontal) {
+            HStack(spacing: 14) {
+                ForEach(Array(list.enumerated()), id: \.offset) { index, display in
+                    moveChip(display, numberPrefix: numberPrefix(at: index, in: list))
                 }
-                .padding(.horizontal, 12)
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(String(localized: "analysis.move_list"))
-            .onAppear {
-                proxy.scrollTo(list.count - 1, anchor: .trailing)
-            }
-            .onChange(of: store.moveRevision) { _, _ in
-                proxy.scrollTo(list.count - 1, anchor: .trailing)
-            }
+            .padding(.horizontal, 12)
+        }
+        .scrollIndicators(.hidden)
+        .scrollPosition(id: $moveStripAnchor, anchor: .trailing)
+        .defaultScrollAnchor(.trailing)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(String(localized: "analysis.move_list"))
+        .onChange(of: store.moveRevision) { _, _ in
+            moveStripAnchor = list.count - 1
         }
     }
 
@@ -290,7 +289,7 @@ private struct AnalysisPromotionPicker: View {
                             .frame(width: 52, height: 52)
                             .padding(6)
                             .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(.rect(cornerRadius: 10))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(String(localized: promotionKey(for: kind)))
@@ -298,7 +297,7 @@ private struct AnalysisPromotionPicker: View {
             }
         }
         .padding(20)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(.regularMaterial, in: .rect(cornerRadius: 16))
         .padding(40)
     }
 

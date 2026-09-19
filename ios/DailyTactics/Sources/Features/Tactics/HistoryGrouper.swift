@@ -60,14 +60,18 @@ enum HistoryGrouper {
 
         let span = (calendar.dateInterval(of: .weekOfYear, for: start)?.end
             .addingTimeInterval(-1)) ?? start
-        let fmt = DateFormatter()
-        fmt.calendar = calendar
         let sameYear = calendar.isDate(start, equalTo: span, toGranularity: .year)
         if sameYear && calendar.component(.month, from: start) == calendar.component(.month, from: span) {
-            fmt.setLocalizedDateFormatFromTemplate("Md")
-            return "\(fmt.string(from: start))–\(fmt.string(from: span))"
+            return range(start, span, style: .dateTime.month(.defaultDigits).day(.defaultDigits), calendar: calendar)
         }
-        fmt.setLocalizedDateFormatFromTemplate("MMdd")
-        return "\(fmt.string(from: start)) – \(fmt.string(from: span))"
+        return range(start, span, style: .dateTime.month(.twoDigits).day(.twoDigits), calendar: calendar)
+    }
+
+    /// `Date.FormatStyle` carries no calendar in its builder methods, so the
+    /// injected calendar (tests pass a fixed one) is applied after building.
+    private static func range(_ start: Date, _ span: Date, style: Date.FormatStyle, calendar: Calendar) -> String {
+        var style = style
+        style.calendar = calendar
+        return "\(start.formatted(style)) – \(span.formatted(style))"
     }
 }

@@ -19,7 +19,7 @@ struct RatingPanelView: View {
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)
                     .background((delta >= 0 ? Color.green : Color.red).opacity(0.13))
-                    .clipShape(Capsule())
+                    .clipShape(.capsule)
             }
         }
         .padding(.top, 8)
@@ -85,7 +85,7 @@ struct MoveControlsView: View {
                 .foregroundStyle(.white)
                 .frame(width: 20, height: 20)
                 .background(viewModel.mode == .reviewRound ? Color.secondary : Color.accentColor)
-                .clipShape(RoundedRectangle(cornerRadius: 5))
+                .clipShape(.rect(cornerRadius: 5))
                 .accessibilityLabel(String(localized: viewModel.mode == .reviewRound ? "tactics.mode_review" : "tactics.mode_play"))
         }
         .accessibilityElement(children: .combine)
@@ -216,7 +216,7 @@ private extension View {
         frame(maxWidth: .infinity, alignment: .leading)
             .font(.subheadline)
             .padding(12)
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+            .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 12))
     }
 }
 
@@ -256,14 +256,14 @@ struct PromotionPickerView: View {
                                 .frame(width: 44, height: 44)
                                 .padding(6)
                                 .background(Color(.secondarySystemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .clipShape(.rect(cornerRadius: 10))
                         }
                         .accessibilityLabel(String(localized: "tactics.promotion_\(kind.rawValue)"))
                     }
                 }
             }
             .padding(18)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .background(.regularMaterial, in: .rect(cornerRadius: 16))
             .padding(24)
             Spacer()
         }

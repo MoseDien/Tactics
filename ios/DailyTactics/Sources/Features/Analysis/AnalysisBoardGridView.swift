@@ -42,7 +42,7 @@ struct AnalysisBoardGridView: View {
                 .frame(width: side, height: side)
         }
         .aspectRatio(1, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(.rect(cornerRadius: 8))
     }
 
     private func squares(squareSide: CGFloat) -> some View {

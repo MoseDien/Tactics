@@ -15,6 +15,8 @@ struct ReviewPuzzleView: View {
     var body: some View {
         VStack(spacing: 14) {
             header
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
 
             if let session {
                 ChessBoardView(position: session.board.pieces, selectedSquare: nil, hintMove: nil,
@@ -35,7 +37,6 @@ struct ReviewPuzzleView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding()
         .navigationTitle(String(localized: "review.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { Button(String(localized: "common.done")) { dismiss() } }
@@ -53,7 +54,7 @@ struct ReviewPuzzleView: View {
                     .padding(10)
                     .frame(width: 46, height: 46)
                     .background(Color(red: 0.94, green: 0.85, blue: 0.70))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(.rect(cornerRadius: 10))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("#\(puzzle.id)")
@@ -92,7 +93,7 @@ struct ReviewPuzzleView: View {
         }
         .padding(8)
         .background(Color(.secondarySystemBackground).opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(.rect(cornerRadius: 16))
     }
 
     /// FEN side-to-move's opponent, as the live session derives it.

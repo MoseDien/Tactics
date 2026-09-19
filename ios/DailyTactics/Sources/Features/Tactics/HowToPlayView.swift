@@ -41,6 +41,8 @@ struct HowToPlayView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    // Array() wrap: EnumeratedSequence gains RandomAccessCollection
+                    // conformance only in iOS 26; the target is iOS 17.
                     ForEach(Array(points.enumerated()), id: \.offset) { index, point in
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
                             Image(systemName: point.icon)

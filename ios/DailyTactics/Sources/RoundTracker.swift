@@ -74,18 +74,18 @@ final class RoundTracker {
         let window = RoundWindow(startedAt: start, duration: duration())
         isWithinWindow = window.contains(now)
         #if DEBUG
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss.SSS"
+        let clock: (Date) -> String = { $0.formatted(.dateTime.hour().minute().second().secondFraction(.fractional(3))) }
         let remaining = window.secondsRemaining(at: now)
+        let seconds = abs(remaining).formatted(.number.precision(.fractionLength(1)))
         let state = remaining > 0
-            ? String(format: "inside window, %.1fs remaining", remaining)
-            : String(format: "expired %.1fs ago", -remaining)
+            ? "inside window, \(seconds)s remaining"
+            : "expired \(seconds)s ago"
         print("""
         [RoundTracker] refresh \
-        { start: \(formatter.string(from: start)), \
-        now: \(formatter.string(from: now)), \
+        { start: \(clock(start)), \
+        now: \(clock(now)), \
         duration: \(window.duration)s, \
-        expiresAt: \(formatter.string(from: window.expiresAt)), \
+        expiresAt: \(clock(window.expiresAt)), \
         \(state), \
         activePuzzles: \(state_activePuzzleCount()), \
         → isWithinWindow=\(isWithinWindow) }

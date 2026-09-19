@@ -24,7 +24,7 @@ struct TacticsHeaderView: View {
                         .padding(10)
                         .frame(width: 54, height: 54)
                         .background(Color(red: 0.94, green: 0.85, blue: 0.70))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .clipShape(.rect(cornerRadius: 10))
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(viewModel.title)
@@ -69,7 +69,7 @@ struct TacticsHeaderView: View {
             }
             .padding(8)
             .background(Color(.secondarySystemBackground).opacity(0.72))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(.rect(cornerRadius: 16))
 
         }
         .frame(maxWidth: .infinity)
