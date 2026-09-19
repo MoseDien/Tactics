@@ -1,16 +1,17 @@
 import SwiftUI
 
 /// The how-to-play note, presented as a popover from the board screen's
-/// info button. Three numbered points in a scrolling list so large Dynamic
+/// info button. Four points in a scrolling list so large Dynamic
 /// Type stays readable.
 struct HowToPlayView: View {
     @Environment(\.dismiss) private var dismiss
 
-    /// The three points, in reading order. Localized separately so the list
-    /// can label each row with its number.
+    /// The points, in reading order. Localized separately so each row can
+    /// label itself.
     private var points: [(icon: String, text: String)] {
         [
-            ("lightbulb", String(localized: "how_to_play.calculate")),
+            ("sparkles", String(localized: "how_to_play.calculate")),
+            ("lightbulb", String(localized: "how_to_play.hint")),
             ("clock.arrow.circlepath", String(localized: "how_to_play.rounds")),
             ("eye", String(localized: "how_to_play.review")),
         ]

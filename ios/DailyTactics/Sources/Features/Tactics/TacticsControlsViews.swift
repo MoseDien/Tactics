@@ -9,7 +9,6 @@ struct RatingPanelView: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(String(localized: "tactics.rating"))
-                .font(.title3)
                 .lineLimit(1)
             Text("\(viewModel.rating)")
                 .lineLimit(1)
@@ -47,7 +46,7 @@ struct MoveControlsView: View {
             Button {
                 onOpenAnalysis()
             } label: {
-                Image(systemName: "checkerboard.rectangle")
+                Image(systemName: "arrow.triangle.branch")
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))

@@ -11,7 +11,8 @@
 "settings.contact_copy" = "复制邮箱地址";
 "settings.more_section" = "更多";
 "settings.how_to_play" = "玩法说明";
-"how_to_play.calculate" = "先在脑中算清整条变化线:你的第一手、对手的应手,再找出最佳着法。不要试棋。";
+"how_to_play.calculate" = "先在脑中尝试找到第一步,想着对手会如何应对。";
+"how_to_play.hint" = "使用提示则意味着失败。";
 "how_to_play.rounds" = "每8小时解锁一轮,每轮3道题。";
 "how_to_play.review" = "经常复盘做过的题目,巩固棋感。";
 "settings.difficulty" = "难度";
