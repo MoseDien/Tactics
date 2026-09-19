@@ -40,9 +40,8 @@ line at a time, and stores progress locally.
   under-promotion puzzles are solvable
 - Wrong legal moves are shown briefly and recorded; the player can retry
 - Piece movement animates: moves slide (distance-adaptive ease-out, including the
-  castling rook), a freshly loaded board fades in, wrong-move previews
-  slide out and back; board flips render instantly. Debug builds expose
-  two toggles to disable either animation
+  castling rook), while freshly loaded boards and board flips render instantly;
+  wrong-move previews slide out and back; Reduce Motion disables animations
 - During an active puzzle, Hint highlights the expected move without
   auto-playing it; after completion, it opens a read-only replay of that puzzle
 - Review mode keeps Hint, board flipping, move interaction, and progress available;

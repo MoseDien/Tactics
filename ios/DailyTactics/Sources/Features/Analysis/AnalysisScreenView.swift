@@ -43,6 +43,8 @@ struct AnalysisScreenView: View {
     private func content(for store: AnalysisGameStore) -> some View {
         VStack(spacing: 12) {
             statusBand(for: store)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
 
             AnalysisBoardGridView(
                 position: store.position,
@@ -92,28 +94,27 @@ struct AnalysisScreenView: View {
             Image(imageName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 30, height: 30)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(10)
+                .frame(width: 54, height: 54)
+                .background(Color(red: 0.94, green: 0.85, blue: 0.70))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            
             VStack(alignment: .leading, spacing: 2) {
                 if let heldColor = store.heldColor {
                     Text(String(localized: heldColor == .white ? "analysis.you_hold_white" : "analysis.you_hold_black"))
                 }
                 
                 Text(statusText)
-                    .backgroundStyle(.gray)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             materialBalance(for: store)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Self.boardLightSquare, in: RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Self.boardDarkSquare, lineWidth: 1)
-        }
-        .padding(.horizontal, 12)
+        .padding(8)
+        .background(Color(.secondarySystemBackground).opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     /// The board's own square palette, mirrored so the band reads as part of

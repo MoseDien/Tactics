@@ -71,6 +71,10 @@ struct TacticsView: View {
     private func content(for screen: TacticsScreenViewModel) -> some View {
         NavigationStack {
             GeometryReader { viewport in
+                let boardSide = min(
+                    viewport.size.width,
+                    max(280, viewport.size.height - 238)
+                )
                 VStack(spacing: 0) {
                     TacticsHeaderView(viewModel: screen.header)
                         .padding(.horizontal, 20)
@@ -85,7 +89,10 @@ struct TacticsView: View {
                         animation: screen.board.animation,
                         onSelect: screen.board.select
                     )
-                    .frame(width: min(viewport.size.width, max(280, viewport.size.height - 238)))
+                    // This must be a rigid square. A width-only frame lets the
+                    // surrounding VStack compress the board when the Review
+                    // actions appear, which reads as a board zoom animation.
+                    .frame(width: boardSide, height: boardSide)
 
                     HStack(alignment: .center, spacing: 12) {
                         RatingPanelView(viewModel: screen.rating)

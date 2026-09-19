@@ -5,7 +5,7 @@ import TacticsData
 struct BoardAnimation: Equatable {
     /// Square that gained a piece → where it arrived from. Empty = a load.
     var arrival: [Square: Square] = [:]
-    /// In every piece id, so a load presents brand-new views.
+    /// Changes when a new puzzle is loaded.
     var boardGeneration = 0
     var moveRevision = 0
     var isSnapback = false
@@ -35,8 +35,6 @@ struct ChessBoardView: View {
     private let moveHighlight = Color(red: 0.76, green: 0.80, blue: 0.25)
     private let selectedHighlight = Color(red: 0.65, green: 0.69, blue: 0.10)
 
-    private let moveAnimation: Animation = .easeOut(duration: 0.18)
-
     private var ranks: [Int] { isFlipped ? Array(0..<8) : Array((0..<8).reversed()) }
     private var files: [Int] { isFlipped ? Array(0..<8).reversed() : Array(0..<8) }
     private var bottomRank: Int { isFlipped ? 7 : 0 }
@@ -54,6 +52,14 @@ struct ChessBoardView: View {
                 .frame(width: side, height: side)
         }
         .aspectRatio(1, contentMode: .fit)
+        // Suppress the surrounding view transaction while loading a puzzle;
+        // real moves install their own transaction below.
+        .transaction { transaction in
+            if animation.arrival.isEmpty {
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
+        }
     }
 
     // MARK: - Square layer
@@ -127,7 +133,8 @@ struct ChessBoardView: View {
         }
         .frame(width: side, height: side, alignment: .topLeading)
         .allowsHitTesting(false)
-        // Moves slide; loads (empty arrivals, new generation) fade in.
+        // Moves slide; loads (empty arrivals, new generation) paint in place —
+        // an empty arrival map means no move is attached, so nothing animates.
         .animation(transactionAnimation, value: boardStamp)
     }
 
@@ -147,13 +154,11 @@ struct ChessBoardView: View {
         var moveRevision: Int
     }
 
-    /// Duration from the move's longest travel (castling: king+rook).
+    /// Duration from the move's longest travel (castling: king+rook). Only
+    /// moves animate; loads and other arrival-free updates render instantly.
     private var transactionAnimation: Animation? {
-        guard !reduceMotion else { return nil }
-        if !animation.arrival.isEmpty {
-            return .easeOut(duration: moveSlideDuration)
-        }
-        return moveAnimation
+        guard !reduceMotion, !animation.arrival.isEmpty else { return nil }
+        return .easeOut(duration: moveSlideDuration)
     }
 
     private var moveSlideDuration: TimeInterval {
@@ -171,7 +176,7 @@ struct ChessBoardView: View {
     private var piecePlacements: [(id: String, piece: Piece, square: Square)] {
         position
             .sorted { $0.key.notation < $1.key.notation }
-            .map { ("\($0.value.assetName + $0.key.notation)#\(animation.boardGeneration)", $0.value, $0.key) }
+            .map { ($0.value.assetName + $0.key.notation, $0.value, $0.key) }
     }
 
     private func transition(
@@ -180,9 +185,6 @@ struct ChessBoardView: View {
     ) -> AnyTransition {
         if let origin = animation.arrival[placement.square], !reduceMotion {
             return slideTransition(from: origin, to: placement.square, squareSide: squareSide)
-        }
-        if animation.arrival.isEmpty, !reduceMotion {
-            return .opacity
         }
         return .identity
     }
