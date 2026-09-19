@@ -116,6 +116,18 @@ final class SettingsViewModel {
         return (lo - pad)...(hi + pad)
     }
 
+    /// The X axis spans at least one month (data centered inside the window),
+    /// so a young history doesn't stretch a couple of days across the width.
+    var ratingDateDomain: ClosedRange<Date> {
+        let oneMonth: TimeInterval = 30 * 24 * 60 * 60
+        let start = snapshots.first?.recordedAt ?? Date()
+        let end = snapshots.last?.recordedAt ?? Date()
+        let span = end.timeIntervalSince(start)
+        guard span < oneMonth else { return start...end }
+        let pad = (oneMonth - span) / 2
+        return start.addingTimeInterval(-pad)...end.addingTimeInterval(pad)
+    }
+
     var trendDelta: Int? {
         guard let first = snapshots.first?.rating, let last = snapshots.last?.rating,
               snapshots.count > 1

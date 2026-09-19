@@ -219,8 +219,9 @@ struct SettingsView: View {
                     .symbolSize(30)
                 }
                 .chartYScale(domain: viewModel.ratingDomain)
+                .chartXScale(domain: viewModel.ratingDateDomain)
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .day)) { _ in
+                    AxisMarks { _ in
                         AxisGridLine()
                         AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                     }
