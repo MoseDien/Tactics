@@ -36,8 +36,8 @@ struct RoundProgressView: View {
     }
 }
 
-/// Flip / counter / hint. The counter is an overlay: the sides hold
-/// different widths (flip+favorite vs hint), so flow layout would off-center it.
+/// Board tools / counter / hint. The counter is an overlay: the sides hold
+/// different widths (analysis+favorite vs hint), so flow layout would off-center it.
 struct MoveControlsView: View {
     let viewModel: TacticsControlsViewModel
     let onReviewCurrentPuzzle: () -> Void
@@ -45,16 +45,6 @@ struct MoveControlsView: View {
 
     var body: some View {
         HStack {
-            Button {
-                viewModel.flipBoard()
-            } label: {
-                Image(systemName: "arrow.up.arrow.down")
-                    .foregroundStyle(Color.accentColor)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color(.secondarySystemBackground)))
-            }
-            .accessibilityLabel(String(localized: "tactics.flip_board"))
-
             Button {
                 onOpenAnalysis()
             } label: {

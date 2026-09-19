@@ -97,7 +97,6 @@ final class TacticsControlsViewModel {
     var isFinished: Bool { session.currentPuzzleFinished }
     var canUseHint: Bool { training.hintEnabled }
     var canReviewPuzzle: Bool { training.canReviewCurrentPuzzle }
-    func flipBoard() { training.toggleBoardFlip() }
     func toggleFavorite() { training.toggleFavorite() }
     func requestHint() { training.requestHint() }
 }

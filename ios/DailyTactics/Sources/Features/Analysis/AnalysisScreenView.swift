@@ -247,9 +247,6 @@ struct AnalysisScreenView: View {
 
     private func controlsRow(for store: AnalysisGameStore) -> some View {
         HStack(spacing: 12) {
-            controlButton(symbol: "arrow.up.arrow.down", label: "tactics.flip_board", isDisabled: false) {
-                store.flip()
-            }
             Spacer()
 
             // One back control: tap undoes a step, hold opens reset-to-seed.
@@ -270,23 +267,6 @@ struct AnalysisScreenView: View {
             .accessibilityLabel(String(localized: "analysis.undo"))
         }
         .padding(.horizontal, 12)
-    }
-
-    private func controlButton(
-        symbol: String,
-        label key: String,
-        isDisabled: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 38, height: 38)
-                .background(Circle().fill(Color(.secondarySystemBackground)))
-        }
-        .disabled(isDisabled)
-        .opacity(isDisabled ? 0.4 : 1)
-        .accessibilityLabel(String(localized: String.LocalizationValue(key)))
     }
 }
 

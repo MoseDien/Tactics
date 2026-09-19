@@ -101,15 +101,16 @@ wake-up — no polling timers anywhere.
   generation baked into piece ids so loads present fresh views). Keep this
   shape — priority lists of animation signals have repeatedly regressed.
 - A wrong legal move is displayed briefly, recorded, and retryable.
-- A free analysis board opens from the control row (right of the flip
-  button): seeded with the puzzle's raw FEN and oriented like the training
+- A free analysis board opens from the control row (leading button): seeded
+  with the puzzle's raw FEN and oriented like the training
   board at launch; the machine's opening move plays itself half a second
   after load — and again after rewinding to the raw seed or a reset (a user
   move during the pause wins). Both
   sides playable by the user, with its own clean-room rules engine and board
   view under `Features/Analysis/` (no ChessCore/PuzzleKit/TacticsData
-  imports, no training-state access); undo/reset/flip and a promotion picker
-  included, and it never touches rating, progress, or history. A framed
+  imports, no training-state access); undo/reset and a promotion picker
+  included (no manual flip — boards orient automatically), and it never
+  touches rating, progress, or history. A framed
   status band shows the side-to-move's king, "you hold white/black" over
   the live status (the held side is opposite the machine's opener, hidden
   on an unseeded free board), and the material-advantage badge (leading
@@ -117,7 +118,7 @@ wake-up — no polling timers anywhere.
   one horizontally scrolling row with one number per fullmove pair
   (continuing the seed FEN's clock).
 - A puzzle can be favorited once finished (play or review): the heart
-  outline right of the flip button toggles `PuzzleProgress.isFavorite`;
+  outline right of the free-board button toggles `PuzzleProgress.isFavorite`;
 - During an active puzzle, Hint is two-stage: the first tap highlights the
   expected move (scored immediately as a loss); a second tap plays the move
   for the player, including the puzzle line's promotion piece. Once the
@@ -140,7 +141,7 @@ wake-up — no polling timers anywhere.
   round-end rating snapshot follows the same once-per-round rule).
 - Review navigation is round-scoped. After the final puzzle, `Next puzzle` loops
   to the first puzzle and transitions Play mode into Review mode.
-- Review mode keeps Hint, board flipping, move interaction, and progress updates,
+- Review mode keeps Hint, move interaction, and progress updates,
   but must never change the user's Rating.
 - Review must not mutate the live solve result or trigger an automatic reply.
 - User-facing strings (including board accessibility labels) go through the

@@ -55,7 +55,6 @@
 "tactics.error_load" = "The puzzle could not be loaded.";
 "tactics.error_apply" = "The move could not be applied.";
 "tactics.error_reply" = "The reply could not be applied.";
-"tactics.flip_board" = "Flip board";
 "tactics.open_analysis" = "Free board";
 "tactics.settings" = "Settings";
 "tactics.rating" = "Rating";

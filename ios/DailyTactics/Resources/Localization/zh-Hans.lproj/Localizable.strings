@@ -50,7 +50,6 @@
 "tactics.error_load" = "题目加载失败。";
 "tactics.error_apply" = "着法无法应用。";
 "tactics.error_reply" = "对手回应无法应用。";
-"tactics.flip_board" = "翻转棋盘";
 "tactics.open_analysis" = "自由棋面";
 "tactics.settings" = "设置";
 "tactics.rating" = "Rating";
