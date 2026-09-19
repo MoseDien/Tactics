@@ -132,8 +132,8 @@ wake-up — no polling timers anywhere.
   persisted round resumes in Play at its saved cursor, a completed one resumes
   in Review looping from the first puzzle, and a fresh round only begins when
   the user taps `Next round`; the view model enforces the same guard.
-- Settings keeps manual next-chunk download tappable. At 50 or more untried
-  puzzles it explains the threshold; below 50 it downloads and shows a local,
+- Settings keeps manual next-chunk download tappable. At 3000 or more untried
+  puzzles it explains the threshold; below 3000 it downloads and shows a local,
   semi-transparent spinner instead of a full-screen loading state.
 - Round history (`RoundHistory`) is written exactly once per round: neither a
   hint on the final puzzle, re-solving the round in review, nor replaying a

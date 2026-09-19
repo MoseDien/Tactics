@@ -50,9 +50,13 @@ final class SettingsViewModel {
 
     // MARK: Library status & downloads
 
+    /// Manual download stays available until the untried pool reaches this
+    /// size; each tap fetches one chunk toward it.
+    static let untriedPoolCapacity = 3000
+
     /// Low untried pool AND chunks left to fetch (404 latch kills it).
     var isEligibleForManualDownload: Bool {
-        untriedPuzzleCount < 50 && !dependencies.sequenceStore.noMoreChunks
+        untriedPuzzleCount < Self.untriedPoolCapacity && !dependencies.sequenceStore.noMoreChunks
     }
 
     func downloadMorePuzzlesTapped() {
@@ -67,7 +71,7 @@ final class SettingsViewModel {
     private func downloadMorePuzzles() async {
         guard !isDownloadingMorePuzzles, isEligibleForManualDownload else { return }
         isDownloadingMorePuzzles = true
-        _ = await dependencies.provisioner.ensureRoundAvailable(minimum: 50)
+        _ = await dependencies.provisioner.ensureRoundAvailable(minimum: Self.untriedPoolCapacity)
         refreshLibraryStatus()
         isDownloadingMorePuzzles = false
     }

@@ -24,7 +24,7 @@
 "settings.library_status" = "Chunk %ld · %ld puzzles loaded · %ld untried. New chunks download automatically when the untried pool runs low.";
 "settings.download_more_puzzles" = "Download more puzzles";
 "settings.download_more_puzzles_unavailable_title" = "More puzzles unavailable";
-"settings.download_more_puzzles_unavailable_message" = "Downloads become available when fewer than 50 untried puzzles remain.";
+"settings.download_more_puzzles_unavailable_message" = "Downloads become available when fewer than 3000 untried puzzles remain.";
 "settings.rating_trend" = "Rating trend";
 "settings.rating_trend_empty" = "Complete a round to see your rating trend here.";
 "settings.rating_trend_delta" = "%+ld since the first round";
