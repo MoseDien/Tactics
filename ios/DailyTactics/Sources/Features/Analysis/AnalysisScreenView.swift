@@ -86,15 +86,17 @@ struct AnalysisScreenView: View {
         }
     }
 
-    /// The board header band: the current side-to-move's king at the left,
-    /// then two lines — "you hold white/black" (hidden on an unseeded free
-    /// board) over the live status — with the material badge at the right.
+    /// The board header band: the held side's king at the left — matching
+    /// the "you hold white/black" line, so it stays put while the side to
+    /// move alternates (an unseeded free board falls back to the side to
+    /// move) — over the live status, with the material badge at the right.
     private func header(for store: AnalysisGameStore) -> some View {
-        let (statusText, imageName) = statusCopy(for: store.status, activeColor: store.position.activeColor)
+        let statusText = statusCopy(for: store.status, activeColor: store.position.activeColor)
         return BoardHeaderView(
-            kingAsset: imageName,
+            kingAsset: store.heldColor.map { $0 == .white ? "wK" : "bK" }
+                ?? (store.position.activeColor == .white ? "wK" : "bK"),
             title: store.heldColor.map {
-                String(localized: $0 == .white ? "analysis.you_hold_white" : "analysis.you_hold_black")
+                String(localized: $0 == .white ? "analysis.you_play_white" : "analysis.you_play_black")
             },
             subtitle: statusText
         ) {
@@ -153,7 +155,7 @@ struct AnalysisScreenView: View {
         }
         .scrollIndicators(.hidden)
         .scrollPosition(id: $moveStripAnchor, anchor: .trailing)
-        .defaultScrollAnchor(.trailing)
+        .defaultScrollAnchor(.leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String(localized: "analysis.move_list"))
         .onChange(of: store.moveRevision) { _, _ in
@@ -205,19 +207,17 @@ struct AnalysisScreenView: View {
     private func statusCopy(
         for status: Analysis.Status,
         activeColor: Analysis.Color
-    ) -> (text: String, imageName: String) {
-        let kingAsset = activeColor == .white ? "wK" : "bK"
+    ) -> String {
         switch status {
         case .playing:
-            return (String(localized: activeColor == .white ? "analysis.status_white_to_move" : "analysis.status_black_to_move"), kingAsset)
+            return String(localized: activeColor == .white ? "analysis.status_white_to_move" : "analysis.status_black_to_move")
         case .check:
-            return (String(localized: "analysis.status_check"), kingAsset)
+            return String(localized: "analysis.status_check")
         case .checkmate(let winner):
             let side = NSLocalizedString(winner == .white ? "piece.white.name" : "piece.black.name", comment: "")
-            return (String(format: NSLocalizedString("analysis.status_checkmate", comment: ""), side),
-                    winner == .white ? "wK" : "bK")
+            return String(format: NSLocalizedString("analysis.status_checkmate", comment: ""), side)
         case .stalemate:
-            return (String(localized: "analysis.status_stalemate"), "wK")
+            return String(localized: "analysis.status_stalemate")
         }
     }
 

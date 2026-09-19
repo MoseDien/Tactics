@@ -113,10 +113,13 @@ wake-up — no polling timers anywhere.
   touches rating, progress, or history. Every board screen crowns its
   board with the shared `BoardHeaderView` band (king tile, title over
   subtitle, screen-supplied trailing accessory); on the analysis board it
-  shows the side-to-move's king, "you hold white/black" over
+  shows the held side's king — matching the "you hold white/black" line,
+  constant while the side to move alternates (an unseeded free board falls
+  back to the side to move) — over
   the live status (the held side is opposite the machine's opener, hidden
   on an unseeded free board), and the material-advantage badge (leading
-  side only); a SAN move strip with per-move piece icons sits above it,
+  side only; hidden while material is even); a SAN move strip with
+  per-move piece icons sits above it,
   one horizontally scrolling row with one number per fullmove pair
   (continuing the seed FEN's clock).
 - A puzzle can be favorited once finished (play or review): the heart

@@ -20,6 +20,8 @@ struct RoundReviewView: View {
     var body: some View {
         VStack(spacing: 12) {
             header
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
 
             if let session {
                 ChessBoardView(
@@ -32,7 +34,6 @@ struct RoundReviewView: View {
                     onSelect: { _ in }
                 )
                 .aspectRatio(1, contentMode: .fit)
-                .padding(.horizontal, 16)
 
                 controls(for: session)
             } else {
