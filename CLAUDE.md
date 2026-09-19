@@ -121,8 +121,8 @@ wake-up — no polling timers anywhere.
   outline right of the free-board button toggles `PuzzleProgress.isFavorite`;
 - During an active puzzle, Hint is two-stage: the first tap highlights the
   expected move (scored immediately as a loss); a second tap plays the move
-  for the player, including the puzzle line's promotion piece. Once the
-  puzzle is complete, Hint opens its read-only single-puzzle review instead.
+  for the player, including the puzzle line's promotion piece. The control
+  disables once the puzzle is complete.
 - A pawn reaching the last rank opens a promotion picker
   (queen/rook/bishop/knight); the move is submitted only after a choice.
 - A new round unlocks after the round window (12 hours; 5 minutes in Debug builds); tapping

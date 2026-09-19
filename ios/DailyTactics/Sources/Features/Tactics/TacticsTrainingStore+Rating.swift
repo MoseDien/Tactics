@@ -9,7 +9,6 @@ extension TacticsTrainingStore {
     var hintEnabled: Bool {
         !inReview && (sessionState.session.state == .waitingForMove || sessionState.session.state == .incorrectMove)
     }
-    var canReviewCurrentPuzzle: Bool { sessionState.currentPuzzleFinished }
     var isReviewing: Bool { sessionState.session.isReviewing }
     var currentMoveNumber: Int { sessionState.session.currentMoveNumber }
     var totalUserMoves: Int { sessionState.session.totalUserMoves }

@@ -10,7 +10,6 @@ struct TacticsView: View {
     @State private var screen: TacticsScreenViewModel?
     @State private var showingSettings = false
     @State private var showingHowToPlay = false
-    @State private var reviewingPuzzle: Puzzle?
     @State private var analysisSeed: AnalysisSeed?
 
     /// Sheet payload for the free analysis board. It always starts from the
@@ -103,9 +102,6 @@ struct TacticsView: View {
 
                     MoveControlsView(
                         viewModel: screen.controls,
-                        onReviewCurrentPuzzle: {
-                            reviewingPuzzle = screen.currentPuzzle
-                        },
                         onOpenAnalysis: {
                             analysisSeed = AnalysisSeed(
                                 puzzle: screen.currentPuzzle,
@@ -159,11 +155,6 @@ struct TacticsView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
-            }
-            .sheet(item: $reviewingPuzzle) { puzzle in
-                NavigationStack {
-                    ReviewPuzzleView(puzzle: puzzle)
-                }
             }
             .sheet(item: $analysisSeed) { seed in
                 NavigationStack {

@@ -279,8 +279,6 @@ final class ChessAndPuzzleTests: XCTestCase {
 
         XCTAssertEqual(vm.state, .solved)
         XCTAssertTrue(vm.sessionState.currentPuzzleFinished)
-        XCTAssertTrue(vm.canReviewCurrentPuzzle,
-                      "a completed puzzle should make the Hint control open its single-puzzle review")
         XCTAssertEqual(vm.progressState.userRating, ratingAfterFailure, "Finishing after a mistake must not apply rating twice")
         XCTAssertLessThan(vm.progressState.lastRatingDelta ?? 0, 0)
     }

@@ -40,7 +40,6 @@ struct RoundProgressView: View {
 /// different widths (analysis+favorite vs hint), so flow layout would off-center it.
 struct MoveControlsView: View {
     let viewModel: TacticsControlsViewModel
-    let onReviewCurrentPuzzle: () -> Void
     let onOpenAnalysis: () -> Void
 
     var body: some View {
@@ -60,18 +59,14 @@ struct MoveControlsView: View {
             Spacer()
 
             Button {
-                if viewModel.canReviewPuzzle {
-                    onReviewCurrentPuzzle()
-                } else {
-                    viewModel.requestHint()
-                }
+                viewModel.requestHint()
             } label: {
                 Image(systemName: "lightbulb")
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color(.secondarySystemBackground)))
             }
-            .disabled(!viewModel.canUseHint && !viewModel.canReviewPuzzle)
+            .disabled(!viewModel.canUseHint)
             .accessibilityLabel(String(localized: "tactics.hint"))
         }
         .padding(.horizontal, 20)
