@@ -48,6 +48,20 @@ final class AnalysisGameTests: XCTestCase {
         XCTAssertFalse(game.canUndo)
     }
 
+    // MARK: - Opening move history
+
+    func testOpeningMoveIsHistoryFrameOne() throws {
+        var game = try Analysis.Game(fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        game.play(move("e2e4"))
+        XCTAssertEqual(game.lastMove, move("e2e4"))
+        XCTAssertTrue(game.canUndo, "the opener is rewindable")
+        XCTAssertEqual(game.position.enPassantTarget?.notation, "e3")
+
+        game.undo()
+        XCTAssertNil(game.lastMove)
+        XCTAssertFalse(game.canUndo)
+    }
+
     // MARK: - Store tap machine
 
     @MainActor
@@ -152,6 +166,195 @@ final class AnalysisGameTests: XCTestCase {
         let store = AnalysisGameStore(seedFEN: "not a fen")
         XCTAssertEqual(store.position.fen, Analysis.Position.startFEN)
         XCTAssertEqual(store.status, .playing)
+    }
+
+    @MainActor
+    func testLoadOpensRawThenPlaysTheOpeningMove() async throws {
+        let store = AnalysisGameStore(
+            seedFEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            openingMove: move("e2e4"),
+            openingReplayDelay: .milliseconds(1)
+        )
+        XCTAssertTrue(store.game.moves.isEmpty, "the board opens on the raw position")
+        XCTAssertNil(store.lastMove)
+
+        try await Task.sleep(for: .milliseconds(80))
+        XCTAssertEqual(store.lastMove, move("e2e4"), "the opener walks itself in")
+        XCTAssertEqual(store.animatedArrival, [square("e4"): square("e2")], "the entry slides")
+        XCTAssertFalse(store.isUndoAnimation)
+    }
+
+    @MainActor
+    func testUndoLandsOnTheSetupFrameWithTheOpenerHighlighted() async throws {
+        let opening = move("e2e4")
+        let store = AnalysisGameStore(
+            seedFEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            openingMove: opening,
+            openingReplayDelay: .milliseconds(1)
+        )
+        try await Task.sleep(for: .milliseconds(80))  // opener in
+
+        store.select(square("a7"))
+        store.select(square("a6"))
+        XCTAssertEqual(store.lastMove, move("a7a6"), "a played move takes over the highlight")
+
+        store.undo()
+        XCTAssertEqual(store.lastMove, opening, "undo stops at the setup frame, opener highlighted")
+    }
+
+    @MainActor
+    func testUndoToTheBottomReplaysTheOpeningMove() async throws {
+        let store = AnalysisGameStore(
+            seedFEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            openingMove: move("e2e4"),
+            openingReplayDelay: .milliseconds(1)
+        )
+        try await Task.sleep(for: .milliseconds(80))  // opener in
+
+        store.undo()
+        XCTAssertTrue(store.game.moves.isEmpty, "rewound to the raw seed")
+        XCTAssertNil(store.lastMove)
+
+        try await Task.sleep(for: .milliseconds(80))
+        XCTAssertEqual(store.lastMove, move("e2e4"), "the opener replays itself")
+        XCTAssertFalse(store.isUndoAnimation)
+    }
+
+    @MainActor
+    func testResetReplaysTheOpeningMove() async throws {
+        let store = AnalysisGameStore(
+            seedFEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            openingMove: move("e2e4"),
+            openingReplayDelay: .milliseconds(1)
+        )
+
+        store.reset()
+        XCTAssertTrue(store.game.moves.isEmpty)
+
+        try await Task.sleep(for: .milliseconds(80))
+        XCTAssertEqual(store.lastMove, move("e2e4"))
+    }
+
+    @MainActor
+    func testAUserMoveDuringTheReplayWindowCancelsTheReplay() async throws {
+        let store = AnalysisGameStore(
+            seedFEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            openingMove: move("e2e4"),
+            openingReplayDelay: .milliseconds(80)
+        )
+
+        store.select(square("d2"))  // the machine's side, still on the raw frame
+        store.select(square("d4"))
+        XCTAssertEqual(store.lastMove, move("d2d4"))
+
+        try await Task.sleep(for: .milliseconds(250))
+        XCTAssertEqual(store.lastMove, move("d2d4"), "the user's move wins; the opening replay stands down")
+    }
+
+    @MainActor
+    func testBoardOpensOrientedLikeTheTrainingBoard() {
+        XCTAssertFalse(AnalysisGameStore(seedFEN: Analysis.Position.startFEN).isFlipped)
+        XCTAssertTrue(AnalysisGameStore(seedFEN: Analysis.Position.startFEN, startsFlipped: true).isFlipped)
+    }
+
+    @MainActor
+    func testHeldColorFollowsTheSeedsSideToMove() {
+        let whiteOpens = AnalysisGameStore(
+            seedFEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            openingMove: move("e2e4"),
+            openingReplayDelay: .seconds(60)
+        )
+        XCTAssertEqual(whiteOpens.heldColor, .black, "the machine opens white, so the solver holds black")
+
+        let blackOpens = AnalysisGameStore(
+            seedFEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
+            openingMove: move("e7e5"),
+            openingReplayDelay: .seconds(60)
+        )
+        XCTAssertEqual(blackOpens.heldColor, .white)
+
+        let freeBoard = AnalysisGameStore(
+            seedFEN: Analysis.Position.startFEN,
+            openingReplayDelay: .seconds(60)
+        )
+        XCTAssertNil(freeBoard.heldColor, "a free board without an opener holds no side")
+    }
+
+    // MARK: - SAN, move list, material
+
+    func testMoveListLeadsWithTheOpeningMove() throws {
+        var game = try Analysis.Game(fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        game.play(move("e2e4"))
+        XCTAssertEqual(game.moveList.map(\.san), ["e4"])
+        XCTAssertEqual(game.moveList.first?.piece.assetName, "wP")
+    }
+
+    func testSANOfAStandardOpening() {
+        var game = Analysis.Game.start()
+        for uci in ["f2f3", "e7e5", "g2g4", "d8h4"] {
+            game.play(move(uci))
+        }
+        XCTAssertEqual(game.moveList.map(\.san), ["f3", "e5", "g4", "Qh4#"], "fool's mate carries the mate suffix")
+        XCTAssertEqual(game.moveList.last?.piece.assetName, "bQ")
+    }
+
+    func testMoveNumbersFollowTheFullmoveClock() throws {
+        var game = Analysis.Game.start()
+        for uci in ["f2f3", "e7e5", "g2g4", "d8h4"] {
+            game.play(move(uci))
+        }
+        XCTAssertEqual(game.moveList.map(\.number), [1, 1, 2, 2], "white and black share the fullmove number")
+
+        var midGame = try Analysis.Game(
+            fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 3 42"
+        )
+        midGame.play(move("e2e4"))
+        midGame.play(move("e7e5"))
+        XCTAssertEqual(midGame.moveList.map(\.number), [42, 42], "numbering continues the seed FEN's clock")
+    }
+
+    func testSANDisambiguatesByFileThenRank() throws {
+        var byFile = try Analysis.Game(fen: "4k3/8/8/8/8/8/4K3/R6R w - - 0 1")
+        byFile.play(move("a1d1"))
+        XCTAssertEqual(byFile.moveList.last?.san, "Rad1", "rooks share the rank, so the file letter disambiguates")
+
+        var byRank = try Analysis.Game(fen: "4k3/8/8/8/7R/8/8/K6R w - - 0 1")
+        byRank.play(move("h1h3"))
+        XCTAssertEqual(byRank.moveList.last?.san, "R1h3", "rooks share the file, so the rank digit disambiguates")
+    }
+
+    func testSANOfCapturesEnPassantAndCastling() throws {
+        var capture = try Analysis.Game(fen: "4k3/8/8/3pP3/8/8/8/4K3 w - - 0 1")
+        capture.play(move("e5d5"))
+        XCTAssertEqual(capture.moveList.last?.san, "exd5")
+
+        var enPassant = try Analysis.Game(fen: "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1")
+        enPassant.play(move("e5d6"))
+        XCTAssertEqual(enPassant.moveList.last?.san, "exd6")
+
+        var castle = try Analysis.Game(fen: "4k3/8/8/8/8/8/8/4K2R w K - 0 1")
+        castle.play(move("e1g1"))
+        XCTAssertEqual(castle.moveList.last?.san, "O-O")
+
+        var castleLong = try Analysis.Game(fen: "r3k3/8/8/8/8/8/8/4K3 b q - 0 1")
+        castleLong.play(move("e8c8"))
+        XCTAssertEqual(castleLong.moveList.last?.san, "O-O-O")
+    }
+
+    func testSANOfPromotionCarriesTheChosenPiece() throws {
+        var game = try Analysis.Game(fen: "8/P6k/8/8/8/8/8/K7 w - - 0 1")
+        game.play(Analysis.Move(from: square("a7"), to: square("a8"), promotion: .queen))
+        XCTAssertEqual(game.moveList.last?.san, "a8=Q")
+        XCTAssertEqual(game.moveList.last?.piece.kind, .queen, "the chip icon shows the promoted piece")
+    }
+
+    func testMaterialBalanceCountsBothSides() throws {
+        let start = try Analysis.Position(fen: Analysis.Position.startFEN)
+        XCTAssertEqual(start.materialBalance, 0)
+        let whiteRookUp = try Analysis.Position(fen: "4k3/8/8/8/8/8/8/4K2R w - - 0 1")
+        XCTAssertEqual(whiteRookUp.materialBalance, 5)
+        let blackQueenUp = try Analysis.Position(fen: "4k2q/8/8/8/8/8/8/4K3 b - - 0 1")
+        XCTAssertEqual(blackQueenUp.materialBalance, -9)
     }
 
     @MainActor

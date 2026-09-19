@@ -45,13 +45,44 @@ final class PositionFENSerializerTests: XCTestCase {
         XCTAssertEqual(fields[3], "e3")
     }
 
-    func testAnalysisSeedResetsPuzzleThenAppliesMachineOpeningMove() throws {
+    func testAnalysisSeedCarriesTheRawFENAndTheMachinesOpeningMove() throws {
         let puzzle = Puzzle.samples[0]
         var expected = try PuzzleSession(puzzle: puzzle)
         try expected.applyOpponentMove()
 
-        let analysisBoard = try Board(fen: PositionFENSerializer.analysisFEN(for: puzzle))
-        XCTAssertEqual(analysisBoard.pieces, expected.board.pieces)
-        XCTAssertEqual(analysisBoard.sideToMove, expected.board.sideToMove)
+        let seed = PositionFENSerializer.analysisSeed(for: puzzle)
+        XCTAssertEqual(seed.fen, puzzle.fen, "the board rewinds through the opener, so the seed is the raw position")
+        XCTAssertEqual(seed.openingMove?.from.notation, expected.lastMove?.from.notation)
+        XCTAssertEqual(seed.openingMove?.to.notation, expected.lastMove?.to.notation)
+    }
+
+    /// The opener the analysis engine replays must land on exactly the state
+    /// ChessCore computes for the same move — placement, side to move,
+    /// castling, en passant.
+    func testOpeningMoveReachesTheSameStateInBothEngines() throws {
+        for puzzle in Puzzle.samples {
+            var expected = try PuzzleSession(puzzle: puzzle)
+            try expected.applyOpponentMove()
+            let expectedFields = PositionFENSerializer.fen(from: expected.board)
+                .split(separator: " ").prefix(4)
+
+            let seed = PositionFENSerializer.analysisSeed(for: puzzle)
+            var game = try Analysis.Game(fen: seed.fen)
+            if let openingMove = seed.openingMove { game.play(openingMove) }
+            XCTAssertEqual(Array(game.position.fen.split(separator: " ").prefix(4)), Array(expectedFields))
+        }
+    }
+
+    func testAnalysisSeedFallsBackToThePuzzleFENWithoutAMove() throws {
+        let puzzle = Puzzle(
+            id: "lineless",
+            fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+            moves: [],
+            rating: nil,
+            themes: []
+        )
+        let seed = PositionFENSerializer.analysisSeed(for: puzzle)
+        XCTAssertEqual(seed.fen, puzzle.fen)
+        XCTAssertNil(seed.openingMove)
     }
 }

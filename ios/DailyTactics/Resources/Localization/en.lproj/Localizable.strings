@@ -113,7 +113,11 @@
 "results.summary" = "Results: %ld correct, %ld wrong";
 
 /* analysis (free board) */
-"analysis.title" = "Free board";
+"analysis.title" = "Analyse";
+"analysis.material_advantage" = "%@ leads by %ld points";
+"analysis.move_list" = "Moves played";
+"analysis.you_hold_white" = "You hold white";
+"analysis.you_hold_black" = "You hold black";
 "analysis.undo" = "Undo move";
 "analysis.reset" = "Reset board";
 "analysis.status_white_to_move" = "White to move";

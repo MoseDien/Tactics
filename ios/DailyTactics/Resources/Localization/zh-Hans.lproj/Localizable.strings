@@ -95,7 +95,11 @@
 "results.summary" = "结果：%ld 题正确，%ld 题错误";
 
 /* analysis (自由棋面) */
-"analysis.title" = "自由棋面";
+"analysis.title" = "分析";
+"analysis.material_advantage" = "%@领先 %ld 分";
+"analysis.move_list" = "已走着法";
+"analysis.you_hold_white" = "你执白";
+"analysis.you_hold_black" = "你执黑";
 "analysis.undo" = "撤销一步";
 "analysis.reset" = "重置棋盘";
 "analysis.status_white_to_move" = "白方行棋";

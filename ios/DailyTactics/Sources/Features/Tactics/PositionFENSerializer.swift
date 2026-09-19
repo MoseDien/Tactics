@@ -5,15 +5,28 @@ import PuzzleKit
 /// Lives at the feature boundary: the analysis engine itself stays free of
 /// ChessCore types.
 enum PositionFENSerializer {
-    /// The analysis board always begins from the puzzle's own opening state,
-    /// after Lichess's machine-first setup move. It deliberately ignores the
-    /// live training session, which may be midway through a line or in review.
-    static func analysisFEN(for puzzle: Puzzle) -> String {
+    /// The analysis board seeds from the puzzle's raw FEN and receives the
+    /// machine's setup move separately — the analysis engine plays it as
+    /// history frame one, so the board can rewind through it. The live
+    /// training session is deliberately ignored, which may be midway through
+    /// a line or in review.
+    static func analysisSeed(for puzzle: Puzzle) -> (fen: String, openingMove: Analysis.Move?) {
         guard var session = try? PuzzleSession(puzzle: puzzle) else {
-            return puzzle.fen
+            return (puzzle.fen, nil)
         }
         try? session.applyOpponentMove()
-        return fen(from: session.board)
+        return (puzzle.fen, openingMove(from: session.lastMove))
+    }
+
+    /// ChessCore move → analysis move at the feature boundary; nil when the
+    /// move or either square falls outside the analysis board.
+    private static func openingMove(from move: ChessMove?) -> Analysis.Move? {
+        guard let move,
+              let from = Analysis.Square(file: move.from.file, rank: move.from.rank),
+              let to = Analysis.Square(file: move.to.file, rank: move.to.rank)
+        else { return nil }
+        let promotion = move.promotion.flatMap { Analysis.PieceKind(rawValue: $0.rawValue) }
+        return Analysis.Move(from: from, to: to, promotion: promotion)
     }
 
     static func fen(from board: Board) -> String {

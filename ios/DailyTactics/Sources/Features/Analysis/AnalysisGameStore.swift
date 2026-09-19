@@ -15,15 +15,43 @@ final class AnalysisGameStore {
     private(set) var moveRevision = 0
     private(set) var boardGeneration = 0
     private(set) var isUndoAnimation = false
+    /// The machine's setup move. It plays itself half a second after load —
+    /// and again whenever the board rewinds to the raw seed or resets — so
+    /// the solver always starts (again) from the setup position.
+    private let openingMove: Analysis.Move?
+    /// The pause before the machine's setup move (re)plays itself; injectable
+    /// for tests.
+    private let openingReplayDelay: Duration
+    private var replayTask: Task<Void, Never>?
 
-    /// A bad seed falls back to the standard opening position.
-    init(seedFEN: String) {
+    /// A bad seed falls back to the standard opening position. The board opens
+    /// on the raw seed, oriented like the training board it was launched from;
+    /// the setup move follows shortly.
+    init(
+        seedFEN: String,
+        openingMove: Analysis.Move? = nil,
+        startsFlipped: Bool = false,
+        openingReplayDelay: Duration = .milliseconds(500)
+    ) {
         game = (try? Analysis.Game(fen: seedFEN)) ?? Analysis.Game.start()
+        self.openingMove = openingMove
+        self.openingReplayDelay = openingReplayDelay
+        isFlipped = startsFlipped
+        scheduleOpeningReplay()
     }
 
     var position: Analysis.Position { game.position }
     var status: Analysis.Status { game.status }
     var lastMove: Analysis.Move? { game.lastMove }
+    var moveList: [Analysis.MoveDisplay] { game.moveList }
+
+    /// The side the solver holds on a seeded board: the machine opens from
+    /// the raw seed, so this is the seed's side-to-move flipped. Nil on a
+    /// free board without an opener.
+    var heldColor: Analysis.Color? {
+        guard openingMove != nil, let machineColor = game.positions.first?.activeColor else { return nil }
+        return machineColor.opposite
+    }
     var canUndo: Bool { game.canUndo }
     var hasMoves: Bool { game.hasMoves }
 
@@ -70,14 +98,17 @@ final class AnalysisGameStore {
         isUndoAnimation = true
         moveRevision += 1
         clearSelection()
+        scheduleOpeningReplay()
     }
 
     func reset() {
+        replayTask?.cancel()
         game.resetToSeed()
         animatedArrival = [:]
         isUndoAnimation = false
         boardGeneration += 1
         clearSelection()
+        scheduleOpeningReplay()
     }
 
     func flip() {
@@ -87,6 +118,21 @@ final class AnalysisGameStore {
     private func clearSelection() {
         selectedSquare = nil
         legalTargets = []
+    }
+
+    /// Sitting on the raw seed — at load, after rewinding to the bottom, or
+    /// after a reset: after a short pause the machine's setup move plays
+    /// itself, handing the solver their starting point. A user move made
+    /// during the pause wins and cancels the replay.
+    private func scheduleOpeningReplay() {
+        guard openingMove != nil, !game.hasMoves else { return }
+        replayTask?.cancel()
+        replayTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: openingReplayDelay)
+            guard !Task.isCancelled, self.game.moves.isEmpty, let openingMove = self.openingMove else { return }
+            self.play(openingMove)
+        }
     }
 
     private func needsPromotion(from: Analysis.Square, to: Analysis.Square) -> Bool {

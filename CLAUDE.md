@@ -102,11 +102,20 @@ wake-up — no polling timers anywhere.
   shape — priority lists of animation signals have repeatedly regressed.
 - A wrong legal move is displayed briefly, recorded, and retryable.
 - A free analysis board opens from the control row (right of the flip
-  button): seeded with the current puzzle's live position as a FEN, both
+  button): seeded with the puzzle's raw FEN and oriented like the training
+  board at launch; the machine's opening move plays itself half a second
+  after load — and again after rewinding to the raw seed or a reset (a user
+  move during the pause wins). Both
   sides playable by the user, with its own clean-room rules engine and board
   view under `Features/Analysis/` (no ChessCore/PuzzleKit/TacticsData
   imports, no training-state access); undo/reset/flip and a promotion picker
-  included, and it never touches rating, progress, or history.
+  included, and it never touches rating, progress, or history. A framed
+  status band shows the side-to-move's king, "you hold white/black" over
+  the live status (the held side is opposite the machine's opener, hidden
+  on an unseeded free board), and the material-advantage badge (leading
+  side only); a SAN move strip with per-move piece icons sits above it,
+  one horizontally scrolling row with one number per fullmove pair
+  (continuing the seed FEN's clock).
 - A puzzle can be favorited once finished (play or review): the heart
   outline right of the flip button toggles `PuzzleProgress.isFavorite`;
 - During an active puzzle, Hint is two-stage: the first tap highlights the
@@ -137,7 +146,7 @@ wake-up — no polling timers anywhere.
 - User-facing strings (including board accessibility labels) go through the
   en/zh-Hans string tables; add both languages together.
 - The layout should fit iPhone SE and larger devices without scrolling in the
-  normal Dynamic Type size. `ScrollView` remains as an accessibility fallback.
+  normal Dynamic Type size.
 
 ## Coding standards
 

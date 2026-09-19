@@ -14,13 +14,20 @@ struct TacticsView: View {
     @State private var analysisSeed: AnalysisSeed?
 
     /// Sheet payload for the free analysis board. It always starts from the
-    /// puzzle's setup position after the machine's opening move.
+    /// puzzle's raw position; the machine's opening move rides along as
+    /// history frame one, and the board opens oriented like the training
+    /// board at launch.
     private struct AnalysisSeed: Identifiable {
         let fen: String
+        let openingMove: Analysis.Move?
+        let startsFlipped: Bool
         var id: String { fen }
 
-        init(puzzle: Puzzle) {
-            fen = PositionFENSerializer.analysisFEN(for: puzzle)
+        init(puzzle: Puzzle, startsFlipped: Bool) {
+            let seed = PositionFENSerializer.analysisSeed(for: puzzle)
+            fen = seed.fen
+            openingMove = seed.openingMove
+            self.startsFlipped = startsFlipped
         }
     }
 
@@ -51,7 +58,10 @@ struct TacticsView: View {
             #if DEBUG
             // Smoke-test hook: `simctl launch ... -showAnalysisBoard 1`.
             if UserDefaults.standard.bool(forKey: "showAnalysisBoard") {
-                analysisSeed = AnalysisSeed(puzzle: training.roundState.puzzles[training.roundState.currentIndex])
+                analysisSeed = AnalysisSeed(
+                    puzzle: training.roundState.puzzles[training.roundState.currentIndex],
+                    startsFlipped: training.sessionState.isBoardFlipped
+                )
             }
             #endif
         }
@@ -61,8 +71,7 @@ struct TacticsView: View {
     private func content(for screen: TacticsScreenViewModel) -> some View {
         NavigationStack {
             GeometryReader { viewport in
-                ScrollView {
-                    VStack(spacing: 0) {
+                VStack(spacing: 0) {
                     TacticsHeaderView(viewModel: screen.header)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
@@ -91,7 +100,10 @@ struct TacticsView: View {
                             reviewingPuzzle = screen.currentPuzzle
                         },
                         onOpenAnalysis: {
-                            analysisSeed = AnalysisSeed(puzzle: screen.currentPuzzle)
+                            analysisSeed = AnalysisSeed(
+                                puzzle: screen.currentPuzzle,
+                                startsFlipped: screen.board.isFlipped
+                            )
                         }
                     )
 
@@ -105,7 +117,6 @@ struct TacticsView: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 20)
                     }
-                }
                 }
             }
             .overlay {
@@ -149,7 +160,11 @@ struct TacticsView: View {
             }
             .sheet(item: $analysisSeed) { seed in
                 NavigationStack {
-                    AnalysisScreenView(seedFEN: seed.fen)
+                    AnalysisScreenView(
+                        seedFEN: seed.fen,
+                        openingMove: seed.openingMove,
+                        startsFlipped: seed.startsFlipped
+                    )
                 }
                 .presentationDetents([.large])
             }
