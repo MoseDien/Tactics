@@ -21,6 +21,9 @@
 "how_to_play.review" = "Review the puzzles frequently.";
 "settings.difficulty" = "Difficulty";
 "settings.library_section" = "Puzzle library";
+"settings.tools_section" = "Tools";
+"settings.free_board" = "Free board";
+"settings.free_board_description" = "Play a complete game from the standard opening. Both sides are under your control.";
 "settings.library_status" = "Chunk %ld · %ld puzzles loaded · %ld untried. New chunks download automatically when the untried pool runs low.";
 "settings.download_more_puzzles" = "Download more puzzles";
 "settings.download_more_puzzles_unavailable_title" = "More puzzles unavailable";

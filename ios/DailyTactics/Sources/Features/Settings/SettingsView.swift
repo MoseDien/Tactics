@@ -102,6 +102,18 @@ struct SettingsView: View {
             }
 
             Section {
+                NavigationLink {
+                    AnalysisScreenView(seedFEN: Analysis.Position.startFEN)
+                } label: {
+                    Label(String(localized: "settings.free_board"), systemImage: "checkerboard.rectangle")
+                }
+            } header: {
+                Text(String(localized: "settings.tools_section"))
+            } footer: {
+                Text(String(localized: "settings.free_board_description"))
+            }
+
+            Section {
                 Link(destination: URL(string: "mailto:beldailytactics@gmail.com")!) {
                     Label {
                         HStack {

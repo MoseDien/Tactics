@@ -38,6 +38,9 @@ line at a time, and stores progress locally.
   castling, en passant)
 - Pawn promotions open a 4-way piece picker (queen/rook/bishop/knight);
   under-promotion puzzles are solvable
+- Settings → Tools → Free board starts a standalone full chess game from the
+  standard opening, with both sides controlled by the player; it does not
+  affect training progress or Rating
 - Wrong legal moves are shown briefly and recorded; the player can retry
 - Piece movement animates: moves slide (distance-adaptive ease-out, including the
   castling rook), while freshly loaded boards and board flips render instantly;

@@ -56,6 +56,9 @@ feature and preserve the existing offline iOS SwiftUI product direction.
   resumes in Play at its saved cursor, a completed one resumes in Review, and
   a fresh round only begins when the user taps `Next round`.
 - Review may record puzzle progress, but must never update the user's Rating.
+- Settings → Tools → Free board opens the standalone `AnalysisBoardGridView`
+  from the standard opening. Both sides are playable by one user; it must not
+  read or write training progress, Rating, or puzzle history.
 - Keep the normal training screen usable on iPhone SE without scrolling;
   retain `ScrollView` only as a Dynamic Type/accessibility fallback.
 - Do not display `Solved` or `Failed` counters in the training UI.

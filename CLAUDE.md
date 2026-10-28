@@ -101,16 +101,17 @@ wake-up — no polling timers anywhere.
   generation baked into piece ids so loads present fresh views). Keep this
   shape — priority lists of animation signals have repeatedly regressed.
 - A wrong legal move is displayed briefly, recorded, and retryable.
-- A free analysis board opens from the control row (leading button): seeded
+- A free analysis board opens from the control row (leading button), seeded
   with the puzzle's raw FEN and oriented like the training
   board at launch; the machine's opening move plays itself half a second
   after load — and again after rewinding to the raw seed or a reset (a user
-  move during the pause wins). Both
-  sides playable by the user, with its own clean-room rules engine and board
-  view under `Features/Analysis/` (no ChessCore/PuzzleKit/TacticsData
-  imports, no training-state access); undo/reset and a promotion picker
-  included (no manual flip — boards orient automatically), and it never
-  touches rating, progress, or history. Every board screen crowns its
+  move during the pause wins). Settings → Tools → Free board opens the same
+  board from the standard opening, with no machine opener, so one person can
+  play both sides through a complete game. It has its own clean-room rules
+  engine and board view under `Features/Analysis/` (no
+  ChessCore/PuzzleKit/TacticsData imports, no training-state access);
+  undo/reset and a promotion picker included (no manual flip — boards orient
+  automatically), and it never touches rating, progress, or history. Every board screen crowns its
   board with the shared `BoardHeaderView` band (king tile, title over
   subtitle, screen-supplied trailing accessory); on the analysis board it
   shows the held side's king — matching the "you hold white/black" line,

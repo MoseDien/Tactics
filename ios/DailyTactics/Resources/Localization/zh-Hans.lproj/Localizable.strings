@@ -17,6 +17,9 @@
 "how_to_play.review" = "经常复盘做过的题目,巩固棋感。";
 "settings.difficulty" = "难度";
 "settings.library_section" = "题库";
+"settings.tools_section" = "工具";
+"settings.free_board" = "自由棋盘";
+"settings.free_board_description" = "从标准开局完成一整盘棋，双方棋子均由你控制。";
 "settings.library_status" = "数据块 %ld · 已载入 %ld 道题 · 未尝试 %ld 道。未尝试题目不足时会自动下载新数据块。";
 "settings.download_more_puzzles" = "下载更多题目";
 "settings.download_more_puzzles_unavailable_title" = "暂时无需下载";
