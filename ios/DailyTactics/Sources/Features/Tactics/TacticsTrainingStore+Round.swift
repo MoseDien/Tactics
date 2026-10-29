@@ -21,20 +21,6 @@ extension TacticsTrainingStore {
         return !tracker.isWithinWindow
     }
 
-    /// Standalone CTA in every non-completed state once the window expired.
-    var shouldShowNewRoundAction: Bool {
-        isNewRoundAvailable && !sessionState.currentPuzzleFinished
-    }
-
-    /// "Unlocks at 3:10 PM" for the disabled button's hint and label; nil
-    /// when there is nothing running to wait for.
-    var nextRoundUnlockDescription: String? {
-        guard let unlocksAt = roundState.tracker?.nextRoundUnlocksAt else { return nil }
-        return String(
-            format: NSLocalizedString("tactics.next_round_wait_until", comment: "Clock time when the next round unlocks"),
-            unlocksAt.formatted(date: .omitted, time: .shortened)
-        )
-    }
     var canUpdateRating: Bool { roundState.mode == .play }
     var canInteractWithPuzzle: Bool { !inReview && (state == .waitingForMove || state == .incorrectMove) }
 

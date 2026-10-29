@@ -12,7 +12,9 @@ line at a time, and stores progress locally.
 
 当前开发优先级为 iOS。Android 工程暂时保留在 `android/`，但暂停功能开发；待 iOS 版本完成并稳定后再继续 Android。
 
-- iOS-only, iOS 17+, Swift 6, SwiftUI, Tuist 4.x
+- iOS-only, iOS 17+, Swift 6, SwiftUI, Tuist 4.x; the app target uses The
+  Composable Architecture (pilot-first migration —
+  [docs/TCA_MIGRATION_EVALUATION.md](docs/TCA_MIGRATION_EVALUATION.md))
 - Bundle identifier: `com.dienbell.tactics`, display name **iTactics**
 - On first launch the bundled `puzzle-0000.json` chunk (1000 puzzles)
   is imported into SwiftData in one pass behind a loading screen; a decode
@@ -28,9 +30,9 @@ line at a time, and stores progress locally.
   its saved cursor, a completed one resumes in Review, and a fresh round only
   begins when the user taps `Next round`; the difficulty setting
   (Easy/Medium/Hard) filters new rounds relative to the user's Rating
-- Settings keeps “Download more puzzles” tappable: it downloads below 50
+- Settings keeps “Download more puzzles” tappable: it downloads below 3000
   untried puzzles and otherwise explains the threshold; normal round creation
-  still downloads automatically once fewer than 5 remain
+  still downloads automatically when the untried pool can't fill a round
 - Lichess `chessnut` SVG pieces are bundled locally under Apache 2.0
 - The first move in every Lichess line is the machine's setup move; user and
   machine then alternate through the remaining UCI moves
@@ -95,7 +97,8 @@ ios/
       RoundTracker.swift       observable round window, injectable clock
       TacticsPacing.swift      injectable interaction timing
       Features/Tactics/        training-flow + progress stores, per-view presentation VMs, board, round history UI
-      Features/Settings/       difficulty, rating trend chart, history entry
+      Features/Home/           root screen: round card, Continue / New round, feature entries
+      Features/Settings/       difficulty, rating trend chart, history entry (TCA pilot)
       Features/Onboarding/     first-launch library import screen
       DailyTacticsApp.swift    app entry point
     Resources/                 assets, localization, legal
@@ -115,15 +118,18 @@ imports none of it. Domain code does not import SwiftUI.
 
 ```sh
 cd ios
+# Resolve external Swift packages (fresh clones and Package.swift edits)
+mise x tuist@4.197.3 -- tuist install
+
 # Generate the Xcode project
 mise x tuist@4.197.3 -- tuist generate
 
-# Open the generated project
-open DailyTactics.xcodeproj
+# Open the generated workspace (it also contains the external packages)
+open DailyTactics.xcworkspace
 
 # Run all tests (tuist test resolves only workspace schemes, which this
-# project no longer generates)
-xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics \
+# project no longer generates; build against the workspace, not the project)
+xcrun xcodebuild test -workspace DailyTactics.xcworkspace -scheme DailyTactics \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 ```
 
@@ -131,7 +137,7 @@ CI-style build:
 
 ```sh
 xcodebuild \
-  -project DailyTactics.xcodeproj \
+  -workspace DailyTactics.xcworkspace \
   -scheme DailyTactics \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \

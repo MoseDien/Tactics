@@ -3,175 +3,145 @@ import PuzzleKit
 import ChessCore
 import TacticsData
 
+/// Sheet payload for the free analysis board. It always starts from the
+/// puzzle's raw position; the machine's opening move rides along as
+/// history frame one, and the board opens oriented like the training
+/// board at launch.
+struct AnalysisSeed: Identifiable {
+    let fen: String
+    let openingMove: Analysis.Move?
+    let startsFlipped: Bool
+    var id: String { fen }
+
+    init(puzzle: Puzzle, startsFlipped: Bool) {
+        let seed = PositionFENSerializer.analysisSeed(for: puzzle)
+        fen = seed.fen
+        openingMove = seed.openingMove
+        self.startsFlipped = startsFlipped
+    }
+}
+
+/// The training board for the active batch; new rounds start on Home.
 struct TacticsView: View {
-    let mode: TacticsMode
-    let resumesActiveRound: Bool
     @Environment(AppDependencies.self) private var dependencies
-    @State private var screen: TacticsScreenViewModel?
+    @Environment(TacticsScreenViewModel.self) private var screen
     @State private var showingSettings = false
     @State private var showingHowToPlay = false
     @State private var analysisSeed: AnalysisSeed?
 
-    /// Sheet payload for the free analysis board. It always starts from the
-    /// puzzle's raw position; the machine's opening move rides along as
-    /// history frame one, and the board opens oriented like the training
-    /// board at launch.
-    private struct AnalysisSeed: Identifiable {
-        let fen: String
-        let openingMove: Analysis.Move?
-        let startsFlipped: Bool
-        var id: String { fen }
-
-        init(puzzle: Puzzle, startsFlipped: Bool) {
-            let seed = PositionFENSerializer.analysisSeed(for: puzzle)
-            fen = seed.fen
-            openingMove = seed.openingMove
-            self.startsFlipped = startsFlipped
-        }
-    }
-
-    init(mode: TacticsMode = .play, resumesActiveRound: Bool = false) {
-        self.mode = mode
-        self.resumesActiveRound = resumesActiveRound
-    }
-
     var body: some View {
-        Group {
-            if let screen {
-                content(for: screen)
-            } else {
-                ProgressView("Loading…")
-            }
-        }
-        .task {
-            _ = await dependencies.provisioner.ensureRoundAvailable(minimum: RoundPolicy.puzzleCount)
-            let training = TacticsTrainingStore(
-                dependencies: dependencies,
-                dailyPuzzleCount: RoundPolicy.puzzleCount,
-                mode: mode,
-                resumesActiveRound: resumesActiveRound
+        GeometryReader { viewport in
+            let boardSide = min(
+                viewport.size.width,
+                max(280, viewport.size.height - 238)
             )
-            let screen = TacticsScreenViewModel(training: training)
-            screen.start()
-            self.screen = screen
-            #if DEBUG
-            // Smoke-test hook: `simctl launch ... -showAnalysisBoard 1`.
-            if UserDefaults.standard.bool(forKey: "showAnalysisBoard") {
-                analysisSeed = AnalysisSeed(
-                    puzzle: training.roundState.puzzles[training.roundState.currentIndex],
-                    startsFlipped: training.sessionState.isBoardFlipped
+            VStack(spacing: 0) {
+                TacticsHeaderView(viewModel: screen.header)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+
+                ChessBoardView(
+                    position: screen.board.position,
+                    selectedSquare: screen.board.selectedSquare,
+                    hintMove: screen.board.hintMove,
+                    lastMove: screen.board.lastMove,
+                    isFlipped: screen.board.isFlipped,
+                    animation: screen.board.animation,
+                    onSelect: screen.board.select
                 )
+                // This must be a rigid square. A width-only frame lets the
+                // surrounding VStack compress the board when the Review
+                // actions appear, which reads as a board zoom animation.
+                .frame(width: boardSide, height: boardSide)
+
+                HStack(alignment: .center, spacing: 12) {
+                    RatingPanelView(viewModel: screen.rating)
+                    Spacer(minLength: 8)
+                    RoundProgressView(viewModel: screen.progress)
+                }
+                .padding(.horizontal, 4)
+
+                MoveControlsView(
+                    viewModel: screen.controls,
+                    onOpenAnalysis: {
+                        analysisSeed = AnalysisSeed(
+                            puzzle: screen.currentPuzzle,
+                            startsFlipped: screen.board.isFlipped
+                        )
+                    }
+                )
+
+                RoundActionsView(viewModel: screen.roundActions)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+
+                let messageView = TacticsMessageArea(viewModel: screen.messages)
+                if messageView.hasMessage {
+                    messageView
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                }
             }
-            #endif
         }
-    }
-
-    @ViewBuilder
-    private func content(for screen: TacticsScreenViewModel) -> some View {
-        NavigationStack {
-            GeometryReader { viewport in
-                let boardSide = min(
-                    viewport.size.width,
-                    max(280, viewport.size.height - 238)
+        .overlay {
+            if let promotion = screen.promotion.pendingPromotion {
+                PromotionPickerView(viewModel: screen.promotion, promotion: promotion)
+            }
+        }
+        .background(Color(.systemBackground))
+        .navigationTitle(String(localized: "app.name"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showingHowToPlay = true
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+                .accessibilityLabel(String(localized: "settings.how_to_play"))
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel(String(localized: "tactics.settings"))
+            }
+        }
+        .popover(isPresented: $showingHowToPlay) {
+            HowToPlayView()
+                .presentationDetents([.medium, .large])
+                .frame(minWidth: 320, minHeight: 240)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(store: .settings(dependencies: dependencies))
+        }
+        .sheet(item: $analysisSeed) { seed in
+            NavigationStack {
+                AnalysisScreenView(
+                    seedFEN: seed.fen,
+                    openingMove: seed.openingMove,
+                    startsFlipped: seed.startsFlipped
                 )
-                VStack(spacing: 0) {
-                    TacticsHeaderView(viewModel: screen.header)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-
-                    ChessBoardView(
-                        position: screen.board.position,
-                        selectedSquare: screen.board.selectedSquare,
-                        hintMove: screen.board.hintMove,
-                        lastMove: screen.board.lastMove,
-                        isFlipped: screen.board.isFlipped,
-                        animation: screen.board.animation,
-                        onSelect: screen.board.select
-                    )
-                    // This must be a rigid square. A width-only frame lets the
-                    // surrounding VStack compress the board when the Review
-                    // actions appear, which reads as a board zoom animation.
-                    .frame(width: boardSide, height: boardSide)
-
-                    HStack(alignment: .center, spacing: 12) {
-                        RatingPanelView(viewModel: screen.rating)
-                        Spacer(minLength: 8)
-                        RoundProgressView(viewModel: screen.progress)
-                    }
-                    .padding(.horizontal, 4)
-
-                    MoveControlsView(
-                        viewModel: screen.controls,
-                        onOpenAnalysis: {
-                            analysisSeed = AnalysisSeed(
-                                puzzle: screen.currentPuzzle,
-                                startsFlipped: screen.board.isFlipped
-                            )
-                        }
-                    )
-
-                    RoundActionsView(viewModel: screen.roundActions)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-
-                    let messageView = TacticsMessageArea(viewModel: screen.messages)
-                    if messageView.hasMessage {
-                        messageView
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
-                    }
-                }
             }
-            .overlay {
-                if let promotion = screen.promotion.pendingPromotion {
-                    PromotionPickerView(viewModel: screen.promotion, promotion: promotion)
-                }
-            }
-            .background(Color(.systemBackground))
-            .navigationTitle(String(localized: "app.name"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingHowToPlay = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                    }
-                    .accessibilityLabel(String(localized: "settings.how_to_play"))
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .accessibilityLabel(String(localized: "tactics.settings"))
-                }
-            }
-            .popover(isPresented: $showingHowToPlay) {
-                HowToPlayView()
-                    .presentationDetents([.medium, .large])
-                    .frame(minWidth: 320, minHeight: 240)
-            }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-            }
-            .sheet(item: $analysisSeed) { seed in
-                NavigationStack {
-                    AnalysisScreenView(
-                        seedFEN: seed.fen,
-                        openingMove: seed.openingMove,
-                        startsFlipped: seed.startsFlipped
-                    )
-                }
-                .presentationDetents([.large])
-            }
+            .presentationDetents([.large])
         }
     }
 
 }
 
 #Preview {
-    TacticsView()
-        .environment(AppDependencies.preview())
+    let dependencies = AppDependencies.preview()
+    let screen = TacticsScreenViewModel(
+        training: TacticsTrainingStore(
+            dependencies: dependencies,
+            dailyPuzzleCount: RoundPolicy.puzzleCount
+        )
+    )
+    return NavigationStack {
+        TacticsView()
+            .environment(dependencies)
+            .environment(screen)
+    }
 }

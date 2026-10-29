@@ -62,7 +62,16 @@ let project = Project(
             ]),
             sources: ["DailyTactics/Sources/**"],
             resources: ["DailyTactics/Resources/**"],
-            dependencies: [.target(name: "ChessCore"), .target(name: "PuzzleKit"), .target(name: "TacticsData")]
+            dependencies: [
+                .target(name: "ChessCore"),
+                .target(name: "PuzzleKit"),
+                .target(name: "TacticsData"),
+                // TCA stays in the app target (and its tests) only — the
+                // framework targets below must remain UI-framework-free.
+                .external(name: "ComposableArchitecture"),
+                .external(name: "Dependencies"),
+                .external(name: "DependenciesMacros"),
+            ]
         ),
         .target(
             name: "DailyTacticsTests",
@@ -71,7 +80,13 @@ let project = Project(
             bundleId: "com.dienbell.tactics.tests",
             infoPlist: .default,
             sources: ["DailyTactics/Tests/**"],
-            dependencies: [.target(name: "DailyTactics"), .target(name: "PuzzleKit"), .target(name: "TacticsData")]
+            dependencies: [
+                .target(name: "DailyTactics"),
+                .target(name: "PuzzleKit"),
+                .target(name: "TacticsData"),
+                .external(name: "ComposableArchitecture"),
+                .external(name: "Dependencies"),
+            ]
         ),
         .target(
             name: "TacticsDataTests",

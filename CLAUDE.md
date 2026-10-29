@@ -21,6 +21,10 @@ the deployed catalog and imported; failures fall back silently.)
 - Tuist 4.x is the source of truth for the Xcode project under `ios/`
 - SwiftData only behind `Persistence` interfaces
 - XCTest for domain and feature behavior
+- The Composable Architecture (TCA 1.26.x) in the app target only, declared in
+  `ios/Tuist/Package.swift` (installed with `tuist install`). The migration is
+  pilot-first; evaluation, coexistence rules, and the phase plan live in
+  [docs/TCA_MIGRATION_EVALUATION.md](docs/TCA_MIGRATION_EVALUATION.md).
 
 Bundle ID: `com.dienbell.tactics`.
 
@@ -42,8 +46,12 @@ PuzzleKit           → ChessCore
 ```text
 DailyTacticsApp
   ├── AppDependencies (composition root, injected via .environment)
+  ├── RootView task builds the session-scoped TacticsTrainingStore /
+  │   TacticsScreenViewModel after the import gate (injected via .environment)
   ├── RoundTracker / TacticsPacing (observable round window, injectable clock & pacing)
-  ├── Features/Tactics
+  ├── Features/Home         root screen: round card, Continue / New round,
+  │                          history / favorites / settings entries
+  ├── Features/Tactics      pushed training board: the active batch only
   ├── Features/Settings     difficulty, rating trend, history entry
   └── Features/Onboarding   first-launch library import
 ```
@@ -88,8 +96,32 @@ test initializer and coordinates the training flow, while `TacticsSessionStore`
 owns current-puzzle interaction state, `TacticsRoundStore` owns batch selection
 and navigation, and `TacticsProgressStore` owns rating, outcomes, and persisted
 progress. `TacticsScreenViewModel` composes
-view-specific presentation ViewModels over the training flow. `RoundTracker` owns an injectable clock and schedules one expiry
+view-specific presentation ViewModels over the training flow; `RootView`
+builds it once per session and injects it via `.environment`, so the store
+survives navigation between `HomeView` (the root) and the pushed
+`TacticsView`. `RoundTracker` owns an injectable clock and schedules one expiry
 wake-up — no polling timers anywhere.
+
+### TCA coexistence (app target only)
+
+Features migrate to TCA one at a time (`Features/Settings` is done; the rest
+are still `@Observable` stores). During the mix:
+
+- A feature is either fully TCA (`<Feature>Feature.swift` reducer + a view
+  taking `StoreOf<<Feature>Feature>`) or fully `@Observable`; never both in
+  one screen. Settings is the reference implementation
+  (`SettingsFeature.swift`, `SettingsClients.swift`).
+- TCA stores are constructed only at presentation boundaries via the feature's
+  static factory (e.g. `Store.settings(dependencies:)`), which wraps
+  `Store` creation in `withDependencies` closing over
+  `@Environment(AppDependencies.self)`. `AppDependencies` stays the single
+  composition root — no liveValue registration, no global/static stores.
+- `import ComposableArchitecture`/`Dependencies` may appear only under
+  `ios/DailyTactics/Sources/**` and `ios/DailyTactics/Tests/**` (enforced by
+  the target dependency graph).
+- Reducers never sleep (`Task.sleep`): delays ride injected
+  clocks/clients. Every migrated feature ships with its TestStore suite.
+- Domain types crossing the boundary stay PuzzleKit `Sendable` value types.
 
 ## Interaction rules
 
@@ -131,13 +163,20 @@ wake-up — no polling timers anywhere.
   disables once the puzzle is complete.
 - A pawn reaching the last rank opens a promotion picker
   (queen/rook/bishop/knight); the move is submitted only after a choice.
-- A new round unlocks after the round window (12 hours; 5 minutes in Debug builds); tapping
-  `Next round` remains tappable inside the window, shows the remaining wait
-  time, and stays in Review; a foreground refresh surfaces its CTA regardless
-  of board state. A cold launch never starts a round by itself: an incomplete
-  persisted round resumes in Play at its saved cursor, a completed one resumes
-  in Review looping from the first puzzle, and a fresh round only begins when
-  the user taps `Next round`; the view model enforces the same guard.
+- Home (`Features/Home`) is the root screen: a round card (progress/review
+  status, outcome row, rating) carrying `Continue training` / `Review this
+  round` and `Next round`, plus history, favorites, and settings entries.
+  A new round unlocks after the round window (12 hours; 5 minutes in Debug
+  builds); the Home `Next round` button stays tappable-but-disabled inside
+  the window while the card shows the unlock time, and a foreground refresh
+  lights it regardless of board state. A cold launch lands on Home and never
+  starts a round by itself: an incomplete persisted round resumes in Play at
+  its saved cursor, a completed one resumes in Review looping from the first
+  puzzle, and a fresh round only begins when the user taps `Next round`
+  (the fresh-install auto-begin of round one remains the sanctioned
+  exception); the view model enforces the same guard. `TacticsView` only
+  carries the active batch — its toolbar How-to-play and Settings entries
+  stay.
 - Settings keeps manual next-chunk download tappable. At 3000 or more untried
   puzzles it explains the threshold; below 3000 it downloads and shows a local,
   semi-transparent spinner instead of a full-screen loading state.
@@ -170,13 +209,20 @@ After changes:
 
 ```sh
 cd ios
+mise x tuist@4.197.3 -- tuist install   # after editing Tuist/Package.swift or on a fresh clone
 mise x tuist@4.197.3 -- tuist generate
-xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics \
+xcrun xcodebuild test -workspace DailyTactics.xcworkspace -scheme DailyTactics \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 ```
 
+Build against the **workspace**, not the `-project`: the external Swift
+packages (TCA) are workspace members, and a `-project` build fails with
+missing resource-bundle errors. If the simulator name alone doesn't match
+(e.g. when the newest runtime outranks the device's), append `,OS=<version>`
+to the destination.
+
 (`tuist test` resolves only workspace-level schemes, which this project no
-longer generates — run xcodebuild against the generated project instead.)
+longer generates — run xcodebuild instead.)
 
 For UI/layout changes, also compile an iPhone SE simulator destination. Do not
 hand-edit generated `.xcodeproj` files.

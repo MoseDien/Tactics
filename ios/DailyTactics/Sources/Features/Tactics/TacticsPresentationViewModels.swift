@@ -133,10 +133,6 @@ final class TacticsRoundActionsViewModel {
     }
 
     var feedbackState: TacticsFeedbackState { training.feedbackState }
-    var shouldShowNewRoundAction: Bool { training.shouldShowNewRoundAction }
-    var showsCompletedRoundAction: Bool {
-        round.mode == .reviewRound || training.isRoundComplete
-    }
     var isNewRoundAvailable: Bool { round.isNewRoundAvailable }
     func nextPuzzle() { training.nextPuzzle() }
     func startNextRound() { training.startNextRound() }
@@ -146,23 +142,13 @@ final class TacticsRoundActionsViewModel {
 @Observable
 final class TacticsMessageAreaViewModel {
     private let training: TacticsTrainingStore
-    private let round: TacticsRoundStore
-    private let session: TacticsSessionStore
     init(training: TacticsTrainingStore) {
         self.training = training
-        round = training.roundState
-        session = training.sessionState
     }
 
     var feedbackState: TacticsFeedbackState { training.feedbackState }
     var currentMoveNumber: Int { training.currentMoveNumber }
     var totalUserMoves: Int { training.totalUserMoves }
-    var showsNextRoundUnlock: Bool {
-        session.currentPuzzleFinished
-            && (round.mode == .reviewRound || training.isRoundComplete)
-            && !round.isNewRoundAvailable
-    }
-    var nextRoundUnlockDescription: String? { round.nextRoundUnlockDescription }
 }
 
 @MainActor

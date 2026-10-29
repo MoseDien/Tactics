@@ -7,8 +7,10 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 
 - 当前只开发 iOS；Android 暂停，直到 iOS 版本完成并稳定。
 
-- `ios/Project.swift` and `ios/Tuist.swift` define the Xcode project.
-- Generate from `ios/` with `mise x tuist@4.197.3 -- tuist generate`.
+- `ios/Project.swift` and `ios/Tuist.swift` define the Xcode project;
+  `ios/Tuist/Package.swift` declares the external Swift packages (TCA).
+- Generate from `ios/` with `mise x tuist@4.197.3 -- tuist install` (fresh
+  clones / manifest edits) then `mise x tuist@4.197.3 -- tuist generate`.
 - Never use the generated `.xcodeproj` as the primary project definition.
 - Preserve Bundle ID `com.dienbell.tactics`.
 - The current product flow is documented in [docs/BUSINESS_LOGIC.md](docs/BUSINESS_LOGIC.md).
@@ -24,6 +26,13 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 - `DailyTactics` (app): SwiftUI features (Tactics/Settings/Onboarding), the
   `AppDependencies` composition root, `RoundTracker`, `TacticsPacing`.
   Animation timing lives in the board view, never in the domain.
+- The Composable Architecture lives in the app target only (never in
+  ChessCore/PuzzleKit/TacticsData — the target graph enforces it). Features
+  migrate one at a time; Settings is done, the rest are still `@Observable`
+  stores. TCA stores are built only at presentation boundaries via the
+  feature factory (`withDependencies` over `AppDependencies`) — no liveValue,
+  no global stores; reducers never `Task.sleep`. See
+  [docs/TCA_MIGRATION_EVALUATION.md](docs/TCA_MIGRATION_EVALUATION.md).
 - Tactics uses `TacticsTrainingStore` as the training-flow coordinator,
   `TacticsSessionStore` for the current puzzle's board interaction state, and
   `TacticsRoundStore` for batch state, selection and navigation, plus
@@ -37,9 +46,10 @@ feature and preserve the existing offline iOS SwiftUI product direction.
   puzzles, in the TacticsData bundle) plus on-demand chunk downloads when the
   untried pool can't fill a round (the only sanctioned network behavior).
 - Settings exposes the same next-chunk delivery path manually. When the
-  untried pool has 50 or more puzzles, its always-tappable control explains
-  the threshold instead of silently disabling; its loading indicator remains
-  local to the control, not a screen replacement.
+  untried pool has 3000 or more puzzles (or every chunk is published), its
+  always-tappable control explains the threshold instead of silently
+  disabling; its loading indicator remains local to the control, not a screen
+  replacement.
 - Lichess lines are machine-first: `moves[0]` auto-plays, then the player
   starts at `moves[1]` and turns alternate.
 - During an active puzzle Hint is two-stage: the first tap reveals the expected
@@ -79,13 +89,17 @@ feature and preserve the existing offline iOS SwiftUI product direction.
 
 ```sh
 cd ios
+mise x tuist@4.197.3 -- tuist install    # fresh clones / Package.swift edits
 mise x tuist@4.197.3 -- tuist generate
-xcrun xcodebuild test -project DailyTactics.xcodeproj -scheme DailyTactics \
+xcrun xcodebuild test -workspace DailyTactics.xcworkspace -scheme DailyTactics \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 ```
 
+Build against the **workspace**: the external Swift packages are workspace
+members and `-project` builds fail on their resource bundles. If the
+simulator name alone doesn't match, append `,OS=<version>` to the destination.
 `tuist test` resolves only workspace-level schemes, which this project no
-longer generates — run xcodebuild against the generated project instead.
+longer generates — run xcodebuild instead.
 
 Avoid committing generated Xcode state, local databases, raw Lichess archives,
 or machine-specific settings.

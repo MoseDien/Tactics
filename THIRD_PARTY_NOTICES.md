@@ -1,5 +1,32 @@
 # Third-party notices
 
+## Swift packages (the Composable Architecture)
+
+The app target links the following Swift packages, declared in
+`ios/Tuist/Package.swift` and resolved by `tuist install` (see
+`ios/Tuist/Package.resolved` for the exact pinned versions):
+
+- swift-composable-architecture (https://github.com/pointfreeco/swift-composable-architecture)
+  — MIT License
+- Its transitive dependencies, all MIT License unless noted:
+  - swift-dependencies (https://github.com/pointfreeco/swift-dependencies)
+  - swift-case-paths (https://github.com/pointfreeco/swift-case-paths)
+  - swift-clocks (https://github.com/pointfreeco/swift-clocks)
+  - swift-concurrency-extras (https://github.com/pointfreeco/swift-concurrency-extras)
+  - swift-custom-dump (https://github.com/pointfreeco/swift-custom-dump)
+  - swift-identified-collections (https://github.com/pointfreeco/swift-identified-collections)
+  - swift-issue-reporting (https://github.com/pointfreeco/swift-issue-reporting)
+  - swift-navigation (https://github.com/pointfreeco/swift-navigation)
+  - swift-perception (https://github.com/pointfreeco/swift-perception)
+  - swift-sharing (https://github.com/pointfreeco/swift-sharing)
+  - xctest-dynamic-overlay (https://github.com/pointfreeco/xctest-dynamic-overlay)
+  - combine-schedulers (https://github.com/pointfreeco/combine-schedulers)
+  - swift-syntax (https://github.com/swiftlang/swift-syntax) — Apache License 2.0
+  - swift-collections (https://github.com/apple/swift-collections) — Apache License 2.0
+
+These packages are used only by the app target (`DailyTactics`) and its unit
+tests; the ChessCore/PuzzleKit/TacticsData frameworks do not depend on them.
+
 ## Lichess Chessnut pieces
 
 The chess piece image sets under

@@ -1,45 +1,27 @@
 import SwiftUI
 import PuzzleKit
-import SwiftData
 import Charts
+import ComposableArchitecture
 import TacticsData
 
-/// The settings form: pure layout and binding. All state and actions live in
-/// `SettingsViewModel`.
+/// The settings form: pure layout and bindings over the TCA store.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(AppDependencies.self) private var dependencies
-    @State private var viewModel: SettingsViewModel?
+    @Bindable var store: StoreOf<SettingsFeature>
 
     var body: some View {
         NavigationStack {
-            if let viewModel {
-                form(for: viewModel)
-            } else {
-                ProgressView()
-            }
-        }
-        .task {
-            // Attached outside the `if let`: the form (and its own modifiers)
-            // only render once the model exists, so this must live here.
-            if viewModel == nil {
-                let built = SettingsViewModel(dependencies: dependencies)
-                built.load()
-                viewModel = built
-            }
+            form
+                .task { store.send(.onAppear) }
         }
     }
 
-    @ViewBuilder
-    private func form(for model: SettingsViewModel) -> some View {
+    private var form: some View {
         Form {
-            ratingTrendSection(for: model)
+            ratingTrendSection
 
             Section {
-                Picker(String(localized: "settings.difficulty"), selection: Binding(
-                    get: { model.difficulty },
-                    set: { model.difficulty = $0; model.setDifficulty($0) }
-                )) {
+                Picker(String(localized: "settings.difficulty"), selection: $store.difficulty) {
                     ForEach(DifficultyMode.allCases) { mode in
                         Text(LocalizedStringKey(mode.localizedKey)).tag(mode)
                     }
@@ -56,12 +38,12 @@ struct SettingsView: View {
                 }
 
                 Button {
-                    model.downloadMorePuzzlesTapped()
+                    store.send(.downloadTapped)
                 } label: {
                     Label {
                         HStack(spacing: 8) {
                             Text(String(localized: "settings.download_more_puzzles"))
-                            if model.isDownloadingMorePuzzles {
+                            if store.isDownloading {
                                 ProgressView()
                                     .controlSize(.small)
                                     .tint(.secondary)
@@ -72,19 +54,19 @@ struct SettingsView: View {
                         Image(systemName: "arrow.down.circle")
                     }
                 }
-                .disabled(!model.isEligibleForManualDownload)
-                .foregroundStyle(model.isEligibleForManualDownload ? Color.primary : Color.secondary)
+                .disabled(!store.isEligibleForManualDownload)
+                .foregroundStyle(store.isEligibleForManualDownload ? Color.primary : Color.secondary)
                 .popover(
                     isPresented: Binding(
-                        get: { model.downloadMorePuzzlesNotice != nil },
-                        set: { if !$0 { model.downloadMorePuzzlesNotice = nil } }
+                        get: { store.downloadNotice != nil },
+                        set: { if !$0 { store.send(.noticeDismissed) } }
                     ),
                     arrowEdge: .top
                 ) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(String(localized: "settings.download_more_puzzles_unavailable_title"))
                             .font(.headline)
-                        Text(model.downloadMorePuzzlesNotice ?? "")
+                        Text(store.downloadNotice ?? "")
                             .fixedSize(horizontal: false, vertical: true)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -97,7 +79,7 @@ struct SettingsView: View {
             } footer: {
                 Text(String(
                     format: NSLocalizedString("settings.library_status", comment: "Library chunk and puzzle count"),
-                    model.libraryChunk, model.libraryCount, model.untriedPuzzleCount
+                    store.status.chunk, store.status.puzzleCount, store.status.untriedCount
                 ))
             }
 
@@ -143,20 +125,17 @@ struct SettingsView: View {
 
             #if DEBUG
             Section {
-                Picker(String(localized: "debug.round_duration"), selection: Binding(
-                    get: { model.roundDuration },
-                    set: { model.roundDuration = $0; model.setRoundDuration($0) }
-                )) {
-                    ForEach(SettingsViewModel.debugRoundDurations, id: \.self) { seconds in
+                Picker(String(localized: "debug.round_duration"), selection: $store.roundDuration) {
+                    ForEach(SettingsFeature.State.debugRoundDurations, id: \.self) { seconds in
                         Text(Duration.seconds(seconds).formatted(.units(width: .abbreviated)))
                             .tag(seconds)
                     }
                 }
                 Button(String(localized: "debug.drain_pool")) {
-                    model.drainUntriedPool()
+                    store.send(.drainPoolTapped)
                 }
                 Button(String(localized: "debug.reset_all"), role: .destructive) {
-                    model.showingResetAllConfirm = true
+                    store.send(.resetAllTapped)
                 }
             } header: {
                 Text(String(localized: "debug.section"))
@@ -175,13 +154,10 @@ struct SettingsView: View {
         #if DEBUG
         .alert(
             String(localized: "debug.reset_all_confirm_title"),
-            isPresented: Binding(
-                get: { model.showingResetAllConfirm },
-                set: { model.showingResetAllConfirm = $0 }
-            )
+            isPresented: $store.showingResetAllConfirm
         ) {
             Button(String(localized: "debug.reset_all"), role: .destructive) {
-                model.resetToInitialState()
+                store.send(.resetAllConfirmed)
             }
             Button(String(localized: "common.cancel"), role: .cancel) { }
         } message: {
@@ -190,13 +166,13 @@ struct SettingsView: View {
         .alert(
             String(localized: "debug.notice_title"),
             isPresented: Binding(
-                get: { model.debugNotice != nil },
-                set: { if !$0 { model.debugNotice = nil } }
+                get: { store.debugNotice != nil },
+                set: { if !$0 { store.send(.debugNoticeDismissed) } }
             )
         ) {
             Button(String(localized: "common.done"), role: .cancel) { }
         } message: {
-            Text(model.debugNotice ?? "")
+            Text(store.debugNotice ?? "")
         }
         #endif
     }
@@ -206,15 +182,15 @@ struct SettingsView: View {
     /// One point per completed round. Single series: the section title names
     /// it, so no legend; the line uses the app accent, which iOS keeps
     /// legible in both appearances.
-    private func ratingTrendSection(for viewModel: SettingsViewModel) -> some View {
+    private var ratingTrendSection: some View {
         Section {
-            if viewModel.snapshots.isEmpty {
+            if store.snapshots.isEmpty {
                 Text(String(localized: "settings.rating_trend_empty"))
                     .font(.subheadline)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 8)
             } else {
-                Chart(viewModel.snapshots) { snapshot in
+                Chart(store.snapshots) { snapshot in
                     LineMark(
                         x: .value("Date", snapshot.recordedAt),
                         y: .value("Rating", snapshot.rating)
@@ -230,8 +206,8 @@ struct SettingsView: View {
                     .foregroundStyle(Color.accentColor)
                     .symbolSize(30)
                 }
-                .chartYScale(domain: viewModel.ratingDomain)
-                .chartXScale(domain: viewModel.ratingDateDomain)
+                .chartYScale(domain: store.ratingDomain)
+                .chartXScale(domain: store.ratingDateDomain)
                 .chartXAxis {
                     AxisMarks { _ in
                         AxisGridLine()
@@ -243,17 +219,17 @@ struct SettingsView: View {
                 }
                 .frame(height: 180)
                 .accessibilityLabel(String(localized: "settings.rating_trend"))
-                .accessibilityValue(viewModel.trendAccessibilitySummary)
+                .accessibilityValue(store.trendAccessibilitySummary)
             }
         } header: {
             HStack {
                 Text(String(localized: "settings.rating_trend"))
                 Spacer()
-                Text("\(viewModel.currentRating)")
+                Text("\(store.currentRating)")
                     .foregroundStyle(.secondary)
             }
         } footer: {
-            if let delta = viewModel.trendDelta {
+            if let delta = store.trendDelta {
                 Text(String(
                     format: NSLocalizedString("settings.rating_trend_delta", comment: "Change since the first snapshot"),
                     delta
@@ -261,4 +237,8 @@ struct SettingsView: View {
             }
         }
     }
+}
+
+#Preview {
+    SettingsView(store: .settings(dependencies: AppDependencies.preview()))
 }

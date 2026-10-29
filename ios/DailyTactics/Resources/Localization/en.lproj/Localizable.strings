@@ -70,6 +70,11 @@
 "tactics.next_round_wait_hint" = "Unlocks when the current round's time window ends";
 "tactics.next_round_wait" = "The next round is not available yet.";
 "tactics.next_round_wait_until" = "Next round unlocks at %@";
+/* home */
+"home.continue_training" = "Continue training";
+"home.continue_review" = "Review this round";
+"home.round_status_progress" = "Round in progress";
+"home.round_status_review" = "Round complete";
 /* review */
 "review.title" = "Review";
 "review.label" = "REVIEW";

@@ -109,8 +109,7 @@ struct MoveControlsView: View {
     }
 }
 
-/// Result actions shown once a puzzle is complete, plus the available-next-
-/// round action surfaced after a foreground refresh.
+/// Result actions shown once a puzzle is complete; new rounds start on Home.
 struct RoundActionsView: View {
     let viewModel: TacticsRoundActionsViewModel
 
@@ -122,27 +121,14 @@ struct RoundActionsView: View {
             default:
                 EmptyView()
             }
-
-            if viewModel.shouldShowNewRoundAction {
-                HStack {
-                    NextRoundButton(viewModel: viewModel)
-                    Spacer()
-                }
-                .padding(.bottom, 28)
-            }
         }
     }
 
     private var completedPuzzleActions: some View {
-        VStack(spacing: 12) {
-            HStack {
-                if viewModel.showsCompletedRoundAction {
-                    NextRoundButton(viewModel: viewModel)
-                }
-                Spacer()
-                Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
-                    .buttonStyle(.borderedProminent)
-            }
+        HStack {
+            Spacer()
+            Button(String(localized: "tactics.next_puzzle"), action: viewModel.nextPuzzle)
+                .buttonStyle(.borderedProminent)
         }
         .padding(.bottom, 28)
     }
@@ -154,54 +140,42 @@ struct TacticsMessageArea: View {
     let viewModel: TacticsMessageAreaViewModel
 
     var hasMessage: Bool {
-        let hasStateMessage = switch viewModel.feedbackState {
+        switch viewModel.feedbackState {
         case .idle, .puzzleComplete, .trainingComplete:
             false
         default:
             true
         }
-        return hasStateMessage || nextRoundUnlockMessage != nil
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            Group {
-                switch viewModel.feedbackState {
-                case let .error(message):
-                    messageRow(message, systemImage: "exclamationmark.triangle.fill", color: .red)
-                case let .instruction(message, systemImage):
-                    messageRow(message, systemImage: systemImage, color: .secondary)
-                case .reviewing:
-                    messageRow(
-                        String(format: NSLocalizedString("tactics.reviewing_move", comment: "Review move progress"), viewModel.currentMoveNumber, viewModel.totalUserMoves),
-                        systemImage: "eye",
-                        color: .secondary
-                    )
-                case .opponentMoving:
-                    HStack(spacing: 10) {
-                        ProgressView()
-                        Text(String(localized: "tactics.opponent_moving"))
-                    }
-                    .foregroundStyle(.secondary)
-                    .messageContainer()
-                case .opponentReply:
-                    messageRow(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right", color: .secondary)
-                case .incorrectMove:
-                    messageRow(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise", color: .orange)
-                case .idle, .puzzleComplete, .trainingComplete:
-                    EmptyView()
+        Group {
+            switch viewModel.feedbackState {
+            case let .error(message):
+                messageRow(message, systemImage: "exclamationmark.triangle.fill", color: .red)
+            case let .instruction(message, systemImage):
+                messageRow(message, systemImage: systemImage, color: .secondary)
+            case .reviewing:
+                messageRow(
+                    String(format: NSLocalizedString("tactics.reviewing_move", comment: "Review move progress"), viewModel.currentMoveNumber, viewModel.totalUserMoves),
+                    systemImage: "eye",
+                    color: .secondary
+                )
+            case .opponentMoving:
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text(String(localized: "tactics.opponent_moving"))
                 }
-            }
-
-            if let nextRoundUnlockMessage {
-                messageRow(nextRoundUnlockMessage, systemImage: "clock", color: .secondary)
+                .foregroundStyle(.secondary)
+                .messageContainer()
+            case .opponentReply:
+                messageRow(String(localized: "tactics.opponent_reply"), systemImage: "arrow.left.and.right", color: .secondary)
+            case .incorrectMove:
+                messageRow(String(localized: "tactics.incorrect_move"), systemImage: "arrow.counterclockwise", color: .orange)
+            case .idle, .puzzleComplete, .trainingComplete:
+                EmptyView()
             }
         }
-    }
-
-    private var nextRoundUnlockMessage: String? {
-        guard viewModel.showsNextRoundUnlock else { return nil }
-        return viewModel.nextRoundUnlockDescription
     }
 
     private func messageRow(_ message: String, systemImage: String, color: Color) -> some View {
@@ -217,20 +191,6 @@ private extension View {
             .font(.subheadline)
             .padding(12)
             .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 12))
-    }
-}
-
-struct NextRoundButton: View {
-    let viewModel: TacticsRoundActionsViewModel
-
-    var body: some View {
-        Button(String(localized: "tactics.next_round"), action: viewModel.startNextRound)
-            .buttonStyle(.borderedProminent)
-            .tint(viewModel.isNewRoundAvailable ? .accentColor : Color.gray)
-            .disabled(!viewModel.isNewRoundAvailable)
-            .accessibilityHint(viewModel.isNewRoundAvailable
-                ? String(localized: "tactics.next_round_ready_hint")
-                : String(localized: "tactics.next_round_wait_hint"))
     }
 }
 
